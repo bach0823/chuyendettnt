@@ -57,14 +57,15 @@ Completed:
   + [x] Independent Cross-Check Audit: Hoàn tất với 25/25 requirements PASS, review log lưu tại `docs/B2_Audit_Review_Log.md`.
   + [x] **Phase 0 Runtime Preflight trên Colab Tesla T4 (HOÀN TẤT 100%):**
     - Batch 20 & Batch 14+: OOM (vượt 14.56 GB VRAM T4).
-    - Batch 12 (12 iters): PASS (Peak Alloc 13.77 GB, Free 0.47 GB, drift +0.08 MB).
-    - Batch 10 (12 iters): PASS (Peak Alloc 13.43 GB, Free 0.68 GB, drift +1.37 MB) → Khuyến nghị cân bằng tốt nhất giữa throughput và vùng đệm VRAM.
-    - Batch 8 (12 iters): PASS (Peak Alloc 12.07 GB, Free 2.07 GB, drift -0.22 MB) → Khuyến nghị an toàn tuyệt đối.
-    - 16/16 experts chọn đều (5.7% - 6.8%), checkpoint round-trip exact match.
+    - **Batch 12 trên Real Crack500 (12 training batches thật):** ✅ **PASS** (Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free 0.51 GB**, Throughput 0.55 samples/s, 0 memory leak từ batch 2, 16/16 experts chọn đều 5.0% - 6.9%).
+    - Batch 12 (12 iters synthetic): PASS (Peak Alloc 13.77 GB, Free 0.47 GB, drift +0.08 MB).
+    - Batch 10 (12 iters synthetic): PASS (Peak Alloc 13.43 GB, Free 0.68 GB).
+    - Batch 8 (12 iters synthetic): PASS (Peak Alloc 12.07 GB, Free 2.07 GB).
     - Chi tiết log lưu tại `docs/B2_Phase0_Preflight_Log.md`.
 
 In Progress:
-- Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 10` hoặc `8`).
+- Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 12`).
+
 
 
 Knowledge Being Learned:

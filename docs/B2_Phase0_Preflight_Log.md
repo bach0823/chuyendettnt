@@ -12,15 +12,17 @@
 
 | Batch Size | Probe Scope | Status | Peak Alloc VRAM | Peak Reserved VRAM | Free VRAM | Safety Margin / Ghi chú |
 |---|---|---|---|---|---|---|
-| **Batch 20** | 1 iter | ❌ **FAIL (OOM)** | ~14.56 GB | ~14.56 GB | 0 GB | OOM tại ViT Expert MLP & Decoder |
-| **Batch 14+**| 1 iter | ❌ **FAIL (OOM)** | > 14.56 GB | — | 0 GB | Vượt quá giới hạn cứng 14.56 GB của Tesla T4 |
-| **Batch 12** | **12 iters** | ✅ **PASS** | 14,100.3 MB (13.77 GB) | 14,436.0 MB (14.10 GB) | 476.7 MB (0.47 GB) | Cực kỳ sát ngưỡng (96.8% VRAM). Ổn định (+0.08 MB leak). |
-| **Batch 10** | **12 iters** | ✅ **PASS** | 13,755.0 MB (13.43 GB) | 14,220.0 MB (13.89 GB) | 692.7 MB (0.68 GB) | Khá an toàn (0.68 GB đệm). Cân bằng tốt giữa throughput và độ an toàn. |
-| **Batch 8**  | **12 iters** | ✅ **PASS** | 12,361.6 MB (12.07 GB) | 12,798.0 MB (12.50 GB) | 2,114.7 MB (2.07 GB) | **An toàn tuyệt đối** (> 2.0 GB đệm). Không sợ OOM khi eval/cache. |
+| **Batch 20** | 1 iter (Synthetic) | ❌ **FAIL (OOM)** | ~14.56 GB | ~14.56 GB | 0 GB | OOM tại ViT Expert MLP & Decoder |
+| **Batch 14+**| 1 iter (Synthetic) | ❌ **FAIL (OOM)** | > 14.56 GB | — | 0 GB | Vượt quá giới hạn cứng 14.56 GB của Tesla T4 |
+| **Batch 12** | **12 batches (Real Crack500)** | ✅ **PASS** | **14,168.1 MB (13.84 GB)** | **14,388.0 MB (14.05 GB)** | **524.7 MB (0.51 GB)** | **Xác thực dữ liệu thật**: 0 OOM, 0.55 samples/s, Peak VRAM phẳng từ batch 2. |
+| **Batch 12** | 12 iters (Synthetic) | ✅ **PASS** | 14,100.3 MB (13.77 GB) | 14,436.0 MB (14.10 GB) | 476.7 MB (0.47 GB) | Khớp gần như tuyệt đối với Real Data (< 0.5% chênh lệch). |
+| **Batch 10** | 12 iters (Synthetic) | ✅ **PASS** | 13,755.0 MB (13.43 GB) | 14,220.0 MB (13.89 GB) | 692.7 MB (0.68 GB) | Khá an toàn (0.68 GB đệm). Cân bằng throughput và headroom. |
+| **Batch 8**  | 12 iters (Synthetic) | ✅ **PASS** | 12,361.6 MB (12.07 GB) | 12,798.0 MB (12.50 GB) | 2,114.7 MB (2.07 GB) | An toàn tuyệt đối (> 2.0 GB đệm). Không sợ OOM khi eval/cache. |
 
 > [!IMPORTANT]
 > **Quy tắc về Batch Size:**  
-> Việc điều chỉnh `batch_size` (từ 20 xuống 10 hoặc 8) là **hardware-constrained runtime setting** (bắt buộc do giới hạn VRAM 14.56 GB của T4), **KHÔNG PHẢI** là hyperparameter optimization (HPO) hay thay đổi kiến trúc SAGE.
+> Việc điều chỉnh `batch_size` (từ 20 xuống 12, 10 hoặc 8) là **hardware-constrained runtime setting** (bắt buộc do giới hạn VRAM 14.56 GB của T4), **KHÔNG PHẢI** là hyperparameter optimization (HPO) hay thay đổi kiến trúc SAGE.
+
 
 ---
 
@@ -321,6 +323,136 @@ STEP 4: CHECKPOINT SAVE & LOAD INTEGRITY
      - Batch 12: 13,056 events
      - Batch 10: 10,880 events
      - Batch 8: 8,704 events
-4. **Khuyến nghị lựa chọn Runtime Batch Size**:
+4. **Khuyến nghị lựa chọn Runtime Batch Size (từ Synthetic Probe)**:
    - **`batch_size: 10`**: Lựa chọn cân bằng tối ưu nhất giữa throughput huấn luyện và vùng đệm an toàn VRAM (~692 MB).
    - **`batch_size: 8`**: Lựa chọn an toàn tuyệt đối nếu muốn chạy cùng lúc các tác vụ profiling, background logging, hoặc tránh rủi ro OOM ở các ảnh test có kích thước lớn.
+
+---
+
+## 4. Real-Data Preflight Benchmark trên Crack500 (Batch Size = 12, 12 Batches)
+
+Chạy thực nghiệm trực tiếp với script `scripts/preflight_b2_realdata.py` trên tập huấn luyện thực tế **Crack500** (1896 mẫu ảnh, `ConfigurableMedicalDataset`, Albumentations random crop 448×448, smart filter `fg_pixels >= 20`):
+
+```
+======================================================================
+B2 REAL-DATA RUNTIME PREFLIGHT (CRACK500)
+======================================================================
+[Config Path]  : configs/b2_crack500_depth12.yaml
+[Target Batch] : 12
+[Total Batches]: 12 (Warmup: 2, Measured: 10)
+
+[Device] Target Device: cuda
+[Device] GPU: Tesla T4 | Compute Cap: 7.5 | Total VRAM: 14912.7 MB (14.56 GB)
+[Device] cuDNN: 91900 (enabled=True, benchmark=True)
+
+======================================================================
+LOADING REAL CRACK500 DATASET (Image Size: 448x448)
+======================================================================
+[ConfigurableDataset] Loaded TRAIN: 1896 samples from /content/dataset/Crack500/train/images
+[Dataset] Train samples count: 1896
+[Dataset] Preprocessing mode: crop_mode='random', smart_filter=True
+[DataLoader] Batch size: 12 | Num workers: 2 | Total available batches: 158
+
+======================================================================
+INSTANTIATING B2 MODEL (Full SAGE-Lite)
+======================================================================
+[Model] Name:                 B2ConvNeXtViTUNet (Full SAGE-Lite)
+[Model] ViT Depth:            12
+[Model] Injected Routers:     16
+[Model] Expert Pool Size:     16
+[Model] Top-K:                4
+[Model] Fusion:               residual (scale=0.1)
+
+======================================================================
+RUNNING BENCHMARK (12 Batches on Real Crack500)
+======================================================================
+  Batch 01/12 [WARMUP] | Step: 163.63s (Data: 0.69s) | Loss: 2.2444 (Seg: 2.0521, LB: 0.1923) | Peak Alloc: 13.57 GB | Peak Res: 13.67 GB | Free: 0.90 GB
+  Batch 02/12 [WARMUP] | Step:  56.94s (Data: 0.00s) | Loss: 2.2217 (Seg: 2.0341, LB: 0.1876) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 03/12 [MEASURED] | Step:  55.19s (Data: 0.00s) | Loss: 2.1934 (Seg: 2.0121, LB: 0.1813) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 04/12 [MEASURED] | Step:  38.32s (Data: 0.00s) | Loss: 2.1714 (Seg: 1.9853, LB: 0.1862) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 05/12 [MEASURED] | Step:  18.68s (Data: 0.00s) | Loss: 2.1238 (Seg: 1.9407, LB: 0.1832) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 06/12 [MEASURED] | Step:  17.30s (Data: 0.00s) | Loss: 2.1315 (Seg: 1.9445, LB: 0.1870) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 07/12 [MEASURED] | Step:   5.23s (Data: 0.00s) | Loss: 2.1765 (Seg: 1.9975, LB: 0.1791) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 08/12 [MEASURED] | Step:  21.84s (Data: 0.00s) | Loss: 2.0790 (Seg: 1.8974, LB: 0.1816) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 09/12 [MEASURED] | Step:  24.56s (Data: 0.00s) | Loss: 2.1973 (Seg: 2.0050, LB: 0.1923) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 10/12 [MEASURED] | Step:  14.80s (Data: 0.00s) | Loss: 2.0443 (Seg: 1.8685, LB: 0.1758) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 11/12 [MEASURED] | Step:  10.00s (Data: 0.00s) | Loss: 2.0196 (Seg: 1.8355, LB: 0.1842) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+  Batch 12/12 [MEASURED] | Step:  14.18s (Data: 0.00s) | Loss: 2.1409 (Seg: 1.9606, LB: 0.1803) | Peak Alloc: 13.84 GB | Peak Res: 14.05 GB | Free: 0.51 GB
+
+======================================================================
+THROUGHPUT & VRAM BENCHMARK RESULTS
+======================================================================
+  Execution Status:          PASS (0 OOM errors across 12 batches)
+  Finite Gradients & Losses: PASS (All strictly finite)
+
+  --- VRAM Profiling (Batch Size = 12) ---
+  Peak VRAM Allocated:        14168.1 MB (13.84 GB)
+  Peak VRAM Reserved:         14388.0 MB (14.05 GB) / 14.56 GB
+  VRAM Free Remaining:          524.7 MB (0.51 GB)
+  VRAM Utilization Ratio:    96.5%
+
+  --- Throughput Timing (Excluding First 2 Warmup Batches) ---
+  Measured Batches Count:    10
+  Mean Step Time:            22.011 s / batch
+  Median Step Time:          17.990 s / batch
+  Min / Max Step Time:       5.227 s / 55.192 s
+  Processing Throughput:     0.55 samples / second
+
+======================================================================
+ROUTING USAGE DIAGNOSTICS (Real Crack500 Batches)
+======================================================================
+  --- Per-Expert Selection Breakdown ---
+  Expert 00 (CNN Stage 0) [SHARED]:    587 selections (  6.4%)
+  Expert 01 (CNN Stage 1) [SHARED]:    636 selections (  6.9%)
+  Expert 02 (CNN Stage 2) [SHARED]:    586 selections (  6.4%)
+  Expert 03 (CNN Stage 3) [SHARED]:    597 selections (  6.5%)
+  Expert 04 (ViT Block 00)         :    591 selections (  6.4%)
+  Expert 05 (ViT Block 01)         :    601 selections (  6.5%)
+  Expert 06 (ViT Block 02)         :    621 selections (  6.7%)
+  Expert 07 (ViT Block 03)         :    503 selections (  5.5%)
+  Expert 08 (ViT Block 04)         :    620 selections (  6.7%)
+  Expert 09 (ViT Block 05)         :    585 selections (  6.3%)
+  Expert 10 (ViT Block 06)         :    587 selections (  6.4%)
+  Expert 11 (ViT Block 07)         :    557 selections (  6.0%)
+  Expert 12 (ViT Block 08)         :    550 selections (  6.0%)
+  Expert 13 (ViT Block 09)         :    461 selections (  5.0%)
+  Expert 14 (ViT Block 10)         :    612 selections (  6.6%)
+  Expert 15 (ViT Block 11)         :    522 selections (  5.7%)
+
+  Total Routing Selection Events: 9216
+  [PASS] All 16 experts actively received routing assignments on real data.
+
+======================================================================
+FINAL REAL-DATA PREFLIGHT VERDICT
+======================================================================
+  [VERDICT] PASS: Batch Size 12 is FEASIBLE on real Crack500 data!
+  Remaining VRAM Headroom: 0.51 GB (3.5%)
+  Steady-State Speed:      0.55 samples/s (22.01s/batch)
+```
+
+---
+
+## 5. Phân tích So sánh Đối chiếu: Synthetic vs Real Data (Batch 12)
+
+| Chỉ số | Synthetic Benchmark (12 iters) | Real Crack500 Benchmark (12 batches) | Đánh giá so sánh |
+|---|---|---|---|
+| **Peak Allocated VRAM** | 14,100.3 MB (13.77 GB) | 14,168.1 MB (13.84 GB) | Chênh lệch cực nhỏ (+67.8 MB, +0.48%) |
+| **Peak Reserved VRAM** | 14,436.0 MB (14.10 GB) | 14,388.0 MB (14.05 GB) | Giảm nhẹ (-48.0 MB), an toàn hơn |
+| **VRAM Free Headroom** | 476.7 MB (0.47 GB) | **524.7 MB (0.51 GB)** | Headroom thực tế trên dữ liệu thật cao hơn |
+| **Độ ổn định bộ nhớ** | Drift +0.08 MB (Iter 2→12) | **Peak Alloc & Res bất biến tuyệt đối từ Batch 02 đến Batch 12** | Hoàn hảo (Flatline memory) |
+| **Tỷ lệ chọn Expert** | 5.9% – 6.5% | 5.0% – 6.9% | Phân phối routing cực kỳ cân bằng |
+| **Dead Experts** | 0 / 16 | 0 / 16 | 100% 16 chuyên gia hoạt động đều |
+| **Steady-state Speed** | 8s – 14s / batch | 17.99s (median) / 22.01s (mean) | Dữ liệu thật có thời gian augment/filter |
+| **Finite Checks** | PASS | PASS | 100% loss/logits/grads strictly finite |
+
+---
+
+## 6. Kết luận Chung về Batch Size 12 cho B2 Full Training
+
+1. **Khẳng định thực nghiệm**:
+   - **`batch_size: 12` HOÀN TOÀN FEASIBLE VÀ AN TOÀN TRÊN DỮ LIỆU THẬT CRACK500**.
+   - Không bị OOM qua 12 batches huấn luyện liên tục.
+   - Bộ nhớ đạt trạng thái bão hòa ngay từ Batch 2 (Peak Alloc = 13.84 GB, Peak Res = 14.05 GB) và giữ nguyên phẳng suốt toàn bộ quá trình chạy, chứng minh PyTorch CUDA Caching Allocator hoạt động ổn định và hoàn toàn không bị rò rỉ bộ nhớ.
+2. **Quyết định cấu hình chính thức cho Phase 1 Full Training**:
+   - Cấu hình `configs/b2_crack500_depth12.yaml` có thể thiết lập chính thức sang **`batch_size: 12`** (thay vì 20 bị OOM), đảm bảo throughput tối đa cho quá trình huấn luyện trên Tesla T4.
+

@@ -12,15 +12,17 @@ Cập nhật kế hoạch thực nghiệm B2 theo roadmap sau. Mục tiêu là k
 
 ## Phase 0 — Runtime preflight (HOÀN TẤT ✅)
 
-Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 448×448, ViT Depth 12, Stress-test 12 Iterations):
+Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 448×448, ViT Depth 12):
 * **Batch 20 & Batch 14+**: ❌ **OOM** (Vượt ngưỡng VRAM 14.56 GB T4).
-* **Batch 12** (12 iters): ✅ **PASS** (Peak Alloc 13.77 GB, Peak Res 14.10 GB, Free 0.47 GB, memory drift +0.08 MB).
-* **Batch 10** (12 iters): ✅ **PASS** (Peak Alloc 13.43 GB, Peak Res 13.89 GB, Free 0.68 GB, memory drift +1.37 MB) — **Khuyến nghị cân bằng (Throughput / Headroom)**.
-* **Batch 8** (12 iters): ✅ **PASS** (Peak Alloc 12.07 GB, Peak Res 12.50 GB, Free 2.07 GB, memory drift -0.22 MB) — **Khuyến nghị an toàn tuyệt đối**.
-* Đã verify 100%: 16/16 experts được route đồng đều (5.7% - 6.8%), checkpoint round-trip exact match, 0 missing/unexpected keys.
+* **Batch 12 (Real Crack500 Data)**: ✅ **PASS** (12 training batches thật: Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free 0.51 GB**, Throughput 0.55 samples/s, 0 memory leak từ batch 2).
+* **Batch 12 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 13.77 GB, Peak Res 14.10 GB, Free 0.47 GB, memory drift +0.08 MB).
+* **Batch 10 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 13.43 GB, Peak Res 13.89 GB, Free 0.68 GB).
+* **Batch 8 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 12.07 GB, Peak Res 12.50 GB, Free 2.07 GB).
+* **Kết luận Runtime Batch Size**: **`batch_size: 12`** chính thức được xác nhận khả thi và an toàn cho Full Training trên dữ liệu Crack500 thật.
 * Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md`.
 
-*Lưu ý:* Việc giảm batch size xuống 10 hoặc 8 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
+*Lưu ý:* Việc điều chỉnh batch size từ 20 xuống 12 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
+
 
 
 
