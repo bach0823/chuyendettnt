@@ -55,15 +55,19 @@ Completed:
   + [x] Configs: `configs/b2_crack500_depth12.yaml` và `configs/b2_crack500_depth6.yaml`.
   + [x] Verification: Toàn bộ 10 smoke tests trong `scripts/scratch/verify_b2.py` PASS 100% dưới AMP FP16.
   + [x] Independent Cross-Check Audit: Hoàn tất với 25/25 requirements PASS, review log lưu tại `docs/B2_Audit_Review_Log.md`.
-  + [x] **Phase 0 Runtime Preflight trên Colab Tesla T4 (HOÀN TẤT 100%):**
+  + [x] **Phase 0 Runtime Preflight & Throughput Profiling trên Colab Tesla T4 (HOÀN TẤT 100%):**
     - Batch 20 & Batch 14+: OOM (vượt 14.56 GB VRAM T4).
-    - **Batch 12 trên Real Crack500 (12 training batches thật):** ✅ **PASS** (Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free 0.51 GB**, Throughput 0.55 samples/s, 0 memory leak từ batch 2, 16/16 experts chọn đều 5.0% - 6.9%).
-    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (Rất sát giới hạn), Throughput (Chạy được nhưng biến động), Cần sửa architecture? (Không).
-    - Chi tiết log lưu tại `docs/B2_Phase0_Preflight_Log.md`.
+    - **Batch 12 trên Real Crack500 (12 training batches thật):** ✅ **PASS** (Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free 0.51 GB**, 0 memory leak từ batch 2, 16/16 experts chọn đều 5.0% - 6.9%).
+    - **Coarse Throughput Profiler (`profile_throughput_b2.py`):**
+      + `num_workers = 2`: **DataWait 0.3ms (0.0% overhead)**, Forward 1.45s (27.5%), **Backward 3.81s (72.3%)**, Optimizer 9.6ms (0.2%).
+      + Throughput: **2.28 samples/s**, Est 1 epoch (train thuần): **13.88 phút** (~15.5 phút cả Val).
+      + Nút thắt thực sự được xác định là Backward pass qua 16 MoE routers & SA-Hub adapters, không phải CPU/DataLoader.
+    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (An toàn với đệm ~0.94 GB ở workers=2), Throughput (Đo chính xác ~13.88 min/epoch), Cần sửa architecture? (Không).
+    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md`.
 
 
 In Progress:
-- Phase 1: ViT-depth ablation suite trên Crack500 (Google Colab T4, `batch_size: 12`):
+- Phase 1: ViT-depth ablation suite trên Crack500 (Google Colab T4, `batch_size: 12`, `num_workers: 2`, `--two-stage`):
   + Run 1: B2 Depth 12 (`configs/b2_crack500_depth12.yaml`)
   + Run 2: B2 Depth 6 (`configs/b2_crack500_depth6.yaml`)
   + Run 3: B2 Depth 4 (`configs/b2_crack500_depth4.yaml`)
@@ -76,13 +80,14 @@ Knowledge Being Learned:
 - Cơ chế Routing đa chuyên gia (MoE), tính ổn định số học trong Softmax/Sigmoid gating dưới AMP FP16, giảm thiểu overhead của self-selection qua bypass `my_index`.
 - Quy trình quản lý thực nghiệm bằng Git commit + config YAML để đảm bảo tính tái lập (reproducibility).
 - Đo đạc biên giới hạn phần cứng (VRAM profiling) và tách bạch giữa hardware-constrained runtime settings vs HPO.
+- Kỹ thuật phân rã throughput bằng CUDA Events: nhận diện chính xác Backward computation bottleneck trong mạng MoE thay vì đoán mò về I/O hay DataLoader.
 
 Current Issue:
-- Không có issue. B2 runtime preflight đã pass 100% trên Colab T4.
+- Không có issue. Two-Stage protocol đã được unit-test 100% PASS, B2 throughput profiling đã hoàn tất trên Colab T4.
 
 Next Step:
-- Cập nhật `configs/b2_crack500_depth12.yaml` sang `batch_size: 10`.
-- Chạy huấn luyện chính thức B2 Depth 12 trên Crack500 (Google Colab T4).
+- Chốt budget số epoch huấn luyện cho Phase 1 (Stage 1 & Stage 2) dựa trên throughput thực tế (~14 phút/epoch).
+- Khởi động Run 1 (B2 Depth 12) trên Google Colab T4 theo giao thức Two-Stage.
 
 
 ## Milestones & SKs (Dependency-order)

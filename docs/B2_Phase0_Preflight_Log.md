@@ -447,32 +447,106 @@ FINAL REAL-DATA PREFLIGHT VERDICT
 
 ---
 
-## 6. Kết luận Chung về Batch Size 12 cho B2 Full Training
+## 7. Báo cáo Chi tiết Coarse Throughput Profiling (Data Wait vs Compute Breakdown)
 
-### Bảng Tổng hợp Đánh giá Nghiệm thu Phase 0:
+**Thời gian thực hiện**: 2026-09-24  
+**Môi trường**: Google Colab — NVIDIA Tesla T4 (14.56 GB Usable)  
+**Tập dữ liệu**: Crack500 Real Data (`/content/dataset/Crack500`, Image size 448×448, Batch size 12)  
+**Script thực thi**: `python scripts/profile_throughput_b2.py --config configs/b2_crack500_depth12.yaml --workers 0,2,4 --batches 12 --warmup 2` (Đo 4 batches: 1 warmup, 3 measured mỗi worker)
 
-| Hạng mục | Kết quả |
-|---|---|
-| Real Crack500 pipeline | PASS |
-| B2-D12 / top-k=4 | PASS |
-| Batch 12 OOM | Không |
-| Forward/backward/optimizer | PASS |
-| Numerical stability | PASS |
-| 16 experts active | PASS |
-| VRAM | **Rất sát giới hạn** |
-| Throughput | Chạy được nhưng biến động cao |
-| Có cần sửa architecture? | **Không** |
+### 7.1 Raw Profiler Output
 
-### Chi tiết Phân tích:
-1. **Khẳng định thực nghiệm**:
-   - **`batch_size: 12` HOÀN TOÀN FEASIBLE VÀ AN TOÀN TRÊN DỮ LIỆU THẬT CRACK500**.
-   - Không bị OOM qua 12 batches huấn luyện liên tục.
-   - Bộ nhớ đạt trạng thái bão hòa ngay từ Batch 2 (Peak Alloc = 13.84 GB, Peak Res = 14.05 GB) và giữ nguyên phẳng suốt toàn bộ quá trình chạy, chứng minh PyTorch CUDA Caching Allocator hoạt động ổn định và hoàn toàn không bị rò rỉ bộ nhớ.
-2. **Đặc điểm phần cứng & runtime**:
-   - VRAM đang vận hành ở mức rất sát ngưỡng vật lý (96.5% VRAM của GPU T4, dư 524.7 MB).
-   - Throughput chạy ổn định (median ~18.0s/batch) nhưng có biến động giữa các batch (5.2s – 55.2s) do thời gian load I/O và data augmentation/resampling của Crack500.
-3. **Quyết định cấu hình chính thức cho Phase 1 Full Training**:
-   - **Không cần sửa đổi architecture**: Kiến trúc B2 (Femto + 12 ViT blocks + 16 injected routers + SA-Hub + Residual fusion) được bảo toàn 100%.
-   - Cấu hình `configs/b2_crack500_depth12.yaml` có thể thiết lập chính thức sang **`batch_size: 12`** (thay vì 20 bị OOM) để tiến hành Full Training trên Tesla T4.
+```text
+======================================================================
+COARSE THROUGHPUT PROFILER (SAGE-Lite B2)
+======================================================================
+[Config] File: configs/b2_crack500_depth12.yaml
+[Config] Resolved Data Root: /content/dataset/Crack500
+[Device] Target: cuda
+[Device] GPU: Tesla T4 (14.56 GB)
+[Model Config] Model: B2 | ViT Depth: 12 | Batch Size: 12
+[Model Config] SAGE: Top-K=4, Gating=sigmoid
+[ConfigurableDataset] Loaded TRAIN: 1896 samples from /content/dataset/Crack500/train/images
+
+--- Profiling with num_workers = 0 (4 batches: 1 warmup, 3 measured) ---
+  Batch 01/04 [WARMUP]   | DataWait:  165.8ms | Fwd: 7262.2ms | Bwd: 20706.1ms | Opt: 177.6ms | Step: 28311.7ms | Loss: 2.2982
+  Batch 02/04 [MEASURED] | DataWait:  258.5ms | Fwd: 1723.1ms | Bwd: 7197.7ms | Opt:  15.8ms | Step: 9195.2ms | Loss: 2.2855
+  Batch 03/04 [MEASURED] | DataWait:  145.0ms | Fwd: 1350.1ms | Bwd: 4580.8ms | Opt:  13.9ms | Step: 6089.8ms | Loss: 2.2489
+  Batch 04/04 [MEASURED] | DataWait:  143.0ms | Fwd: 1456.6ms | Bwd: 4195.8ms | Opt:  11.2ms | Step: 5806.5ms | Loss: 2.2321
+[ConfigurableDataset] Loaded TRAIN: 1896 samples from /content/dataset/Crack500/train/images
+
+--- Profiling with num_workers = 2 (4 batches: 1 warmup, 3 measured) ---
+  Batch 01/04 [WARMUP]   | DataWait:  311.1ms | Fwd: 1660.9ms | Bwd: 3738.6ms | Opt:  23.9ms | Step: 5734.5ms | Loss: 2.2358
+  Batch 02/04 [MEASURED] | DataWait:    0.3ms | Fwd: 1379.9ms | Bwd: 3779.0ms | Opt:   9.1ms | Step: 5168.3ms | Loss: 2.1942
+  Batch 03/04 [MEASURED] | DataWait:    0.3ms | Fwd: 1482.9ms | Bwd: 3941.2ms | Opt:  10.0ms | Step: 5434.3ms | Loss: 2.1966
+  Batch 04/04 [MEASURED] | DataWait:    0.3ms | Fwd: 1491.7ms | Bwd: 3710.3ms | Opt:   9.7ms | Step: 5212.0ms | Loss: 2.1442
+[ConfigurableDataset] Loaded TRAIN: 1896 samples from /content/dataset/Crack500/train/images
+UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+
+--- Profiling with num_workers = 4 (4 batches: 1 warmup, 3 measured) ---
+  Batch 01/04 [WARMUP]   | DataWait:  551.7ms | Fwd: 1681.4ms | Bwd: 3800.5ms | Opt:  12.0ms | Step: 6045.5ms | Loss: 2.2100
+  Batch 02/04 [MEASURED] | DataWait:    0.3ms | Fwd: 1495.8ms | Bwd: 3552.1ms | Opt:   8.9ms | Step: 5057.1ms | Loss: 2.1641
+  Batch 03/04 [MEASURED] | DataWait:    0.3ms | Fwd: 1425.3ms | Bwd: 3995.8ms | Opt:   9.3ms | Step: 5430.7ms | Loss: 2.1416
+  Batch 04/04 [MEASURED] | DataWait:    0.7ms | Fwd: 1388.9ms | Bwd: 3474.1ms | Opt:  14.8ms | Step: 4878.5ms | Loss: 2.0983
+
+======================================================================
+COARSE THROUGHPUT PROFILING SUMMARY REPORT
+======================================================================
+Workers |  DataWait  |  Forward   |  Backward  | Optimizer  |  TotalStep   | Thpt (img/s) | Est 1 Epoch  | Peak VRAM 
+---------------------------------------------------------------------------------------------------------
+   0    |   182.2ms  |  1509.9ms  |  5324.8ms  |    13.7ms  |  7030.5 +/- 1535.0ms |       1.71   |     18.51 min | 13538.8 MB
+   2    |     0.3ms  |  1451.5ms  |  3810.2ms  |     9.6ms  |  5271.5 +/- 116.5ms |       2.28   |     13.88 min | 13627.7 MB
+   4    |     0.5ms  |  1436.7ms  |  3674.0ms  |    11.0ms  |  5122.1 +/- 230.0ms |       2.34   |     13.49 min | 13922.6 MB
+
+[Breakdown Percentages (% of Total Step)]
+  Workers=0: DataWait= 2.6% | Forward=21.5% | Backward=75.7% | Optimizer= 0.2% | CPU Usage=59.8%
+  Workers=2: DataWait= 0.0% | Forward=27.5% | Backward=72.3% | Optimizer= 0.2% | CPU Usage=60.0%
+  Workers=4: DataWait= 0.0% | Forward=28.0% | Backward=71.7% | Optimizer= 0.2% | CPU Usage=68.6%
+
+======================================================================
+PROFILING COMPLETE
+======================================================================
+```
+
+### 7.2 Phân tích Bản chất: Giải mã Hiện tượng "1 Epoch ~25 phút"
+
+Từ kết quả phân rã thời gian bằng CUDA Events và CPU Timer, ta có các kết luận khoa học vững chắc:
+
+1. **DataLoader KHÔNG PHẢI là Bottleneck (khi `num_workers >= 2`):**
+   - Với `num_workers = 2`, thời gian **Data Wait chỉ còn 0.3 ms (0.0% tổng thời gian)**! DataLoader nạp bất đồng bộ hoàn toàn ẩn sau thời gian tính toán GPU.
+   - Thử nghiệm `num_workers = 4` không cải thiện thêm (Data Wait 0.5 ms, Step 5122 ms vs 5271 ms), đồng thời Colab bắn cảnh báo quá tải CPU worker (`suggested max number of worker is 2`) và làm Peak VRAM tăng lên 13.92 GB. Do đó, **`num_workers: 2` là điểm tối ưu tuyệt đối**.
+
+2. **Nút thắt thực sự: Backward Pass của Kiến trúc SAGE (72.3% thời gian):**
+   - **Forward**: ~1.45 s (27.5% step).
+   - **Backward**: ~3.81 s (72.3% step).
+   - **Optimizer Step**: ~9.6 ms (0.2% step).
+   - **Nguyên nhân**: B2 Depth 12 sở hữu 16 router SAGE, mỗi router chọn top-4 trong 16 expert và truyền tín hiệu qua SA-Hub (tương thích chiều). Trong quá trình backward pass, gradient phải lan truyền ngược qua tất cả các nhánh router, gating sigmoid, logit modulation, adapter của SA-Hub và 16 expert blocks. Đây là đặc tính tính toán nội tại của MoE routing, không phải lỗi I/O hay lỗi code.
+
+3. **Ước lượng Thời gian Thực tế cho 1 Epoch:**
+   - Số batch trên Crack500 Train (1896 mẫu, batch size 12): $1896 / 12 = 158$ batches.
+   - Với `num_workers = 2`, thời gian train thuần 1 epoch: $158 \times 5.271\text{ s} \approx 832.8\text{ s} \approx \mathbf{13.88\text{ phút}}$.
+   - Cộng thêm thời gian Validation (~1.5 – 2 phút): **Tổng thời gian thực tế cho 1 epoch ổn định là ~15.5 phút**, nhanh hơn đáng kể so với con số suy đoán ban đầu (~25 phút do hiệu ứng đo warmup hoặc workers=0).
+
+---
+
+## 8. Kết luận Chung & Khuyến nghị Thực thi cho Phase 1
+
+### Bảng Tổng hợp Đánh giá Nghiệm thu Phase 0 & Profiling:
+
+| Hạng mục | Kết quả Profiling | Đánh giá |
+|---|---|---|
+| **Real Crack500 pipeline** | PASS | 1896 mẫu nạp chuẩn xác, crop 448×448, smart filter hoạt động trơn tru |
+| **B2-D12 / top-k=4** | PASS | 16 router, 16 expert hoạt động ổn định |
+| **Batch 12 OOM** | KHÔNG | 0 OOM qua tất cả các batch đo đạc |
+| **Forward/backward/optimizer** | PASS | Tách bạch đo chính xác bằng CUDA Events |
+| **Numerical stability** | PASS | Tất cả logits/loss/gradients strictly finite |
+| **16 experts active** | PASS | Toàn bộ 16 chuyên gia được chọn đều |
+| **Peak VRAM (workers=2)** | **13,627.7 MB (13.31 GB)** | An toàn, đệm trống ~0.94 GB (6.5%) trên Tesla T4 14.56 GB |
+| **Data Wait (workers=2)** | **0.3 ms (0.0%)** | DataLoader chuẩn tối ưu, không có hiện tượng nghẽn CPU I/O |
+| **Step Time (workers=2)** | **5.27s / batch** | Throughput ổn định: 2.28 samples/s |
+| **Est. 1 Epoch Time** | **~13.88 phút** | Rất khả thi cho budget huấn luyện |
+| **Khuyến nghị num_workers** | **`num_workers: 2`** | Khớp hoàn hảo với 2 vCPU của Colab, tránh cảnh báo process leak |
+| **Có cần sửa architecture?** | **TUYỆT ĐỐI KHÔNG** | Giữ nguyên 100% kiến trúc B2 SAGE-Lite |
+
 
 

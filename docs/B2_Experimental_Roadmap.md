@@ -18,7 +18,12 @@ Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 44
 * **Batch 12 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 13.77 GB, Peak Res 14.10 GB, Free 0.47 GB, memory drift +0.08 MB).
 * **Batch 10 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 13.43 GB, Peak Res 13.89 GB, Free 0.68 GB).
 * **Batch 8 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 12.07 GB, Peak Res 12.50 GB, Free 2.07 GB).
-* **Kết luận Runtime Batch Size**: **`batch_size: 12`** chính thức được xác nhận khả thi và an toàn cho Full Training trên dữ liệu Crack500 thật.
+* **Throughput Profiling (CUDA Events, Real Data Crack500)**: ✅ **PASS**
+  - `num_workers = 0`: DataWait 182.2ms, Step 7.03s, Est 1 epoch = 18.51 min, Peak VRAM 13.54 GB.
+  - `num_workers = 2`: **DataWait 0.3ms (0.0% overhead)**, Step 5.27s, Est 1 epoch = **13.88 min**, Peak VRAM 13.63 GB. (Cấu hình chuẩn tối ưu).
+  - `num_workers = 4`: DataWait 0.5ms, Step 5.12s, VRAM 13.92 GB (Bị Colab cảnh báo vượt quá 2 CPU cores).
+  - **Phân rã Step Time (workers=2)**: Forward = 27.5% (~1.45s), **Backward = 72.3% (~3.81s - Nút thắt chính do 16 router MoE)**, Optimizer = 0.2% (~9.6ms).
+* **Kết luận Runtime Batch Size**: **`batch_size: 12`** và **`num_workers: 2`** chính thức được xác nhận khả thi và an toàn cho Full Training trên dữ liệu Crack500 thật.
 * Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md`.
 
 | Hạng mục | Kết quả |
@@ -26,11 +31,11 @@ Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 44
 | Real Crack500 pipeline | PASS |
 | B2-D12 / top-k=4 | PASS |
 | Batch 12 OOM | Không |
-| Forward/backward/optimizer | PASS |
+| Forward/backward/optimizer | PASS (Đo tách bạch qua CUDA Events) |
 | Numerical stability | PASS |
 | 16 experts active | PASS |
-| VRAM | **Rất sát giới hạn** |
-| Throughput | Chạy được nhưng biến động cao |
+| Peak VRAM (workers=2) | **13,627.7 MB (13.31 GB)** (Headroom ~0.94 GB) |
+| Throughput (workers=2) | **2.28 img/s (~13.88 min / epoch)** |
 | Có cần sửa architecture? | **Không** |
 
 *Lưu ý:* Việc điều chỉnh batch size từ 20 xuống 12 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
