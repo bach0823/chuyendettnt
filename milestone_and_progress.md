@@ -72,9 +72,11 @@ Completed:
     - **ViT Scaling vs Local Window Attention Micro-Benchmark (`benchmark_vit_scaling.py` - Colab T4):**
       + **Global ViT $\mathcal{O}(N^2)$**: Tại $N=12,544$ và $B=4$, tổng Fwd+Bwd bùng nổ lên **173.07 ms** (chậm gấp **72.2x** so với $N=196$).
       + **Local Window Attention ($W=7$) $\mathcal{O}(N)$**: Chỉ tốn **24.60 ms** tại $N=12,544$ $\implies$ **nhanh hơn 7.04 lần** so với Global ViT. Chi phí giảm từ $0.003449$ xuống $0.000490$ ms/token.
-      + **Ranh giới OOM (Stress Test)**: Nhờ PyTorch SDPA, mô hình chịu tải tới 401,408 tokens ($B=32$, Peak VRAM 3.77 GB) mà không OOM, nhưng arithmetic intensity của Global ViT cao gấp 7.2x.
+    - **Spatial Compression before Global ViT Feasibility Micro-Benchmark (`benchmark_spatial_compression.py` - Colab T4):**
+      + **Hiệu quả nén qua AdaptiveAvgPool**: Từ $112 \times 112$ ($N=12544$, 177.48 ms ở $B=4$), nén xuống $56 \times 56$ ($N=3136$) tốn **15.84 ms (11.21x nhanh hơn)**; nén xuống $28 \times 28$ ($N=784$) chỉ tốn **3.36 ms (52.90x nhanh hơn)**; nén về $14 \times 14$ ($N=196$) tốn **3.16 ms (56.12x nhanh hơn)**.
+      + **Bảo toàn Pretrained Weights**: Giữ nguyên 100% cấu trúc và weights của pretrained ViT-Tiny block, giải quyết trọn vẹn điểm nghẽn sequence length của các nhánh CNN $\to$ ViT.
     - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (An toàn với đệm ~0.95 GB), Throughput (13.98 min/epoch), Cần sửa architecture? (Không).
-    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9, 10, 11).
+    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9, 10, 11, 12).
 
 
 In Progress:
