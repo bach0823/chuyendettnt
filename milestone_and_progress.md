@@ -57,13 +57,15 @@ Completed:
   + [x] Independent Cross-Check Audit: Hoàn tất với 25/25 requirements PASS, review log lưu tại `docs/B2_Audit_Review_Log.md`.
   + [x] **Phase 0 Runtime Preflight trên Colab Tesla T4 (HOÀN TẤT 100%):**
     - Batch 20 & Batch 14+: OOM (vượt 14.56 GB VRAM T4).
-    - Batch 12: PASS (Peak Alloc 14.00 GB, Free 0.40 GB).
-    - Batch 10: PASS (Peak Alloc 13.59 GB, Free 0.60 GB) → Khóa làm runtime batch_size an toàn cho Full Training.
-    - 5 mini-batches loss/grads strictly finite, 16/16 experts chọn đều (5.6% - 6.9%), checkpoint round-trip exact match.
+    - Batch 12 (12 iters): PASS (Peak Alloc 13.77 GB, Free 0.47 GB, drift +0.08 MB).
+    - Batch 10 (12 iters): PASS (Peak Alloc 13.43 GB, Free 0.68 GB, drift +1.37 MB) → Khuyến nghị cân bằng tốt nhất giữa throughput và vùng đệm VRAM.
+    - Batch 8 (12 iters): PASS (Peak Alloc 12.07 GB, Free 2.07 GB, drift -0.22 MB) → Khuyến nghị an toàn tuyệt đối.
+    - 16/16 experts chọn đều (5.7% - 6.8%), checkpoint round-trip exact match.
     - Chi tiết log lưu tại `docs/B2_Phase0_Preflight_Log.md`.
 
 In Progress:
-- Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 10`).
+- Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 10` hoặc `8`).
+
 
 Knowledge Being Learned:
 - Cơ chế Routing đa chuyên gia (MoE), tính ổn định số học trong Softmax/Sigmoid gating dưới AMP FP16, giảm thiểu overhead của self-selection qua bypass `my_index`.

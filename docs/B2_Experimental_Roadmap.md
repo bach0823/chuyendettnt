@@ -12,14 +12,16 @@ Cập nhật kế hoạch thực nghiệm B2 theo roadmap sau. Mục tiêu là k
 
 ## Phase 0 — Runtime preflight (HOÀN TẤT ✅)
 
-Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 448×448, ViT Depth 12):
-* **Batch 20 & Batch 14+**: ❌ **OOM** (Vượt ngưỡng VRAM T4).
-* **Batch 12**: ✅ **PASS** (Peak Alloc 14.00 GB, Peak Res 14.17 GB, Free 0.40 GB).
-* **Batch 10**: ✅ **PASS** (Peak Alloc 13.59 GB, Peak Res 13.96 GB, Free 0.60 GB) — **Khuyến nghị chính thức cho Full Training** để đảm bảo buffer an toàn.
-* Đã verify 100%: 5 mini training batches finite, 16/16 experts được route đồng đều (5.6% - 6.9%), checkpoint round-trip exact match.
+Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 448×448, ViT Depth 12, Stress-test 12 Iterations):
+* **Batch 20 & Batch 14+**: ❌ **OOM** (Vượt ngưỡng VRAM 14.56 GB T4).
+* **Batch 12** (12 iters): ✅ **PASS** (Peak Alloc 13.77 GB, Peak Res 14.10 GB, Free 0.47 GB, memory drift +0.08 MB).
+* **Batch 10** (12 iters): ✅ **PASS** (Peak Alloc 13.43 GB, Peak Res 13.89 GB, Free 0.68 GB, memory drift +1.37 MB) — **Khuyến nghị cân bằng (Throughput / Headroom)**.
+* **Batch 8** (12 iters): ✅ **PASS** (Peak Alloc 12.07 GB, Peak Res 12.50 GB, Free 2.07 GB, memory drift -0.22 MB) — **Khuyến nghị an toàn tuyệt đối**.
+* Đã verify 100%: 16/16 experts được route đồng đều (5.7% - 6.8%), checkpoint round-trip exact match, 0 missing/unexpected keys.
 * Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md`.
 
-*Lưu ý:* Việc giảm batch size xuống 10 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
+*Lưu ý:* Việc giảm batch size xuống 10 hoặc 8 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
+
 
 
 ## Phase 1 — Khảo sát ViT depth (Baseline Scale)
