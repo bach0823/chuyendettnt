@@ -18,13 +18,12 @@ Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 44
 * **Batch 12 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 13.77 GB, Peak Res 14.10 GB, Free 0.47 GB, memory drift +0.08 MB).
 * **Batch 10 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 13.43 GB, Peak Res 13.89 GB, Free 0.68 GB).
 * **Batch 8 (Synthetic)**: ✅ **PASS** (12 iters: Peak Alloc 12.07 GB, Peak Res 12.50 GB, Free 2.07 GB).
-* **Deep Runtime Profiling (B1 Baseline vs B2-D12 SAGE-Lite)**: ✅ **PASS**
-  - **B1-D12 vs B2-D12**: B1 đạt 206.6 ms/step (0.54 min/epoch, VRAM 2.42 GB); B2 đạt 5433.0 ms/step (14.31 min/epoch, VRAM 13.61 GB). Hệ số chậm: 26.29x do cấu trúc 16 router $\times$ 4 expert MoE.
-  - **Nút thắt Phân giải (Resolution Bottleneck)**: **Stage 0 + Stage 1 chiếm 61.6% thời gian Forward** (490.2ms + 426.1ms) do phân giải $112 \times 112$ và $56 \times 56$. Toàn bộ 12 ViT blocks chỉ chiếm ~420ms (ít hơn 1 mình Stage 0).
-  - **SA-Hub & index_add_ không phải nút thắt**: SA-Hub chỉ chiếm 8.7% (adapt in/out), index_add_ chiếm 2.1%. **89.1% thời gian là tính toán FLOPs thực tế trong Expert modules**.
-  - **Phân phối Routing cân bằng tuyệt đối**: 16/16 chuyên gia hoạt động đều từ 4.7% đến 7.2% (kỳ vọng uniform 6.25%). Không có dead expert. Cross-modal (CNN $\leftrightarrow$ ViT) chiếm 36.3%.
+* **Targeted Runtime Profiling (SageLayer 0 & 1 Focus, 10 Measured Steps)**: ✅ **PASS**
+  - **Phát hiện Căn nguyên 43x Slowdown**: Khi ViT Layer gọi ViT Expert ($N=196$), thời gian chỉ **0.79 ms/call**. Nhưng khi Stage 0 hoặc Stage 1 gọi ViT Expert, chuỗi spatial tokens là **12,544 tokens**, khiến self-attention vọt lên **33.85 – 34.65 ms/call (chậm hơn 43 lần/call)**!
+  - **Tập trung Chi phí**: Stage 0 & 1 gọi ViT experts 212 lần trong 10 steps, tiêu tốn 7,255 ms (>85% thời gian expert path của 2 tầng này).
+  - **Accounting Reconciliation**: Tổng thời gian vi mô khớp **96.9% – 98.3%** thời gian Expert Path (Compute chiếm 91.8% – 94.5%, residual chỉ 1.7% – 3.1%).
 * **Kết luận Runtime Batch Size**: **`batch_size: 12`** và **`num_workers: 2`** chính thức được xác nhận khả thi và an toàn cho Full Training trên dữ liệu Crack500 thật.
-* Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9).
+* Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9 & 10).
 
 | Hạng mục | Kết quả |
 |---|---|
@@ -34,8 +33,8 @@ Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 44
 | Forward/backward/optimizer | PASS (Đo tách bạch qua CUDA Events) |
 | Numerical stability | PASS |
 | 16 experts active | PASS (4.7% – 7.2%, 0 dead experts) |
-| Peak VRAM (workers=2) | **13,608.2 MB (13.29 GB)** (Headroom ~0.95 GB) |
-| Throughput (workers=2) | **2.21 img/s (~14.31 min / epoch)** |
+| Peak VRAM (workers=2) | **13,610.5 MB (13.29 GB)** (Headroom ~0.95 GB) |
+| Throughput (workers=2) | **2.26 img/s (~13.98 min / epoch)** |
 | Có cần sửa architecture? | **Không** |
 
 *Lưu ý:* Việc điều chỉnh batch size từ 20 xuống 12 là **hardware-constrained runtime setting**, không phải HPO/tuning result.

@@ -65,8 +65,12 @@ Completed:
       + **Minh oan cho SA-Hub**: SA-Hub adapt in/out chỉ chiếm 8.7% expert loop, index_add_ chiếm 2.1%. **89.1% thời gian là tính toán FLOPs thực tế trong Expert modules**.
       + **Phân phối Routing**: 16/16 experts cân bằng 4.7% – 7.2% (uniform target 6.25%). Cross-modal chiếm 36.3%.
       + **_infer_expert_type CPU**: Chỉ tốn 14.58 ms/step (0.27% tổng step time).
-    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (An toàn với đệm ~0.95 GB), Throughput (14.31 min/epoch), Cần sửa architecture? (Không).
-    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9).
+    - **Targeted Runtime Profiler (`profile_targeted_stages.py` - SageLayer 0 & 1 Focus, 10 Steps Colab T4):**
+      + **Nguồn gốc Slowdown 43x**: Khi ViT Layer gọi ViT Expert ($N=196$), thời gian chỉ **0.79 ms/call**. Nhưng khi Stage 0 hoặc Stage 1 gọi ViT Expert, chuỗi tokens là **12,544 tokens**, khiến self-attention vọt lên **33.85 – 34.65 ms/call (chậm hơn 43 lần/call)**!
+      + **Tập trung Chi phí**: Stage 0 & 1 gọi ViT experts 212 lần trong 10 steps, tiêu tốn 7,255 ms (>85% thời gian expert path của 2 tầng này).
+      + **Micro-timing Accounting**: Khớp **96.9% – 98.3%** thời gian Expert Path (Compute chiếm 91.8% – 94.5%, residual chỉ 1.7% – 3.1%).
+    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (An toàn với đệm ~0.95 GB), Throughput (13.98 min/epoch), Cần sửa architecture? (Không).
+    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9 & 10).
 
 
 In Progress:

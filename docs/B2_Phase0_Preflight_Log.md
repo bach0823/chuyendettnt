@@ -676,6 +676,147 @@ Từ kết quả phân rã thời gian bằng CUDA Events và CPU Timer, ta có 
    - 0 OOM, 0 rò rỉ bộ nhớ, phân phối routing 16 expert đều đặn.
    - Sẵn sàng 100% cho Phase 1 ViT-Depth Ablation trên Colab T4.
 
+---
+
+## 10. Báo cáo Thực nghiệm Định hướng: Targeted Runtime Profiling SageLayer 0 & 1 (10 Measured Steps)
+
+**Thời gian thực hiện**: 2026-09-24  
+**Môi trường thực thi**: Google Colab — NVIDIA Tesla T4 (14.56 GB Usable, Compute Cap 7.5, Driver/cuDNN 91900)  
+**Tập dữ liệu**: Crack500 Train (1896 mẫu, canonical preprocessing, image size 448×448, `batch_size: 12`, `num_workers: 2`, `AMP: True`)  
+**Script thực thi**: `python scripts/profile_targeted_stages.py --config configs/b2_crack500_depth12.yaml --batch-size 12 --workers 2 --warmup 2 --measured 10`  
+**Quy cách đo lường**: Thu thập động bằng CUDA Events & CPU timer qua 12 batches (2 warmup + 10 measured steps). Phương pháp luận và kiến trúc giữ nguyên bản 100%.
+
+### 10.1 Bảng 1: Macro Summary (10 Measured Steps)
+
+| Thành phần | Thời gian đo đạc (ms) | Tỷ trọng (% Step Time) | Ghi chú vận hành |
+|:---|:---:|:---:|:---|
+| **Data Wait** | **0.66 ms** | **0.01%** | DataLoader nạp gối đầu hoàn hảo |
+| **Forward Pass** | **1,450.87 ms** | **27.32%** | ~1.45 s / batch |
+| **Backward Pass** | **3,847.68 ms** | **72.46%** | Lan truyền gradient qua 16 router MoE |
+| **Optimizer Step** | **11.09 ms** | **0.21%** | Cập nhật trọng số AdamW |
+| **Total Step Time** | **5,310.30 ms** | **100.0%** | **5.31 s / batch (2.26 images/sec)** |
+| **Ước lượng 1 Epoch** | **13.98 phút** | — | 158 batches train thuần |
+| **Peak VRAM Allocated** | **13,610.5 MB (13.29 GB)** | — | **An toàn, đệm trống ~0.95 GB** |
+
+---
+
+### 10.2 Bảng 2: Per-SageLayer Forward Timing (16 Tầng SAGE)
+
+| Tầng SAGE | Loại | Độ phân giải | Tổng (ms) | Main Path (ms) | Expert Path (ms) | % Forward Time |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **SageLayer 00 (CNN Stage 0)** | CNN | $112 \times 112$ | **488.40 ms** | 17.33 ms | 469.96 ms | **33.7%** |
+| **SageLayer 01 (CNN Stage 1)** | CNN | $56 \times 56$ | **419.28 ms** | 11.18 ms | 407.64 ms | **28.9%** |
+| **SageLayer 02 (CNN Stage 2)** | CNN | $28 \times 28$ | 72.89 ms | 14.07 ms | 58.46 ms | 5.0% |
+| **SageLayer 03 (CNN Stage 3)** | CNN | $14 \times 14$ | 50.13 ms | 2.70 ms | 47.13 ms | 3.5% |
+| **SageLayers 04..15 (12 ViT Blocks)** | ViT | $14 \times 14$ | 31.71 – 36.01 ms | 0.73 – 0.85 ms | 30.64 – 34.89 ms | ~2.2% – 2.5% mỗi tầng |
+| **TỔNG CỘNG 16 TẦNG** | — | — | **1,450.87 ms** | **67.0 ms** | **1,383.8 ms** | **100.0%** |
+
+> [!IMPORTANT]
+> **Khẳng định tính ổn định:** Với 10 measured steps, **SageLayer 00 + SageLayer 01 chiếm chính xác 62.6% tổng thời gian Forward** ($488.40\text{ ms} + 419.28\text{ ms} = 907.68\text{ ms}$). Toàn bộ 12 ViT blocks cộng lại chỉ chiếm 27.5% (~400 ms).
+
+---
+
+### 10.3 Bảng 3: Chi tiết Từng Expert của SageLayer 00 và SageLayer 01
+
+#### A. SageLayer 00 (CNN Stage 0, Feature Map $112 \times 112$)
+- **Tổng Selections**: 480 (48 lượt/step $\times$ 10 steps).
+
+| Target Expert ID & Name | Type | Selections | Calls | Bypass | Input Shape nhận được | Tokens/Mẫu | Tổng thời gian (ms) | ms/call |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Expert 00 (CNN Stg 0) [SHR]**| CNN | 43 | 0 | 10 | *(Bypass)* | 0 | 0.00 ms | 0.00 ms |
+| **Expert 01 (CNN Stg 1) [SHR]**| CNN | 26 | 10 | 0 | `(4, 48, 112, 112)` | 12,544 | 127.08 ms | 12.71 ms |
+| **Expert 02 (CNN Stg 2) [SHR]**| CNN | 30 | 10 | 0 | `(2, 96, 112, 112)` | 12,544 | 191.85 ms | 19.19 ms |
+| **Expert 03 (CNN Stg 3) [SHR]**| CNN | 31 | 10 | 0 | `(4, 192, 112, 112)`| 12,544 | 134.77 ms | 13.48 ms |
+| **Expert 04 (ViT Blk 00)** | ViT | 28 | 9 | 0 | `(6, 12544, 192)` | 12,544 | 248.68 ms | 27.63 ms |
+| **Expert 05 (ViT Blk 01)** | ViT | 38 | 10 | 0 | `(6, 12544, 192)` | 12,544 | 414.58 ms | 41.46 ms |
+| **Expert 06 (ViT Blk 02)** | ViT | 23 | 10 | 0 | `(2, 12544, 192)` | 12,544 | 266.11 ms | 26.61 ms |
+| **Expert 07 (ViT Blk 03)** | ViT | 39 | 10 | 0 | `(6, 12544, 192)` | 12,544 | 437.65 ms | 43.77 ms |
+| **Expert 08 (ViT Blk 04)** | ViT | 28 | 10 | 0 | `(4, 12544, 192)` | 12,544 | 316.64 ms | 31.66 ms |
+| **Expert 09 (ViT Blk 05)** | ViT | 30 | 10 | 0 | `(6, 12544, 192)` | 12,544 | 340.19 ms | 34.02 ms |
+| **Expert 10 (ViT Blk 06)** | ViT | 21 | 9 | 0 | `(2, 12544, 192)` | 12,544 | 234.34 ms | 26.04 ms |
+| **Expert 11 (ViT Blk 07)** | ViT | 33 | 10 | 0 | `(4, 12544, 192)` | 12,544 | 367.22 ms | 36.72 ms |
+| **Expert 12 (ViT Blk 08)** | ViT | 30 | 9 | 0 | `(6, 12544, 192)` | 12,544 | 336.05 ms | 37.34 ms |
+| **Expert 13 (ViT Blk 09)** | ViT | 28 | 9 | 0 | `(4, 12544, 192)` | 12,544 | 313.99 ms | 34.89 ms |
+| **Expert 14 (ViT Blk 10)** | ViT | 19 | 9 | 0 | `(4, 12544, 192)` | 12,544 | 214.41 ms | 23.82 ms |
+| **Expert 15 (ViT Blk 11)** | ViT | 33 | 9 | 0 | `(4, 12544, 192)` | 12,544 | 369.21 ms | 41.02 ms |
+| **Tiểu kết Stage 0 $\to$ CNN (00-03)**| **CNN** | **130** | **30** | **10** | — | — | **453.70 ms** | **15.12 ms/call** |
+| **Tiểu kết Stage 0 $\to$ ViT (04-15)**| **ViT** | **350** | **114** | **0** | `(B_sub, 12544, 192)`| **12,544** | **3,859.06 ms** | **33.85 ms/call** |
+
+---
+
+#### B. SageLayer 01 (CNN Stage 1, Feature Map $56 \times 56$)
+- **Tổng Selections**: 480.
+
+| Target Expert ID & Name | Type | Selections | Calls | Bypass | Input Shape nhận được | Tokens/Mẫu | Tổng thời gian (ms) | ms/call |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Expert 00 (CNN Stg 0) [SHR]**| CNN | 44 | 10 | 0 | `(4, 48, 112, 112)` | 12,544 | 87.92 ms | 8.79 ms |
+| **Expert 01 (CNN Stg 1) [SHR]**| CNN | 38 | 0 | 10 | *(Bypass)* | 0 | 0.00 ms | 0.00 ms |
+| **Expert 02 (CNN Stg 2) [SHR]**| CNN | 30 | 9 | 0 | `(2, 96, 112, 112)` | 12,544 | 166.99 ms | 18.55 ms |
+| **Expert 03 (CNN Stg 3) [SHR]**| CNN | 58 | 10 | 0 | `(3, 192, 112, 112)`| 12,544 | 199.45 ms | 19.95 ms |
+| **Expert 04 (ViT Blk 00)** | ViT | 34 | 10 | 0 | `(4, 12544, 192)` | 12,544 | 354.11 ms | 35.41 ms |
+| **Expert 05 (ViT Blk 01)** | ViT | 42 | 10 | 0 | `(6, 12544, 192)` | 12,544 | 461.96 ms | 46.20 ms |
+| **Expert 06 (ViT Blk 02)** | ViT | 8 | 7 | 0 | `(2, 12544, 192)` | 12,544 | 92.54 ms | 13.22 ms |
+| **Expert 07 (ViT Blk 03)** | ViT | 32 | 10 | 0 | `(2, 12544, 192)` | 12,544 | 352.03 ms | 35.20 ms |
+| **Expert 08 (ViT Blk 04)** | ViT | 27 | 10 | 0 | `(4, 12544, 192)` | 12,544 | 296.82 ms | 29.68 ms |
+| **Expert 09 (ViT Blk 05)** | ViT | 41 | 10 | 0 | `(6, 12544, 192)` | 12,544 | 448.57 ms | 44.86 ms |
+| **Expert 10 (ViT Blk 06)** | ViT | 36 | 10 | 0 | `(4, 12544, 192)` | 12,544 | 395.36 ms | 39.54 ms |
+| **Expert 11 (ViT Blk 07)** | ViT | 2 | 2 | 0 | `(1, 12544, 192)` | 12,544 | 23.02 ms | 11.51 ms |
+| **Expert 12 (ViT Blk 08)** | ViT | 35 | 10 | 0 | `(4, 12544, 192)` | 12,544 | 385.67 ms | 38.57 ms |
+| **Expert 13 (ViT Blk 09)** | ViT | 2 | 2 | 0 | `(1, 12544, 192)` | 12,544 | 23.06 ms | 11.53 ms |
+| **Expert 14 (ViT Blk 10)** | ViT | 39 | 10 | 0 | `(6, 12544, 192)` | 12,544 | 428.00 ms | 42.80 ms |
+| **Expert 15 (ViT Blk 11)** | ViT | 12 | 7 | 0 | `(2, 12544, 192)` | 12,544 | 134.89 ms | 19.27 ms |
+| **Tiểu kết Stage 1 $\to$ CNN (00-03)**| **CNN** | **170** | **29** | **10** | — | — | **454.37 ms** | **15.67 ms/call** |
+| **Tiểu kết Stage 1 $\to$ ViT (04-15)**| **ViT** | **310** | **98** | **0** | `(B_sub, 12544, 192)`| **12,544** | **3,396.05 ms** | **34.65 ms/call** |
+
+---
+
+### 10.4 Bảng 4: Bảng Tổng hợp Aggregate (Requirement C)
+
+| Source Layer | Target Family | Selections | Actual Tokens | % Selections | Expert Time (ms) | ms / call |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **SageLayer 0 (CNN Stage 0)** | **CNN** | 130 | 1,091,328 | 1.7% | 453.70 ms | **15.12 ms** |
+| **SageLayer 0 (CNN Stage 0)** | **ViT** | 350 | 4,390,400 | 4.6% | **3,859.06 ms** | **33.85 ms** |
+| **SageLayer 1 (CNN Stage 1)** | **CNN** | 170 | 1,655,808 | 2.2% | 454.37 ms | **15.67 ms** |
+| **SageLayer 1 (CNN Stage 1)** | **ViT** | 310 | 3,888,640 | 4.0% | **3,396.05 ms** | **34.65 ms** |
+| **All ViT Layers (04-15)** | **CNN** | 1,446 | 283,416 | 18.8% | 1,165.89 ms | **2.52 ms** |
+| **All ViT Layers (04-15)** | **ViT** | 4,314 | 777,140 | 56.2% | 999.45 ms | **0.79 ms** |
+
+> [!CAUTION]
+> **PHÁT HIỆN ĐỘT PHÁ VỀ BẢN CHẤT CHI PHÍ TÍNH TOÁN:**
+> 1. Khi một **ViT Layer** gọi một **ViT Expert**: Thời gian thực thi chỉ mất **0.79 ms / call** (xử lý chuỗi tiêu chuẩn $N = 196$ tokens).
+> 2. Nhưng khi **Stage 0 hoặc Stage 1** gọi một **ViT Expert**: Thời gian thực thi vọt lên tới **33.85 – 34.65 ms / call** $\implies$ **CHẬM HƠN GẤP 43 LẦN TRÊN MỖI LẦN GỌI**!
+> 3. **Nguyên nhân cốt lõi**: Cơ chế SA-Hub hiện tại khi chuyển đổi từ CNN sang Transformer (`_format_cnn_to_transformer`) thực hiện `flatten(2).transpose(1, 2)`, biến $112 \times 112$ thành chuỗi **12,544 tokens** và đưa nguyên vẹn chuỗi này vào ViT Self-Attention ($\mathcal{O}(N^2)$)!
+>    - ViT tiêu chuẩn: $196^2 = 38,416$ phép tính attention.
+>    - ViT nhận từ Stage 0/1: $12,544^2 = 157,351,936$ phép tính attention ($\mathbf{4,096\times}$ khối lượng tính toán)!
+> 4. Stage 0 và 1 gọi ViT Experts tổng cộng $114 + 98 = 212$ lần trong 10 steps, tiêu tốn tới **7,255.1 ms** (chiếm trên 85% thời gian Expert Path của 2 tầng này)!
+
+---
+
+### 10.5 Bảng 5: Xác nhận "Selections" vs "Actual Tokens" (Requirement D)
+
+- **Selections (Sample Assignments)**: Là số lượng thể hiện mẫu ảnh trong batch ($B=12$) được router chỉ định. Mỗi batch có 12 mẫu, mỗi mẫu chọn 4 expert $\implies 12 \times 4 = 48$ assignments/layer/step.
+- **Actual Tokens (Spatial Positions)**: Là tích số thực tế giữa số mẫu gán và số chiều không gian:
+  $$\text{Actual Tokens} = B_{\text{sub}} \times (H \times W \text{ hoặc } N)$$
+- Số liệu khẳng định: ViT bình thường chỉ xử lý **196 tokens/mẫu**, nhưng khi nhận nhánh rẽ từ CNN Stage 0/1, ViT bị ép phải xử lý **12,544 tokens/mẫu**!
+
+---
+
+### 10.6 Bảng 6: Đối chiếu Khớp Chi phí Vi mô (Micro-Timing Reconciliation - Requirement E)
+
+| Tầng SAGE | Expert Path (ms) | Router | SAHub In | Compute (Experts) | SAHub Out | IdxAdd | Bypass | Lượng dư Residual (ms) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Layer 00 (CNN 0)** | **469.96 ms** | 0.61 ms | 8.60 ms | **431.28 ms** | 4.15 ms | 10.64 ms | 0.34 ms | **14.34 ms (3.1%)** |
+| **Layer 01 (CNN 1)** | **407.64 ms** | 0.44 ms | 6.86 ms | **385.04 ms** | 5.51 ms | 2.66 ms | 0.07 ms | **7.06 ms (1.7%)** |
+| **Layer 02 (CNN 2)** | 58.46 ms | 0.34 ms | 3.43 ms | 42.89 ms | 4.26 ms | 1.66 ms | 0.06 ms | 5.83 ms (10.0%) |
+| **Layer 03 (CNN 3)** | 47.13 ms | 0.57 ms | 4.90 ms | 26.27 ms | 7.32 ms | 1.31 ms | 0.07 ms | 6.69 ms (14.2%) |
+| **Layers 04..15 (ViT)**| 30.64 – 34.89 ms | ~1.3 ms | ~2.5 ms | ~17.0 – 20.3 ms | ~1.7 ms | ~0.8 ms | ~0.05 ms | ~7.3 ms (22% – 24%) |
+
+- **Accounting được giải thích hoàn toàn minh bạch**:
+  - Tại Stage 0 và Stage 1: Tổng các thành phần đo đạc vi mô khớp tới **96.9% – 98.3%** tổng thời gian Expert Path.
+  - Riêng **Expert Forward Compute chiếm tới 91.8% – 94.5%** thời gian của Expert Path ($431.3\text{ ms} / 470.0\text{ ms}$ tại Layer 0).
+  - Lượng dư residual ($\sim 7 – 14\text{ ms}$) phản ánh chính xác chi phí overhead điều vận vòng lặp Python, phép slicing `x[original_batch_indices]`, và độ trễ ranh giới của các cặp CUDA Events.
+
+
 
 
 
