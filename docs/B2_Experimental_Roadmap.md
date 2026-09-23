@@ -39,16 +39,21 @@ Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 44
 
 
 
-## Phase 1 — Khảo sát ViT depth (Baseline Scale)
+## Phase 1 — Khảo sát ViT depth (Baseline Scale) (ĐÃ SẴN SÀNG CẤU HÌNH ✅)
 
-Do thay depth ảnh hưởng đến architecture và routing scale, phải chạy đầu tiên để lock base architecture.
+Do thay depth ảnh hưởng đến architecture và routing scale, Phase 1 chạy đầu tiên để lock base architecture.
 
-* Fix: top_k=4, hidden=64, sigmoid, noise=ON, logit_mod=ON, LB=0.01, dropout=0.1, residual_scale=0.1.
-* Thử nghiệm:
-  * Run 1: Depth 12 (16 routers)
-  * Run 2: Depth 6 (10 routers)
-  * Run 3: Depth 4 (8 routers) – Tuỳ chọn nếu compute cho phép.
-* Decision: Chọn 1 depth tốt nhất trên Validation để làm base cho các Phase sau.
+* **Cố định dùng chung**:
+  - `batch_size = 12` (runtime setting đã xác thực qua Real-Data Preflight trên T4)
+  - `img_size = 448`, `seed = 42`, `lr = 1e-4`, `epochs = 30`, `patience = 6`
+  - Canonical preprocessing (Crack500 random crop 448x448, smart filter `fg_pixels >= 20`, reflect pad)
+  - SAGE config: `top_k = 4`, `hidden = 64`, `gating = sigmoid`, `noise = ON`, `logit_mod = ON`, `LB = 0.01`, `dropout = 0.1`, `fusion_type = residual`, `residual_scale = 0.1`.
+* **Bộ cấu hình thực nghiệm Phase 1**:
+  * **Run 1: Depth 12** (`configs/b2_crack500_depth12.yaml` → `output_dir: .../B2_Crack500_Depth12`): 16 routers (4 CNN + 12 ViT), 16 experts, 13.9M params.
+  * **Run 2: Depth 6** (`configs/b2_crack500_depth6.yaml` → `output_dir: .../B2_Crack500_Depth6`): 10 routers (4 CNN + 6 ViT), 10 experts, 12.0M params.
+  * **Run 3: Depth 4** (`configs/b2_crack500_depth4.yaml` → `output_dir: .../B2_Crack500_Depth4`): 8 routers (4 CNN + 4 ViT), 8 experts, 10.1M params.
+* **Quy tắc Quyết định**: Chọn 1 depth tốt nhất **dựa duy nhất trên Validation Dice (tập Val)** để làm base cho Phase 2 (top_k). **TUYỆT ĐỐI KHÔNG DÙNG TEST SET ĐỂ CHỌN DEPTH**.
+
 
 ## Phase 2 — Khảo sát Routing Capacity (top_k)
 

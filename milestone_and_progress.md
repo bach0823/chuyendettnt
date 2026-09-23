@@ -63,7 +63,12 @@ Completed:
 
 
 In Progress:
-- Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 12`).
+- Phase 1: ViT-depth ablation suite trên Crack500 (Google Colab T4, `batch_size: 12`):
+  + Run 1: B2 Depth 12 (`configs/b2_crack500_depth12.yaml`)
+  + Run 2: B2 Depth 6 (`configs/b2_crack500_depth6.yaml`)
+  + Run 3: B2 Depth 4 (`configs/b2_crack500_depth4.yaml`)
+  + Đánh giá và chọn depth tốt nhất dựa DUY NHẤT trên Validation Dice (không dùng test-set).
+
 
 
 
