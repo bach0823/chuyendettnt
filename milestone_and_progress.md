@@ -58,12 +58,15 @@ Completed:
   + [x] **Phase 0 Runtime Preflight & Throughput Profiling trên Colab Tesla T4 (HOÀN TẤT 100%):**
     - Batch 20 & Batch 14+: OOM (vượt 14.56 GB VRAM T4).
     - **Batch 12 trên Real Crack500 (12 training batches thật):** ✅ **PASS** (Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free 0.51 GB**, 0 memory leak từ batch 2, 16/16 experts chọn đều 5.0% - 6.9%).
-    - **Coarse Throughput Profiler (`profile_throughput_b2.py`):**
-      + `num_workers = 2`: **DataWait 0.3ms (0.0% overhead)**, Forward 1.45s (27.5%), **Backward 3.81s (72.3%)**, Optimizer 9.6ms (0.2%).
-      + Throughput: **2.28 samples/s**, Est 1 epoch (train thuần): **13.88 phút** (~15.5 phút cả Val).
-      + Nút thắt thực sự được xác định là Backward pass qua 16 MoE routers & SA-Hub adapters, không phải CPU/DataLoader.
-    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (An toàn với đệm ~0.94 GB ở workers=2), Throughput (Đo chính xác ~13.88 min/epoch), Cần sửa architecture? (Không).
-    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md`.
+    - **Deep Runtime Profiler (`profile_deep_b2.py` - Chạy trực tiếp trên Colab T4):**
+      + **B1-D12 Baseline**: Step 206.6 ms (Fwd 60.5 ms, Bwd 137.7 ms), Throughput 58.07 img/s, Est 1 epoch 0.54 min (~32s), Peak VRAM 2.42 GB.
+      + **B2-D12 SAGE-Lite**: Step 5433.0 ms (Fwd 1487.4 ms, Bwd 3934.7 ms), Throughput 2.21 img/s, Est 1 epoch 14.31 min, Peak VRAM 13.61 GB.
+      + **Phát hiện Cốt lõi (Resolution Bottleneck)**: Stage 0 (490.2ms) + Stage 1 (426.1ms) chiếm **61.6% thời gian Forward** do phân giải cao ($112 \times 112$ và $56 \times 56$). Cả 12 ViT blocks chỉ chiếm ~420ms (ít hơn 1 mình Stage 0).
+      + **Minh oan cho SA-Hub**: SA-Hub adapt in/out chỉ chiếm 8.7% expert loop, index_add_ chiếm 2.1%. **89.1% thời gian là tính toán FLOPs thực tế trong Expert modules**.
+      + **Phân phối Routing**: 16/16 experts cân bằng 4.7% – 7.2% (uniform target 6.25%). Cross-modal chiếm 36.3%.
+      + **_infer_expert_type CPU**: Chỉ tốn 14.58 ms/step (0.27% tổng step time).
+    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (An toàn với đệm ~0.95 GB), Throughput (14.31 min/epoch), Cần sửa architecture? (Không).
+    - Chi tiết log lưu tại: `docs/B2_Phase0_Preflight_Log.md` (Mục 9).
 
 
 In Progress:
