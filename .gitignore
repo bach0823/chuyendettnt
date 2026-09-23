@@ -1,0 +1,43 @@
+# Python / Jupyter / OS
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.venv/
+env/
+venv/
+*.log
+*.zip*
+*.part
+
+# Model weights
+*.pth
+*.pt
+*.bin
+*.onnx
+*.safetensors
+
+# Sub-repositories and external code
+sage_lite/
+SAGE/
+SAGE.md
+.agents/
+
+# Workspace folders
+notebooks/
+scripts/
+results/
+datasets/
+repo_info.json
+
+# Internal tracking & legacy notes
+user_capability.md
+handoff.md
+BLUEPRINT.md
+SAGE_Paper_Summary.md
+docs/papers/
+docs/media/
+docs/b0_conlai.md
+docs/preprocessing_confirm.md
+verify_output.txt
+verify.log
