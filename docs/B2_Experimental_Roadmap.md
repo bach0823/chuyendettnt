@@ -10,15 +10,17 @@ Cập nhật kế hoạch thực nghiệm B2 theo roadmap sau. Mục tiêu là k
 * Không tự ý sửa architecture/pipeline chỉ để cải thiện kết quả.
 * Ghi lại đầy đủ config, checkpoint, Val Dice và các routing diagnostics cho từng run để có thể truy nguyên thí nghiệm.
 
-## Phase 0 — Runtime preflight
+## Phase 0 — Runtime preflight (HOÀN TẤT ✅)
 
-Trước full training:
+Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 448×448, ViT Depth 12):
+* **Batch 20 & Batch 14+**: ❌ **OOM** (Vượt ngưỡng VRAM T4).
+* **Batch 12**: ✅ **PASS** (Peak Alloc 14.00 GB, Peak Res 14.17 GB, Free 0.40 GB).
+* **Batch 10**: ✅ **PASS** (Peak Alloc 13.59 GB, Peak Res 13.96 GB, Free 0.60 GB) — **Khuyến nghị chính thức cho Full Training** để đảm bảo buffer an toàn.
+* Đã verify 100%: 5 mini training batches finite, 16/16 experts được route đồng đều (5.6% - 6.9%), checkpoint round-trip exact match.
+* Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md`.
 
-* OOM/VRAM probe với batch=20, input=448x448, AMP FP16.
-* 3–10 mini training batches với optimizer step.
-* Verify loss/logits/gradient finite.
-* Verify routing stats và checkpoint.
-  Phase này chỉ kiểm tra runtime, không xét kết quả.
+*Lưu ý:* Việc giảm batch size xuống 10 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
+
 
 ## Phase 1 — Khảo sát ViT depth (Baseline Scale)
 

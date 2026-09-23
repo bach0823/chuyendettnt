@@ -53,21 +53,30 @@ Completed:
   + [x] 3 Optimizer Param Groups: Backbone ($10^{-5}$), Decoder ($10^{-4}$), SAGE ($10^{-4}$). Weight decay $0.0$ cho LN/BN/bias, $0.05$ cho rest.
   + [x] Training Loss: $\mathcal{L} = \mathcal{L}_{\text{seg}} + 1.0 \times \mathcal{L}_{\text{balance}}$.
   + [x] Configs: `configs/b2_crack500_depth12.yaml` và `configs/b2_crack500_depth6.yaml`.
-  + [x] Verification: Toàn bộ 9 smoke tests trong `scripts/scratch/verify_b2.py` PASS 100% dưới AMP FP16.
+  + [x] Verification: Toàn bộ 10 smoke tests trong `scripts/scratch/verify_b2.py` PASS 100% dưới AMP FP16.
+  + [x] Independent Cross-Check Audit: Hoàn tất với 25/25 requirements PASS, review log lưu tại `docs/B2_Audit_Review_Log.md`.
+  + [x] **Phase 0 Runtime Preflight trên Colab Tesla T4 (HOÀN TẤT 100%):**
+    - Batch 20 & Batch 14+: OOM (vượt 14.56 GB VRAM T4).
+    - Batch 12: PASS (Peak Alloc 14.00 GB, Free 0.40 GB).
+    - Batch 10: PASS (Peak Alloc 13.59 GB, Free 0.60 GB) → Khóa làm runtime batch_size an toàn cho Full Training.
+    - 5 mini-batches loss/grads strictly finite, 16/16 experts chọn đều (5.6% - 6.9%), checkpoint round-trip exact match.
+    - Chi tiết log lưu tại `docs/B2_Phase0_Preflight_Log.md`.
 
 In Progress:
-- Chuẩn bị chạy huấn luyện B2 Depth 12 trên Google Colab T4 (`configs/b2_crack500_depth12.yaml`).
+- Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 10`).
 
 Knowledge Being Learned:
 - Cơ chế Routing đa chuyên gia (MoE), tính ổn định số học trong Softmax/Sigmoid gating dưới AMP FP16, giảm thiểu overhead của self-selection qua bypass `my_index`.
 - Quy trình quản lý thực nghiệm bằng Git commit + config YAML để đảm bảo tính tái lập (reproducibility).
+- Đo đạc biên giới hạn phần cứng (VRAM profiling) và tách bạch giữa hardware-constrained runtime settings vs HPO.
 
 Current Issue:
-- Không có issue. B2 code đã pass 100% rigorous smoke tests.
+- Không có issue. B2 runtime preflight đã pass 100% trên Colab T4.
 
 Next Step:
-- Push các commit B2 lên remote branch `crack500-audit`.
-- Chạy huấn luyện B2 Depth 12 trên Crack500 (Google Colab T4) với config `configs/b2_crack500_depth12.yaml`.
+- Cập nhật `configs/b2_crack500_depth12.yaml` sang `batch_size: 10`.
+- Chạy huấn luyện chính thức B2 Depth 12 trên Crack500 (Google Colab T4).
+
 
 ## Milestones & SKs (Dependency-order)
 
