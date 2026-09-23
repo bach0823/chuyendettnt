@@ -449,10 +449,30 @@ FINAL REAL-DATA PREFLIGHT VERDICT
 
 ## 6. Kết luận Chung về Batch Size 12 cho B2 Full Training
 
+### Bảng Tổng hợp Đánh giá Nghiệm thu Phase 0:
+
+| Hạng mục | Kết quả |
+|---|---|
+| Real Crack500 pipeline | PASS |
+| B2-D12 / top-k=4 | PASS |
+| Batch 12 OOM | Không |
+| Forward/backward/optimizer | PASS |
+| Numerical stability | PASS |
+| 16 experts active | PASS |
+| VRAM | **Rất sát giới hạn** |
+| Throughput | Chạy được nhưng biến động cao |
+| Có cần sửa architecture? | **Không** |
+
+### Chi tiết Phân tích:
 1. **Khẳng định thực nghiệm**:
    - **`batch_size: 12` HOÀN TOÀN FEASIBLE VÀ AN TOÀN TRÊN DỮ LIỆU THẬT CRACK500**.
    - Không bị OOM qua 12 batches huấn luyện liên tục.
    - Bộ nhớ đạt trạng thái bão hòa ngay từ Batch 2 (Peak Alloc = 13.84 GB, Peak Res = 14.05 GB) và giữ nguyên phẳng suốt toàn bộ quá trình chạy, chứng minh PyTorch CUDA Caching Allocator hoạt động ổn định và hoàn toàn không bị rò rỉ bộ nhớ.
-2. **Quyết định cấu hình chính thức cho Phase 1 Full Training**:
-   - Cấu hình `configs/b2_crack500_depth12.yaml` có thể thiết lập chính thức sang **`batch_size: 12`** (thay vì 20 bị OOM), đảm bảo throughput tối đa cho quá trình huấn luyện trên Tesla T4.
+2. **Đặc điểm phần cứng & runtime**:
+   - VRAM đang vận hành ở mức rất sát ngưỡng vật lý (96.5% VRAM của GPU T4, dư 524.7 MB).
+   - Throughput chạy ổn định (median ~18.0s/batch) nhưng có biến động giữa các batch (5.2s – 55.2s) do thời gian load I/O và data augmentation/resampling của Crack500.
+3. **Quyết định cấu hình chính thức cho Phase 1 Full Training**:
+   - **Không cần sửa đổi architecture**: Kiến trúc B2 (Femto + 12 ViT blocks + 16 injected routers + SA-Hub + Residual fusion) được bảo toàn 100%.
+   - Cấu hình `configs/b2_crack500_depth12.yaml` có thể thiết lập chính thức sang **`batch_size: 12`** (thay vì 20 bị OOM) để tiến hành Full Training trên Tesla T4.
+
 

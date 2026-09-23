@@ -58,10 +58,9 @@ Completed:
   + [x] **Phase 0 Runtime Preflight trên Colab Tesla T4 (HOÀN TẤT 100%):**
     - Batch 20 & Batch 14+: OOM (vượt 14.56 GB VRAM T4).
     - **Batch 12 trên Real Crack500 (12 training batches thật):** ✅ **PASS** (Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free 0.51 GB**, Throughput 0.55 samples/s, 0 memory leak từ batch 2, 16/16 experts chọn đều 5.0% - 6.9%).
-    - Batch 12 (12 iters synthetic): PASS (Peak Alloc 13.77 GB, Free 0.47 GB, drift +0.08 MB).
-    - Batch 10 (12 iters synthetic): PASS (Peak Alloc 13.43 GB, Free 0.68 GB).
-    - Batch 8 (12 iters synthetic): PASS (Peak Alloc 12.07 GB, Free 2.07 GB).
+    - Bảng nghiệm thu: Real Crack500 pipeline (PASS), B2-D12 / top-k=4 (PASS), Batch 12 OOM (Không), Forward/backward/opt (PASS), Numerical stability (PASS), 16 experts active (PASS), VRAM (Rất sát giới hạn), Throughput (Chạy được nhưng biến động), Cần sửa architecture? (Không).
     - Chi tiết log lưu tại `docs/B2_Phase0_Preflight_Log.md`.
+
 
 In Progress:
 - Tiến hành Phase 1: Full Training B2 Depth 12 trên Crack500 (Google Colab T4, `batch_size: 12`).

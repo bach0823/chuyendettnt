@@ -21,7 +21,20 @@ Kết quả đo đạc thực tế trên Tesla T4 (14.56 GB usable, AMP FP16, 44
 * **Kết luận Runtime Batch Size**: **`batch_size: 12`** chính thức được xác nhận khả thi và an toàn cho Full Training trên dữ liệu Crack500 thật.
 * Chi tiết log xem tại: `docs/B2_Phase0_Preflight_Log.md`.
 
+| Hạng mục | Kết quả |
+|---|---|
+| Real Crack500 pipeline | PASS |
+| B2-D12 / top-k=4 | PASS |
+| Batch 12 OOM | Không |
+| Forward/backward/optimizer | PASS |
+| Numerical stability | PASS |
+| 16 experts active | PASS |
+| VRAM | **Rất sát giới hạn** |
+| Throughput | Chạy được nhưng biến động cao |
+| Có cần sửa architecture? | **Không** |
+
 *Lưu ý:* Việc điều chỉnh batch size từ 20 xuống 12 là **hardware-constrained runtime setting**, không phải HPO/tuning result.
+
 
 
 
