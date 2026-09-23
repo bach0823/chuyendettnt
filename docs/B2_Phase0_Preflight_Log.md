@@ -816,6 +816,106 @@ Từ kết quả phân rã thời gian bằng CUDA Events và CPU Timer, ta có 
   - Riêng **Expert Forward Compute chiếm tới 91.8% – 94.5%** thời gian của Expert Path ($431.3\text{ ms} / 470.0\text{ ms}$ tại Layer 0).
   - Lượng dư residual ($\sim 7 – 14\text{ ms}$) phản ánh chính xác chi phí overhead điều vận vòng lặp Python, phép slicing `x[original_batch_indices]`, và độ trễ ranh giới của các cặp CUDA Events.
 
+---
+
+## 11. Báo cáo Thực nghiệm Micro-Benchmark: ViT Expert Scaling vs. Local Window Attention (Tesla T4)
+
+**Thời gian thực hiện**: 2026-09-24  
+**Môi trường thực thi**: Google Colab — NVIDIA Tesla T4 (14.56 GB Usable, Compute Cap 7.5, Driver/cuDNN 91900)  
+**Độ chính xác tính toán**: PyTorch AMP (Automatic Mixed Precision FP16, `GradScaler`)  
+**Script thực thi**: `python scripts/benchmark_vit_scaling.py --batch-sizes 2 4 --warmup 2 --measured 10`  
+**Phương pháp đo đạc**: Đo cô lập bằng cặp `torch.cuda.Event(enable_timing=True)` quanh Forward và Backward passes; theo dõi bộ nhớ qua `torch.cuda.max_memory_allocated()`. 100% độc lập, không can thiệp vào baseline B2-D12.
+
+---
+
+### 11.1 Bảng A: Current ViT Expert Scaling (Global Multi-Head Self-Attention, $D=192, H=3$)
+
+*Mô hình: 1 Khối Transformer tiêu chuẩn từ `vit_tiny_patch16_224` (tương ứng với cấu trúc 1 ViT Expert trong SAGE-Lite).*
+
+| $N$ (Tokens) | Lưới không gian ($H \times W$) | Batch ($B$) | Tổng Tokens | Forward (ms) | Backward (ms) | Total (ms) | Peak VRAM | ms / token | Tăng so với $N=196$ |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **196** | $14 \times 14$ (Stage 3 baseline) | 2 | 392 | 1.14 ms | 1.71 ms | **2.85 ms** | 23.7 MB | 0.007267 ms | **1.0x** |
+| **784** | $28 \times 28$ (Stage 2) | 2 | 1,568 | 1.30 ms | 2.23 ms | **3.53 ms** | 41.0 MB | 0.002251 ms | **1.2x** |
+| **3,136** | $56 \times 56$ (Stage 1) | 2 | 6,272 | 3.70 ms | 9.41 ms | **13.11 ms** | 86.9 MB | 0.002091 ms | **4.6x** |
+| **12,544**| $112 \times 112$ (Stage 0 High-Res) | 2 | 25,088 | 19.65 ms | 65.51 ms | **85.16 ms** | 265.9 MB | 0.003395 ms | **29.9x** |
+| **196** | $14 \times 14$ (Stage 3 baseline) | 4 | 784 | 0.93 ms | 1.46 ms | **2.40 ms** | 27.6 MB | 0.003056 ms | **1.0x** |
+| **784** | $28 \times 28$ (Stage 2) | 4 | 3,136 | 0.94 ms | 1.79 ms | **2.73 ms** | 59.1 MB | 0.000872 ms | **1.1x** |
+| **3,136** | $56 \times 56$ (Stage 1) | 4 | 12,544 | 3.71 ms | 10.41 ms | **14.11 ms** | 150.3 MB | 0.001125 ms | **5.9x** |
+| **12,544**| $112 \times 112$ (Stage 0 High-Res) | 4 | 50,176 | 39.94 ms | 133.13 ms | **173.07 ms** | 499.7 MB | 0.003449 ms | **72.2x** |
+
+---
+
+### 11.2 Bảng B1: Local Window Attention Candidate (Window Size $7 \times 7, D=192, H=3$)
+
+*Mô hình: Swin-style `WindowAttention` Block với cửa sổ cục bộ $7 \times 7$.*
+
+| $N$ (Tokens) | Lưới không gian ($H \times W$) | Batch ($B$) | Tổng Tokens | Forward (ms) | Backward (ms) | Total (ms) | Peak VRAM | ms / token | Tốc độ so với Global ViT |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **196** | $14 \times 14$ (Stage 3 baseline) | 2 | 392 | 1.55 ms | 2.20 ms | 3.75 ms | 27.4 MB | 0.009557 ms | 0.76x (overhead partition) |
+| **784** | $28 \times 28$ (Stage 2) | 2 | 1,568 | 1.60 ms | 2.40 ms | 4.00 ms | 46.3 MB | 0.002548 ms | 0.88x |
+| **3,136** | $56 \times 56$ (Stage 1) | 2 | 6,272 | 1.62 ms | 2.48 ms | **4.10 ms** | 98.9 MB | 0.000654 ms | **3.20x nhanh hơn** |
+| **12,544**| $112 \times 112$ (Stage 0 High-Res) | 2 | 25,088 | 4.71 ms | 7.49 ms | **12.20 ms** | 294.8 MB | 0.000486 ms | **6.98x nhanh hơn** |
+| **196** | $14 \times 14$ (Stage 3 baseline) | 4 | 784 | 1.67 ms | 2.39 ms | 4.06 ms | 36.8 MB | 0.005179 ms | 0.59x |
+| **784** | $28 \times 28$ (Stage 2) | 4 | 3,136 | 1.68 ms | 2.40 ms | 4.09 ms | 70.8 MB | 0.001303 ms | 0.67x |
+| **3,136** | $56 \times 56$ (Stage 1) | 4 | 12,544 | 2.48 ms | 3.85 ms | **6.32 ms** | 169.5 MB | 0.000504 ms | **2.23x nhanh hơn** |
+| **12,544**| $112 \times 112$ (Stage 0 High-Res) | 4 | 50,176 | 9.58 ms | 15.02 ms | **24.60 ms** | 548.4 MB | 0.000490 ms | **7.04x nhanh hơn** |
+
+---
+
+### 11.3 Bảng B2: Local Window Attention Candidate (Window Size $14 \times 14, D=192, H=3$)
+
+*Mô hình: Swin-style `WindowAttention` Block với cửa sổ cục bộ $14 \times 14$.*
+
+| $N$ (Tokens) | Lưới không gian ($H \times W$) | Batch ($B$) | Tổng Tokens | Forward (ms) | Backward (ms) | Total (ms) | Peak VRAM | ms / token | Tốc độ so với Global ViT |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **196** | $14 \times 14$ (Stage 3 baseline) | 2 | 392 | 1.46 ms | 2.17 ms | 3.63 ms | 37.7 MB | 0.009262 ms | 0.78x |
+| **784** | $28 \times 28$ (Stage 2) | 2 | 1,568 | 1.55 ms | 2.33 ms | 3.88 ms | 59.4 MB | 0.002478 ms | 0.91x |
+| **3,136** | $56 \times 56$ (Stage 1) | 2 | 6,272 | 1.68 ms | 2.85 ms | **4.52 ms** | 124.2 MB | 0.000721 ms | **2.90x nhanh hơn** |
+| **12,544**| $112 \times 112$ (Stage 0 High-Res) | 2 | 25,088 | 6.03 ms | 9.39 ms | **15.42 ms** | 368.5 MB | 0.000615 ms | **5.52x nhanh hơn** |
+| **196** | $14 \times 14$ (Stage 3 baseline) | 4 | 784 | 1.84 ms | 2.87 ms | 4.71 ms | 49.0 MB | 0.006011 ms | 0.51x |
+| **784** | $28 \times 28$ (Stage 2) | 4 | 3,136 | 2.52 ms | 3.41 ms | 5.93 ms | 88.0 MB | 0.001892 ms | 0.46x |
+| **3,136** | $56 \times 56$ (Stage 1) | 4 | 12,544 | 3.24 ms | 4.90 ms | **8.14 ms** | 211.0 MB | 0.000649 ms | **1.73x nhanh hơn** |
+| **12,544**| $112 \times 112$ (Stage 0 High-Res) | 4 | 50,176 | 11.65 ms | 18.59 ms | **30.24 ms** | 684.2 MB | 0.000603 ms | **5.72x nhanh hơn** |
+
+---
+
+### 11.4 Bảng C: Thử nghiệm Căng thẳng Bộ nhớ & Ranh giới OOM ($N=12,544, 112 \times 112$)
+
+*Khảo sát khả năng chịu tải trên Tesla T4 (14.56 GB) với chuỗi cực dài $12,544$ tokens khi tăng lũy tiến Batch Size:*
+
+| Batch Size ($B$) | Resolution ($N$) | Tổng Tokens xử lý | Global ViT Status | Window ViT ($W=7$) Status | Window ViT ($W=14$) Status |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **2** | 12,544 ($112 \times 112$) | 25,088 | **OK** (285.2 MB, 86.4 ms) | **OK** (304.5 MB, 11.5 ms) | **OK** (368.5 MB, 14.8 ms) |
+| **4** | 12,544 ($112 \times 112$) | 50,176 | **OK** (518.0 MB, 175.1 ms) | **OK** (558.1 MB, 23.3 ms) | **OK** (684.2 MB, 29.8 ms) |
+| **8** | 12,544 ($112 \times 112$) | 100,352 | **OK** (980.4 MB, 354.3 ms) | **OK** (1,062.1 MB, 48.2 ms) | **OK** (1,314.2 MB, 60.7 ms) |
+| **12** | 12,544 ($112 \times 112$) | 150,528 | **OK** (1,440.7 MB, 536.7 ms) | **OK** (1,566.3 MB, 73.6 ms) | **OK** (1,946.4 MB, 90.7 ms) |
+| **16** | 12,544 ($112 \times 112$) | 200,704 | **OK** (1,903.6 MB, 728.4 ms) | **OK** (2,071.1 MB, 99.2 ms) | **OK** (2,579.5 MB, 121.8 ms) |
+| **24** | 12,544 ($112 \times 112$) | 301,056 | **OK** (2,835.1 MB, 1,122.3 ms) | **OK** (3,083.8 MB, 154.1 ms) | **OK** (3,849.2 MB, 184.4 ms) |
+| **32** | 12,544 ($112 \times 112$) | 401,408 | **OK** (3,766.5 MB, 1,522.1 ms) | **OK** (4,101.5 MB, 211.3 ms) | **OK** (5,117.0 MB, 248.3 ms) |
+
+---
+
+### 11.5 Nhận xét & Bình luận Chuyên sâu về Runtime Scaling
+
+#### 1. Quy luật Scaling Trễ thời gian (Latency Scaling Law): $\mathcal{O}(N^2)$ vs $\mathcal{O}(N)$
+- **Current Global ViT**: Khi chuỗi tăng từ $N=196$ lên $N=12,544$ ($64\times$ số tokens), ở Batch 4:
+  - Thời gian tính toán tăng phi tuyến từ **2.40 ms lên 173.07 ms** (**tăng tới 72.2 lần**!).
+  - Riêng **Backward Pass** bùng nổ từ **1.46 ms lên 133.13 ms** (chiếm 77% tổng thời gian block).
+- **Local Window Attention ($W=7$)**: 
+  - Tại $N=12,544$ và $B=4$, tổng thời gian chỉ là **24.60 ms** (Forward 9.58 ms, Backward 15.02 ms).
+  - Đạt mức tăng tốc **7.04x nhanh hơn** so với Global ViT!
+  - Thời gian tiêu thụ trên mỗi token (`ms/token`) đạt trạng thái tiệm cận tuyến tính hoàn hảo: **$0.000490$ ms/token** so với **$0.003449$ ms/token** của Global ViT $\implies$ **Hiệu suất tính toán trên mỗi token cao hơn gấp 7.0 lần**.
+
+#### 2. Về Bộ nhớ & Ranh giới OOM (VRAM & SDPA Behavior)
+- Thử nghiệm Table C chứng minh rằng: Nhờ PyTorch 2.x tích hợp kernel SDPA (Scaled Dot-Product Attention) tối ưu, bộ nhớ kích hoạt không bị tràn OOM đột ngột ngay cả khi xử lý tới 401,408 tokens ($B=32$, Peak VRAM ~3.77 GB trên T4 14.56 GB).
+- **Tuy nhiên, sự bùng nổ nằm ở Arithmetic Intensity**: Dù không tràn RAM, lượng phép tính $\mathcal{O}(N^2)$ trong backward pass vẫn khiến GPU T4 bị nghẽn thông lượng tính toán (1.52 giây cho 1 block ở $B=32$, trong khi Window Attention chỉ mất 0.21 giây).
+
+#### 3. Đối chiếu Trực tiếp với Hiện tượng Bottleneck trong SAGE-Lite B2-D12
+- Trong Section 10, Targeted Profiler đã chỉ ra rằng SageLayer 0 và SageLayer 1 gọi ViT Experts tới 212 lần trong 10 steps, tiêu tốn **7,255.1 ms**.
+- Micro-benchmark này xác thực chính xác nguyên nhân: Một ViT block thông thường xử lý $N=196$ chỉ mất ~0.8 – 1.1 ms (Forward) và 1.5 – 1.7 ms (Backward). Nhưng khi nhận $N=12,544$, thời gian vọt lên ~20 – 40 ms (Forward) và 65 – 133 ms (Backward).
+- Nếu tại các tầng phân giải cao ($112 \times 112$), các chuyên gia Transformer được cấu hình sử dụng Local Window Attention ($W=7$), chi phí Forward + Backward sẽ giảm từ ~173 ms xuống ~25 ms (**giảm ~85% chi phí chuyên gia**), mở ra tiềm năng tối ưu hóa đột phá cho các thế hệ kiến trúc tiếp theo.
+
+
 
 
 
