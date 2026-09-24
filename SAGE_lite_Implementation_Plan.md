@@ -1,12 +1,16 @@
 # Kế hoạch Triển khai SAGE-lite cho Phân vùng Vết nứt (Crack Segmentation)
 *(Kế hoạch migrate từ SAGE gốc → SAGE-lite)*
 
+> [!NOTE]
+> **LIÊN KẾT ROADMAP THỰC NGHIỆM CHI TIẾT CHO B2:**
+> Kế hoạch thực nghiệm chi tiết cho cấu hình B2 (bao gồm lộ trình khóa Base SAGE-Lite Phase 1–6, nhóm đề xuất tối ưu nút thắt High-Resolution CNN $\to$ ViT: P3 ASDW-Concat, P1 SRA, P2 Restricted Routing, và Runtime Preflight trên Tesla T4) được quy hoạch và quản lý tập trung tại:
+> 👉 **[`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md)**
+
 ### 1. Backbone (Mạng xương sống)
 - **Mô hình**: Chuyển sang kiến trúc lai (Hybrid) kết hợp **ConvNeXtV2-Femto** (rút trích local features) và nửa đầu của **ViT-Tiny (patch16)** (6 blocks đầu tiên).
-- **ViT-Depth Sweep trên B1 (Chốt số lượng ViT Blocks)**: Ban đầu khởi điểm tại 6 blocks (điểm giữa của 12 blocks ViT-Tiny). Kết quả B1-6blocks đạt Val Dice = 0.7420 (vượt B0 0.7318, không underperform).
-  - **Quy định chiến lược**: Chưa chuyển sang B2 vội mà tiến hành **ViT-depth ablation trên B1** để chốt số blocks tối ưu dựa trên tập **VALIDATION** (không dùng TEST để chọn).
-  - **Lý do**: Số lượng ViT blocks quyết định trực tiếp số lượng SAGE injection points / routers của B2 (`N_injection = 4 + num_transformer_layers`). Nếu sweep ở B2 sẽ bị confound giữa backbone depth và routing capacity. Sweep ở B1 giúp cô lập hoàn toàn đóng góp của Transformer depth với chi phí tính toán rẻ hơn rất nhiều.
-  - Sau khi chốt depth ở B1, cấu hình B1 sẽ được khóa cứng trước khi wire sang B2.
+- **ViT-Depth Sweep (Từ B1 Screening đến B2 Phase 1 Lock)**: 
+  - B1 ViT-depth sweep `{4, 6, 8, 12}` trên Crack500 đã **HOÀN TẤT 100%** (D4 Val Dice 0.7428, D6 0.7420, D12 0.7419). Do Val Dice ngang nhau (~0.742), B1 đóng vai trò sàng lọc đại diện (screening phase).
+  - **Chuyển tiếp chiến lược sang B2**: Do số lượng ViT blocks quyết định trực tiếp số lượng SAGE injection points / routers của B2 (`N_injection = 4 + num_transformer_layers`) và routing capacity, việc khảo sát và khóa chính thức ViT depth được chuyển vào **Phase 1 của B2 Experimental Roadmap** ([`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md)) trên 3 cấu hình đại diện `{12, 6, 4}` (chọn dựa duy nhất trên tập Validation).
 - **Cấu hình Task**: Đặt `num_classes=1` vì phân vùng vết nứt là bài toán phân loại nhị phân (vết nứt vs. nền).
 - **Các bước triển khai**: Tải trọng số pre-trained cho backbone, gỡ bỏ classification head, cắt ViT xuống 6 blocks, và trích xuất các feature map phân cấp.
 
@@ -21,6 +25,9 @@
     ```
   - Chỉ `patch_pos` mới được phép reshape thành spatial grid và đưa vào hàm interpolate. Không được reshape trực tiếp toàn bộ `pos_embed` chứa `CLS + patch tokens` (197) thành HxW vì sẽ gây mismatch.
 - **Quyết định giữ hay bỏ CLS Token tại Bottleneck**: KHÔNG ĐƯỢC giả định. Phải chờ xác nhận qua Shape Audit xem ViT có CLS token hay không. Trong implementation, phải có code explicitly để xử lý việc giữ hoặc bỏ. Nếu bỏ, decoder chỉ nhận patch/spatial tokens. Nếu giữ, CLS phải được xử lý riêng, tuyệt đối không được reshape lẫn lộn vào không gian `H x W` spatial grid.
+- **Lưu ý mở rộng cho nhánh High-Resolution SAGE (P3 Expert Path)**:
+  - Cơ chế `identity/no-op` trên chỉ áp dụng cho luồng chính Bottleneck ($14\times 14 = 196$ tokens).
+  - Đối với nhánh tối ưu hóa High-Resolution (Proposal 3 trong B2 Roadmap) khi Stage 0/1 nén về $28\times 28$ ($784$ tokens) đưa vào ViT expert, bài toán Positional Encoding cho $N=784$ là một **ràng buộc mức triển khai (implementation constraint)** bắt buộc phải kiểm định và xử lý (nội suy pretrained pos_embed $14\times 14 \to 28\times 28$ hoặc learnable pos_embed, xem chi tiết tại `P3-PHASE-1` trong [`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md)).
 
 ## 3. Decoder (Mạng giải mã)
 - **Tích chập tiêu chuẩn (Standard Convolutions)**: Mặc định, sử dụng **Tích chập 3x3 Tiêu chuẩn** cho các lớp decoder để đảm bảo năng lực biểu diễn đặc trưng không gian trong quá trình upsample.
@@ -107,6 +114,7 @@ else:
 Trước khi chạy hàng loạt Ablation 15 epoch, bắt buộc chạy chuỗi script diagnostic sau để chốt Hyperparameter (thay vì đoán mò):
 
 - **OOM Probe (Test Batch Size):** Chạy RIÊNG cho hai cấu hình cực đoan: nhẹ nhất (chỉ Backbone + Decoder) và nặng nhất (Full SAGE-lite) - chi tiết các bậc xem mục 11.4. Sử dụng **Gradient Accumulation** để giữ Effective Batch Size CỐ ĐỊNH xuyên suốt các bậc nhằm đảm bảo fairness khi so sánh accuracy. Ghi nhận lại RAW batch size và Peak VRAM của từng mô hình để trả lời Câu hỏi 5 về độ phức tạp.
+  * **Kết quả kiểm định thực tế (Phase 0 Preflight trên Tesla T4 14.56 GB)**: Cấu hình `batch_size: 20` và `14+` bị **❌ OOM**. Cấu hình chính thức được khóa an toàn cho B2 là **`batch_size: 12`** và **`num_workers: 2`** (Peak Alloc 13.84 GB, Peak Res 14.05 GB, **Free Headroom 0.51 GB**). Đây là **hardware-constrained runtime setting** bắt buộc trên T4 (chi tiết xem tại [`docs/B2_Phase0_Preflight_Log.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Phase0_Preflight_Log.md)).
 - **Đo lường `pos_weight` (Diagnostic)**: Quét trực tiếp trên các mask gốc của DeepCrack và Crack500 (không qua Dataset/augmentation/filter) để tính tỷ lệ pixel nền/nứt. Chỉ lưu số liệu này làm chẩn đoán (không dùng trong lần chạy R1). Chỉ thử dùng Weighted BCE nếu validation thực tế cho thấy mô hình under-predict vết nứt.
 - **LR Range Test (Leslie Smith):** Chạy RIÊNG cho cấu hình nhẹ nhất và nặng nhất (Full SAGE-lite) vì loss landscape hoàn toàn khác nhau (đặc biệt khi bản Full có thêm L_balance). Các bậc trung gian dùng nội suy giữa 2 kết quả này hoặc test nhanh nếu nghi ngờ. Plot biểu đồ và xác định vùng LR phù hợp. Không dùng chung 1 LR cho tất cả nếu landscape lệch hẳn.
 - **Weight Decay Tách biệt:** Cố định base_wd = 0.05 cho AdamW làm baseline của các run chính. Bắt buộc triển khai hàm get_param_groups để loại trừ các tham số LayerNorm và bias khỏi Weight Decay (weight_decay=0.0 cho nhóm này), trong khi các parameter còn lại dùng base_wd. Không thực hiện WD sweep trước R1; chỉ mở ablation 0.01 nếu kết quả validation sau đó cho thấy cần investigate regularization/overfitting.
@@ -217,8 +225,30 @@ Thực hiện trên checkpoint tốt nhất của từng model:
 **Hành động:** 
 - Nếu có bất kỳ sự sai lệch (mismatch) nào giữa thực tế forward pass và các hằng số lý thuyết đang ghi trong Plan này, **phải cập nhật lại Plan** ngay lập tức.
 - Script Audit này là **bước tiên quyết (Precondition)**, không phải ablation study.
-## 12.5 B2 Experimental Roadmap
-Lộ trình thực nghiệm chi tiết cho cấu hình B2 (Full SAGE-Lite) từ Phase 0 (Runtime preflight) đến Phase 6 (Regularization) được định nghĩa tại `docs/B2_Experimental_Roadmap.md` (bao gồm cả Phase A: Residual Scale Sweep và Phase B: Adaptive Fusion Comparison).
+## 12.5 B2 Experimental Roadmap & High-Resolution Optimization (Quy hoạch Thực nghiệm B2)
+> [!IMPORTANT]
+> **TÀI LIỆU QUY HOẠCH CHI TIẾT CHO THỰC NGHIỆM B2:**
+> Do cấu hình B2 (Full SAGE-Lite) chứa các nghiên cứu chuyên sâu về phân tầng thực nghiệm, giải quyết nút thắt tính toán High-Resolution CNN $\to$ ViT ($N=12,544$ cho Stage 0 và $N=3,136$ cho Stage 1), và bộ quy tắc kiểm định thực nghiệm nghiêm ngặt, toàn bộ kế hoạch triển khai chi tiết của B2 đã được quy hoạch đầy đủ tại:
+> 👉 **[`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md)**
+>
+> **Tóm tắt cấu trúc kế hoạch trong B2 Roadmap:**
+> 1. **Giai đoạn 1 — Base SAGE Lock (Phase 1–6)**:
+>    - *Phase 0*: Runtime Preflight trên Tesla T4 (Đã PASS: Batch 12 an toàn, Headroom 0.51 GB, phát hiện 43x slowdown ở CNN Stage 0/1 $\to$ ViT expert).
+>    - *Phase 1*: Khảo sát ViT Depth (D12 vs D6 vs D4) để lock base architecture (chọn dựa duy nhất trên Validation Dice).
+>    - *Phase 2*: Khảo sát Routing Capacity (`top_k = 2` vs `4`).
+>    - *Phase 3*: Khảo sát Router Hidden Dim (32 / 64 / 128).
+>    - *Phase 4*: Cân bằng tải (Load Balancing, có quy định trạng thái khóa khi RUN vs SKIPPED).
+>    - *Phase 5*: Ổn định tối ưu hóa (SAGE LR & Warmup, có quy định trạng thái khóa khi RUN vs SKIPPED).
+>    - *Phase 6*: Điều hòa & Dung hợp (Adapter Dropout, Residual Scale, Residual vs Adaptive Fusion).
+>    - *Đóng băng cấu hình nền tảng*: Toàn bộ tham số nền tảng của B2 được khóa cứng trước khi chuyển sang nhóm tối ưu High-Res.
+> 2. **Giai đoạn 2 — Nhóm Tối Ưu High-Resolution CNN $\to$ ViT (Optimization Group)**:
+>    - **Primary Baseline $\to$ Proposal 3 (P3: Feature/Detail Enhancement $\to$ Spatial Compression)**:
+>      + Pipeline khép kín: CNN S0/S1 $\to$ ASDW-Concat ($1\times 7 + 7\times 1 + 3\times 3$) $\to$ AdaptiveAvgPool28 ($N=784$) $\to$ Linear $48/96 \to 192$ $\to$ ViT-Tiny Block $\to$ SA-Hub Reverse Projection $192 \to 48/96$ + Bilinear Upsample $4\times / 2\times$ $\to$ Residual Fusion.
+>      + 9 Phase triển khai tuần tự: `P3-PHASE-0` (Freeze Design) $\to$ `P3-PHASE-1` (Codebase Audit & Pos-Embed $N=784$ Verification) $\to$ `P3-PHASE-2` (Shape Contract) $\to$ `P3-PHASE-3` (Complexity Audit: 37,874 params) $\to$ `P3-PHASE-4` (Integration Guard Logic) $\to$ `P3-PHASE-5` (Verification Suite & Real-Data Runtime Preflight trên Tesla T4) $\to$ `P3-PHASE-6` (Near-Matched-Capacity Ablation: Run A, B, C) $\to$ `P3-PHASE-7` (Controlled Training 30 epochs, Validation Only) $\to$ `P3-PHASE-8` (Quantitative Decision Gate 4 Trụ Cột: KEEP / MODIFY / REJECT).
+>    - **Second Priority $\to$ Proposal 1 (P1: Spatial Reduction Attention - SRA)**: Nén K, V giữ nguyên Q phân giải cao.
+>    - **Third Priority $\to$ Proposal 2 (P2: Restricted High-Resolution Routing)**: Stage 0/1 chỉ được chọn CNN experts.
+> 3. **Giai đoạn 3 — Báo Cáo Tập Test Cuối Cùng**:
+>    - Tập Test được khóa kín tuyệt đối, chỉ chạy đúng 1 lần duy nhất trên kiến trúc được chọn để báo cáo khoa học.
 
 ## 13. Research & Ablation Categorization (Scope)
 
@@ -255,10 +285,12 @@ Mục tiêu: Đối chiếu hiệu năng của SAGE-lite với các kiến trúc
 * **B0 đã hoàn thành 100%**:
   - Crack500: Best Val Dice 0.7318, Test Setting A Dice 0.6771, Setting B Dice 0.6801.
   - DeepCrack: Best Val Dice 0.6240, Test Direct Dice 0.6953.
-* **B1-6blocks đã hoàn thành trên Crack500**:
-  - Best Val Dice: 0.7420 (@ epoch 21, Val Loss 1.1453).
-  - Test Dice: Setting A 0.6857, Setting B 0.6895 (HD95: 77.43 px, giảm 16.93 px so với B0).
-  - Kết luận: B1 hoàn toàn không underperform B0.
-* **QUYẾT ĐỊNH MỚI**: Chưa chuyển sang B2. Tiến hành **ViT-Depth Ablation trên B1** (chọn depth tối ưu dựa trên VALIDATION, giữ nguyên toàn bộ pipeline khác). Sau khi chốt depth mới khóa B1 và wire sang B2.
-* Preprocessing đã khóa cứng (Frozen Canonical).
+* **B1 ViT-Depth Screening đã hoàn thành 100% trên Crack500**:
+  - Đã quét các độ sâu `{4, 6, 8, 12}`: D4 Val Dice 0.7428, D6 Val Dice 0.7420 (Test Setting A 0.6857, Setting B 0.6895, HD95 77.43 px), D12 Val Dice 0.7419.
+  - Kết luận: Hiệu năng trên tập Validation hoàn toàn tương đồng (~0.742), không có hiện tượng underperform so với B0 (0.7318).
+* **CHUYỂN TIẾP CHÍNH THỨC SANG B2**:
+  - **B2 Phase 0 (Runtime Preflight)**: Đã hoàn thành 100% trên phần cứng thực tế Tesla T4 (14.56 GB VRAM). Đã khóa cứng cấu hình runtime an toàn: `batch_size = 12`, `num_workers = 2` (Peak Alloc 13.84 GB, headroom an toàn 0.51 GB; cấu hình `batch_size >= 14` đều dính OOM).
+  - **B2 Phase 1 (ViT Depth Lock)**: Khảo sát và khóa chính thức ViT depth `{12, 6, 4}` trong môi trường B2 có đầy đủ routing injection theo đúng lộ trình thực nghiệm tại [`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md).
+* Preprocessing đã khóa cứng (Frozen Canonical: `image_size = 448`, ImageNet mean/std, scale-aware mask scaling).
+
 
