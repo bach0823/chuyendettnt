@@ -334,3 +334,48 @@ Bỏ qua các vấn đề implementation trước, xét thuần trade-off thì *
    - Tiến hành **ViT-Depth Ablation trên B1** (0, 3, 6, 12 blocks) để chọn depth tối ưu dựa trên tập **VALIDATION** (tuyệt đối không dùng TEST để chọn).
    - Sau khi chốt depth ở B1, khóa cấu hình B1 rồi mới wire sang **B2 (Full SAGE-Lite)**.
 
+## 18. Cập nhật Định hướng Kiến trúc SAGE-Lite B2: Nút Thắt High-Resolution CNN→ViT (Ngày 2026-09-24)
+
+Sau khi thẩm định và đánh giá độc lập điểm nghẽn tính toán của các cuộc gọi CNN Stage 0/1 $\to$ ViT expert ($N=12,544$ và $N=3,136$ tokens, tiêu tốn 34 ms/call và chiếm 62.6% forward pass), quyết định định hướng kiến trúc chính thức được xác lập:
+
+### Thứ Tự Ưu Tiên Chiến Lược
+1. **PRIMARY BASELINE $\to$ Proposal 3: Feature/Detail Enhancement $\to$ Spatial Compression**
+   - *Quy trình*: CNN Stage 0/1 feature $\to$ lightweight learnable detail refinement $\to$ spatial compression $\to$ pretrained ViT global attention $\to$ SA-Hub adapt về CNN shape $\to$ residual fusion với main path.
+   - *Nguyên tắc*: Chỉ áp dụng trên nhánh expert. Main CNN path ($112 \times 112$) và UNet skip connections giữ nguyên vẹn 100%. ViT block giữ nguyên dạng black-box pretrained chuẩn từ `timm`, không can thiệp attention internals. Định tuyến đa phương thức được bảo toàn trọn vẹn.
+2. **SECOND $\to$ Proposal 1: Spatial Reduction Attention (SRA)**
+   - $Q$ giữ full spatial resolution ($112 \times 112 = 12,544$), $K, V$ được nén không gian (ví dụ $28 \times 28 = 784$). Attention toàn cục trên tập K/V nén.
+   - Cần sửa attention bên trong ViT block, tái sử dụng pretrained Q/K/V projections và xử lý an toàn cơ chế shared expert giữa Bottleneck ($N=196$) và high-res calls ($N=12,544$).
+3. **THIRD $\to$ Proposal 2: Restricted High-Resolution Routing**
+   - Stage 0/1 chỉ được route tới CNN experts. Stage 2/3 và ViT layers giữ full 16 experts.
+   - Bắt buộc phải giải quyết bài toán $top\_k=4$ trên tập chỉ có 4 CNN experts trước khi code (nguy cơ forced-selection và sụp đổ entropy của router).
+
+### Các Nguyên Tắc Kiến Trúc Bắt Buộc
+- **Decoupled Roles**: Main CNN path là nguồn cung cấp chi tiết nứt độ phân giải cao; expert branch đóng vai trò context booster cộng dồn, không thay thế main path.
+- **Không quy chụp**: Không được mặc định attention trên $N=12,544$ sẽ tự động biến thành uniform distribution.
+- **Tách bạch 4 loại tổn thất**: Phân biệt rành mạch giữa mất resolution, mất global context, mất cross-modal interaction, và nhòe do interpolation.
+- **Kích thước không gian chuẩn xác**: Stage 0 = $112 \times 112$ ($12,544$), Stage 1 = $56 \times 56$ ($3,136$), Stage 2 = $28 \times 28$ ($784$), Stage 3 / ViT = $14 \times 14$ ($196$).
+- **Microbenchmark != Guaranteed Speedup**: Các phép ngoại suy thời gian epoch chỉ là ước lượng tham chiếu, không được xem là hiệu năng end-to-end bảo đảm.
+
+### ⚠️ Bất Biến Hướng Định Tuyến Cốt Lõi (Core Routing Direction Invariant)
+Bất kỳ xử lý tối ưu hóa đặc biệt nào cho nhánh CNN high-resolution $\to$ ViT **CHỈ ĐƯỢC PHÉP ÁP DỤNG KHI THỎA MÃN ĐỒNG THỜI CẢ 2 ĐIỀU KIỆN**:
+1. `source ∈ {CNN Stage 0, CNN Stage 1}`
+2. `target ∈ {ViT / Transformer experts}`
+
+**Mọi hướng định tuyến khác BẮT BUỘC giữ nguyên hành vi SAGE chuẩn (Normal SAGE)**:
+- `CNN S0/S1 → CNN expert` $\implies$ Normal SAGE.
+- `CNN S2/S3 → CNN expert` $\implies$ Normal SAGE.
+- `CNN S2/S3 → ViT expert` $\implies$ Normal SAGE.
+- `ViT → CNN S0/S1` $\implies$ **Normal SAGE 100%** (ViT xuất phát từ bottleneck $N=196$, không tạo ra nút thắt attention lớn).
+- `ViT → CNN S2/S3` $\implies$ Normal SAGE.
+- `ViT → ViT` $\implies$ Normal SAGE.
+
+**Yêu cầu kiểm tra khi code**:
+Bắt buộc kiểm tra đồng thời:
+`if source_is_cnn_stage_0_or_1 and target_is_transformer_expert:`
+Tuyệt đối không kiểm tra đơn lẻ số chiều tensor, số channels, hoặc chỉ số expert.
+
+### Quy Trình Tiếp Theo
+- **TUYỆT ĐỐI KHÔNG CODE VÀO THỜI ĐIỂM NÀY**.
+- Báo cáo đầy đủ đề xuất cụ thể cho P3 (module enhancement, target compression, bảo toàn interface SAGE, minimal ablation) để phê duyệt trước khi hiện thực hóa.
+
+

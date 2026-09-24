@@ -85,22 +85,38 @@ In Progress:
   + Run 2: B2 Depth 6 (`configs/b2_crack500_depth6.yaml`)
   + Run 3: B2 Depth 4 (`configs/b2_crack500_depth4.yaml`)
   + Đánh giá và chọn depth tốt nhất dựa DUY NHẤT trên Validation Dice (không dùng test-set).
-
-
-
+- **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
+  + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
+  + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**
+    1. **PRIMARY BASELINE $\to$ Proposal 3: Feature/Detail Enhancement $\to$ Spatial Compression**
+       * Refine đặc trưng vết nứt mảnh trên feature map trước khi nén không gian $\to$ nạp vào ViT-Tiny pretrained global attention $\to$ SA-Hub adapt về CNN shape $\to$ residual fusion với main path $112 \times 112$.
+       * Chỉ tác động trên nhánh CNN$\to$ViT expert. Main CNN path và UNet skips giữ nguyên 100%. ViT block giữ nguyên dạng black-box pretrained.
+    2. **SECOND $\to$ Proposal 1: Spatial Reduction Attention (SRA)**
+       * $Q$ giữ full resolution ($112 \times 112 = 12,544$), $K, V$ được nén không gian (ví dụ $28 \times 28 = 784$). Global attention trên tập K/V nén.
+       * Cần sửa logic attention trong ViT block, tái sử dụng pretrained Q/K/V projections và hỗ trợ an toàn cho shared expert bottleneck ($N=196$).
+    3. **THIRD $\to$ Proposal 2: Restricted High-Resolution Routing**
+       * Giới hạn Stage 0 và 1 chỉ route tới CNN experts. Stage 2/3 và ViT layers giữ full 16 experts.
+       * Cần xử lý triệt để bài toán $top\_k=4$ trên tập chỉ có 4 CNN experts (nguy cơ sụp đổ entropy và forced selection).
+  + **Nguyên tắc kiến trúc cốt lõi:**
+    * Main CNN path là nguồn cung cấp chi tiết vết nứt sắc nét cho UNet skip connections; expert branch không thay thế main path.
+    * Phân biệt rõ các loại tổn thất: mất độ phân giải (resolution), mất ngữ cảnh (context), mất tương tác đa phương thức (cross-modal), mất do nội suy (interpolation).
+    * Các số liệu microbenchmark là ước tính tham khảo, không coi là end-to-end speedup bảo đảm.
+    * Kích thước không gian thực tế: Stage 0 = $112 \times 112$ ($12,544$ tokens), Stage 1 = $56 \times 56$ ($3,136$ tokens), Stage 2 = $28 \times 28$ ($784$ tokens), Stage 3 / ViT = $14 \times 14$ ($196$ tokens).
 
 Knowledge Being Learned:
 - Cơ chế Routing đa chuyên gia (MoE), tính ổn định số học trong Softmax/Sigmoid gating dưới AMP FP16, giảm thiểu overhead của self-selection qua bypass `my_index`.
 - Quy trình quản lý thực nghiệm bằng Git commit + config YAML để đảm bảo tính tái lập (reproducibility).
 - Đo đạc biên giới hạn phần cứng (VRAM profiling) và tách bạch giữa hardware-constrained runtime settings vs HPO.
 - Kỹ thuật phân rã throughput bằng CUDA Events: nhận diện chính xác Backward computation bottleneck trong mạng MoE thay vì đoán mò về I/O hay DataLoader.
+- Động lực học định tuyến và nguyên lý bảo tồn tín hiệu vết nứt mảnh trong mạng MoE lai CNN-Transformer ở độ phân giải cao.
 
 Current Issue:
 - Không có issue. Two-Stage protocol đã được unit-test 100% PASS, B2 throughput profiling đã hoàn tất trên Colab T4.
 
 Next Step:
 - Chốt budget số epoch huấn luyện cho Phase 1 (Stage 1 & Stage 2) dựa trên throughput thực tế (~14 phút/epoch).
-- Khởi động Run 1 (B2 Depth 12) trên Google Colab T4 theo giao thức Two-Stage.
+- Khởi động Run 1 (B2 Depth 12) trên Google Colab T4 theo giao thức Two-Stage để lấy mốc baseline.
+- Chuẩn bị đặc tả chi tiết cho Proposal 3 (module enhancement, compression targets, interface preservation, minimal ablation) trước khi tiến hành bước triển khai tiếp theo.
 
 
 ## Milestones & SKs (Dependency-order)
