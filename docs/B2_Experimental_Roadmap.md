@@ -71,16 +71,263 @@ Sau khi đánh giá độc lập điểm nghẽn tính toán của các cuộc g
 ### 2. Chi Tiết Từng Hướng Kiến Trúc
 
 #### PROPOSAL 3 — PRIMARY BASELINE: Feature/Detail Enhancement $\to$ Spatial Compression
-* **Quy trình luồng dữ liệu**:
-  $$\text{CNN Stage 0/1 feature} \to \text{Lightweight learnable detail refinement} \to \text{Spatial compression} \to \text{Pretrained ViT global attention} \to \text{SA-Hub adaptation về CNN shape} \to \text{Residual fusion với Main Path}$$
-* **Nguyên tắc bắt buộc**:
-  - Module enhancement **CHỈ áp dụng trên nhánh CNN $\to$ ViT expert**.
-  - **Main CNN path giữ nguyên 100% độ phân giải cao** ($112 \times 112$ và $56 \times 56$).
-  - Các đặc trưng đưa vào Skip connections của UNet Decoder giữ nguyên vẹn 100%.
-  - Khối ViT-Tiny giữ nguyên dạng black-box pretrained chuẩn từ `timm`, **tuyệt đối không sửa attention internals**.
-  - Định tuyến đa phương thức (Heterogeneous routing) vẫn được kích hoạt đầy đủ.
-* **Ý đồ kiến trúc**: Nén biểu diễn không gian trên expert branch để đạt hiệu năng cao, nhưng tinh chỉnh/tăng cường bằng chứng vết nứt trước khi nén để thông tin vết nứt mảnh không bị pha loãng không gian (spatial dilution).
-* **Trạng thái**: Enhancement module là một giả thuyết cần được thiết kế cụ thể, nhẹ, khả học và dạng residual trên feature maps (không dùng Sobel/Laplacian cố định, không sửa RGB preprocessing). Kích thước nén đích cần được chốt trước khi code (Stage 0: $112 \to 56$ hoặc $28$; Stage 1: $56 \to 28$ hoặc $14$).
+
+##### 1. Thiết Kế Làm Việc Chính Thức (P3 Final Working Design)
+* **Quy trình luồng dữ liệu (P3 Pipeline)**:
+  $$\text{CNN Stage 0/1 feature} \xrightarrow{} \text{ASDW-Concat Refinement} \xrightarrow{} \text{AdaptiveAvgPool}(28 \times 28) \xrightarrow{} \text{Channel Projection}(192) \xrightarrow{} \text{Pretrained ViT Global Attention} \xrightarrow{} \text{SA-Hub Restore Shape} \xrightarrow{} \text{Residual Fusion}$$
+* **Công thức chi tiết ASDW-Concat**:
+  $$\begin{aligned}
+  H &= \text{DWConv}_{1 \times 7}(X) \quad (\text{groups}=C, \text{padding}=(0, 3)) \\
+  V &= \text{DWConv}_{7 \times 1}(X) \quad (\text{groups}=C, \text{padding}=(3, 0)) \\
+  L &= \text{DWConv}_{3 \times 3}(X) \quad (\text{groups}=C, \text{padding}=1) \\
+  C_{\text{cat}} &= \text{Concat}[H, V, L] \in \mathbb{R}^{B \times 3C \times H \times W} \\
+  C_{\text{act}} &= \text{GELU}(C_{\text{cat}}) \\
+  F &= \text{PWConv}_{1 \times 1}(C_{\text{act}}) \in \mathbb{R}^{B \times C \times H \times W} \\
+  X_{\text{refined}} &= X + \gamma \cdot F \quad (\gamma = 10^{-2}, \text{learnable parameter})
+  \end{aligned}$$
+* **Mục tiêu nén không gian (Spatial Targets)**:
+  - CNN Stage 0: $112 \times 112 \xrightarrow{\text{AdaptiveAvgPool}} 28 \times 28$ ($N=784$ tokens)
+  - CNN Stage 1: $56 \times 56 \xrightarrow{\text{AdaptiveAvgPool}} 28 \times 28$ ($N=784$ tokens)
+* **Bất biến kiến trúc bắt buộc (Strict Invariants)**:
+  1. **Quy tắc hướng kích hoạt**: CHỈ kích hoạt khi $\text{Source} \in \{\text{CNN Stage 0}, \text{CNN Stage 1}\} \land \text{Target} \in \{\text{ViT Experts}\}$.
+  2. **Bảo tồn Main CNN Path**: Main path giữ nguyên $100\%$ độ phân giải cao ($112 \times 112$ và $56 \times 56$) và nuôi trực tiếp Skip connections của UNet Decoder.
+  3. **Router & Expert Pool bất biến**: Không thay đổi kiến trúc Router, không sửa Heterogeneous Expert Pool.
+  4. **Pretrained ViT Black-box**: Giữ nguyên khối ViT-Tiny chuẩn pretrained ImageNet, tuyệt đối không can thiệp nội bộ Self-Attention.
+  5. **Không dùng BatchNorm**: Để tránh sụp đổ thống kê khi routing tạo các sub-batches động kích thước nhỏ.
+  6. **Không tiền xử lý RGB**: Không dùng Sobel, Laplacian hay can thiệp vào pipeline ảnh đầu vào.
+  7. **Tách biệt thực nghiệm**: Không thêm CA, LKA, SoftPool, hay Frequency decomposition ở phase đầu tiên để bảo đảm đo đạc độc lập hiệu ứng của ASDW-Concat.
+
+---
+
+##### 2. Kế Hoạch Triển Khai Tuần Tự (Phase-by-Phase Execution Plan)
+
+```mermaid
+flowchart TD
+    P0["PHASE 0: Freeze Design"] --> P1["PHASE 1: Codebase Audit"]
+    P1 --> P2["PHASE 2: Shape & Interface Spec"]
+    P2 --> P3["PHASE 3: ASDW Module Design Review"]
+    P3 --> P4["PHASE 4: Integration Plan"]
+    P4 --> P5["PHASE 5: Minimal Verification Suite (Pre-flight Tests)"]
+    P5 --> P6["PHASE 6: Ablation Protocol Preparation"]
+    P6 --> P7["PHASE 7: Controlled Training & Metrics"]
+    P7 --> P8{"PHASE 8: Decision Gate"}
+    P8 -->|Delta Boundary IoU >= +0.5% & Speedup > 40x| Keep["KEEP P3 (Lock for Ladder)"]
+    P8 -->|Boundary IoU dropped| Mod["MODIFY (Config 56 or Norm Tuning)"]
+    P8 -->|No Gain over Pure AvgPool| Rej["REJECT (Switch to P1 SRA)"]
+```
+
+###### PHASE 0 — Freeze Design (Khóa Thiết Kế Ban Đầu)
+- **ID**: `P3-PHASE-0`
+- **Mục tiêu**: Đóng băng toàn bộ thông số toán học, công thức và bất biến của P3; ghi nhận danh sách các giả thuyết chưa được kiểm chứng.
+- **Files liên quan**: `docs/B2_Experimental_Roadmap.md`, `docs/SAGE_LITE_NOTES.md`.
+- **Việc cần làm**:
+  - Khóa công thức ASDW-Concat: $H(1\times 7), V(7\times 1), L(3\times 3) \to \text{Concat} \to \text{GELU} \to \text{PWConv}(1\times 1) \to \text{Residual}(\gamma=10^{-2})$.
+  - Khóa spatial target: $112 \times 112 \to 28 \times 28$ và $56 \times 56 \to 28 \times 28$.
+  - Ghi nhận các giả thuyết chưa chứng minh: (1) Khả năng pre-emphasis của ASDW cứu được thin-crack sau khi lấy trung bình $4\times 4$; (2) Kernel 7 phù hợp đồng thời cho cả Stage 0 và Stage 1; (3) Concat 3 nhánh không bị redundancy trên background.
+- **Input / Output kiểm tra**:
+  - Input: Báo cáo audit `p3_asdw_decision_review.md`.
+  - Output: Bản đặc tả thiết kế bất biến được ký duyệt trong roadmap.
+- **Acceptance Criteria**: Toàn bộ đội ngũ và tài liệu đồng nhất $100\%$ về công thức và các ràng buộc cấm.
+- **Verification / Test**: Review chéo tài liệu, kiểm tra không còn mâu thuẫn giữa roadmap và note.
+- **Artifact / Log**: `docs/B2_Experimental_Roadmap.md`.
+- **Status**: **TODO**
+
+###### PHASE 1 — Codebase Audit & Execution Path Mapping
+- **ID**: `P3-PHASE-1`
+- **Mục tiêu**: Lập bản đồ luồng thực thi thực tế trong code SAGE-Lite để xác định điểm can thiệp chính xác, không sửa code.
+- **Files liên quan**: `sage_lite/sage/components/sage_layer.py`, `sage_lite/sage/components/sa_hub.py`, `sage_lite/sage/networks/convnextv2_vit_hybrid.py`, `sage_lite/sage/networks/b2_unet.py`.
+- **Việc cần làm**:
+  - Trace luồng tensor tại `SageLayer._execute_expert_path()` khi Stage 0 hoặc Stage 1 được kích hoạt.
+  - Kiểm tra interface hiện tại của `SAHub.adapt()`: điểm vào (input adaptation) và điểm ra (output adaptation).
+  - Kiểm tra xem ViT block khi nhận 784 tokens ($28 \times 28$) có bị vướng assert `pos_embed` ($N=196$) không.
+  - Vẽ Execution Flow Diagram chi tiết từ lúc tensor rời Stage 0 đến khi quay lại residual fusion của `SageLayer`.
+- **Input / Output kiểm tra**:
+  - Input: Mã nguồn hiện tại của `SageLayer` và `SAHub`.
+  - Output: Diagram và danh sách dòng code chính xác nơi tensor được trích xuất và biến đổi.
+- **Acceptance Criteria**: Xác định được điểm chèn module mà $100\%$ không chạm vào `main_output` và không ảnh hưởng các cặp routing khác.
+- **Verification / Test**: Static inspection bằng công cụ đọc mã nguồn (`view_file`, `grep_search`).
+- **Artifact / Log**: Section "P3 Execution Path Trace" trong `docs/SAGE_LITE_NOTES.md`.
+- **Status**: **TODO**
+
+###### PHASE 2 — Interface & Tensor Shape Specification
+- **ID**: `P3-PHASE-2`
+- **Mục tiêu**: Thiết lập bảng đặc tả hình dạng tensor (Shape Contract) tại mọi trạm trung chuyển trong pipeline P3.
+- **Files liên quan**: `sage_lite/sage/components/sa_hub.py`.
+- **Việc cần làm**:
+  - Lập bảng đặc tả shape chi tiết cho Stage 0 và Stage 1 qua 7 bước:
+    1. Input tensor: S0 $(B, 48, 112, 112)$ | S1 $(B, 96, 56, 56)$
+    2. ASDW Output: S0 $(B, 48, 112, 112)$ | S1 $(B, 96, 56, 56)$
+    3. Compressed: S0 $(B, 48, 28, 28)$ | S1 $(B, 96, 28, 28)$
+    4. Channel Projected: $(B, 192, 28, 28)$
+    5. ViT Input Sequence: $(B, 784, 192)$ (với $N=784$ tokens)
+    6. ViT Output Sequence: $(B, 784, 192)$
+    7. SA-Hub Restored Shape: S0 $(B, 48, 112, 112)$ | S1 $(B, 96, 56, 56)$
+- **Input / Output kiểm tra**:
+  - Input: Contract kích thước kênh ConvNeXt Femto $[48, 96, 192, 384]$ và ViT embed dim $192$.
+  - Output: Bảng Shape Contract hoàn chỉnh không có chiều nào bị mơ hồ.
+- **Acceptance Criteria**: Tất cả các bước chuyển đổi phải khớp về mặt toán học; phép chiếu ngược tại SA-Hub phải khôi phục chính xác kích thước gốc của Stage.
+- **Verification / Test**: Dry-run tensor shape calculation trên giấy / doc.
+- **Artifact / Log**: Bảng Shape Contract trong tài liệu kỹ thuật.
+- **Status**: **TODO**
+
+###### PHASE 3 — ASDW Module Design & Complexity Review
+- **ID**: `P3-PHASE-3`
+- **Mục tiêu**: Rà soát tham số, FLOPs, padding, cơ chế khởi tạo và cấu trúc lớp của module ASDW trước khi viết mã nguồn.
+- **Files liên quan**: `sage_lite/sage/networks/` (dự kiến tạo submodule hoặc component riêng).
+- **Việc cần làm**:
+  - Xác nhận chính xác số lượng tham số:
+    + Stage 0 ($C=48$): DW1x7 (336) + DW7x1 (336) + DW3x3 (432) + PW1x1 ($144 \times 48 = 6,912$) + $\gamma$ (1) = **8,017 params**.
+    + Stage 1 ($C=96$): DW1x7 (672) + DW7x1 (672) + DW3x3 (864) + PW1x1 ($288 \times 96 = 27,648$) + $\gamma$ (1) = **29,857 params**.
+    + Tổng cả 2 stage: **37,874 params** ($\approx 0.27\%$ mô hình).
+  - Xác nhận padding: `padding=(0, 3)` cho 1x7; `padding=(3, 0)` cho 7x1; `padding=1` cho 3x3 để bảo toàn kích thước $H \times W$.
+  - Xác nhận khởi tạo: $\gamma$ khởi tạo tensor `torch.tensor(0.01)`.
+  - Quyết định nơi khởi tạo module (trong `SAHub` hay wrap ngoài `ViTExpert`).
+- **Input / Output kiểm tra**:
+  - Input: Báo cáo FLOPs và tham số.
+  - Output: Bản thiết kế class `nn.Module` chi tiết về mặt chữ ký hàm (signature).
+- **Acceptance Criteria**: Sai số tham số tính toán bằng 0; không có layer nào bị thiếu padding gây co rút biên feature map.
+- **Verification / Test**: Script tính toán độc lập số tham số lý thuyết.
+- **Artifact / Log**: Báo cáo kiểm định tham số trong nhật ký.
+- **Status**: **TODO**
+
+###### PHASE 4 — Integration Architecture Plan
+- **ID**: `P3-PHASE-4`
+- **Mục tiêu**: Xây dựng phương án tích hợp module vào mạng lưới SAGE mà không làm phá vỡ các hợp đồng hệ thống.
+- **Files liên quan**: `sage_lite/sage/components/sage_layer.py`, `sage_lite/sage/components/sa_hub.py`.
+- **Việc cần làm**:
+  - Thiết kế điều kiện rẽ nhánh (Guard Condition):
+    ```python
+    if is_source_cnn_s0_or_s1 and is_target_vit_expert:
+        x_enhanced = self.asdw_refinement(x_sub)
+        x_compressed = F.adaptive_avg_pool2d(x_enhanced, (28, 28))
+        # chuyển tiếp vào SA-Hub / ViT
+    ```
+  - Đảm bảo cơ chế Bypass (`my_index == expert_idx`) hoạt động bình thường khi Stage 0 tự chọn chính nó.
+  - Bảo đảm các nhánh `ViT -> CNN S0/S1` và `CNN -> CNN` tuyệt đối không đi qua khối nén.
+  - Lên phương án tương thích checkpoint: module mới có tham số nên cần quản lý tên biến trong `state_dict` rõ ràng.
+- **Input / Output kiểm tra**:
+  - Input: Luồng gọi hàm của `SageLayer`.
+  - Output: Bản thiết kế logic điều kiện tích hợp.
+- **Acceptance Criteria**: Điều kiện kích hoạt là chặt chẽ, không có ngõ ngách rò rỉ làm ảnh hưởng đến các routing khác.
+- **Verification / Test**: Code review mô phỏng trên sơ đồ logic.
+- **Artifact / Log**: Kế hoạch tích hợp chi tiết.
+- **Status**: **TODO**
+
+###### PHASE 5 — Minimal Verification Suite (Pre-flight Test Protocols)
+- **ID**: `P3-PHASE-5`
+- **Mục tiêu**: Soạn thảo bộ 9 bài kiểm thử đơn vị và tích hợp (Unit & Integration Tests) bắt buộc phải PASS trước khi tiến hành huấn luyện.
+- **Files liên quan**: `sage_lite/scripts/tests/` (tạo kịch bản test mới `test_p3_invariants.py`).
+- **Danh mục 9 bài test bắt buộc**:
+  1. *Shape Preservation Test*: Kiểm tra output shape sau toàn bộ chu trình nén - giải nén phải khớp chính xác $(B, C, 112, 112)$ và $(B, C, 56, 56)$.
+  2. *Identity / Residual Scale Test*: Với $\gamma = 0$, output của module phải bằng input $X$ với sai số tuyệt đối $< 10^{-7}$.
+  3. *Condition Trigger Test*: Xác nhận module CHỈ kích hoạt khi cặp $(source, target)$ là $(\text{CNN S0/S1}, \text{ViT})$.
+  4. *Non-target Path Invariance Test*: Xác nhận kết quả của `ViT -> CNN` và `CNN -> CNN` hoàn toàn giống hệt baseline gốc.
+  5. *Main Path Bitwise Invariance*: Xác nhận `main_output` không bị trỏ nhầm hay sửa đổi sau khi thêm P3.
+  6. *Parameter Count Verification*: Đo trực tiếp `numel()` của module khớp chính xác 8,017 và 29,857 params.
+  7. *AMP FP16 Stability Test*: Chạy forward + backward dưới `torch.cuda.amp.autocast()` không sinh ra `NaN` hay `Inf`.
+  8. *Sub-batch Dynamics Test*: Chạy với batch size $B=1$ (trường hợp router chỉ gửi 1 mẫu cho expert) để bảo đảm không lỗi dimension hay normalization.
+  9. *Latency Microbenchmark*: Đo thời gian thực tế của bước refinement + compression trên T4, bảo đảm $< 0.3\text{ ms}$.
+- **Input / Output kiểm tra**:
+  - Input: Kịch bản test định nghĩa sẵn.
+  - Output: Log thực thi của test runner báo cáo 9/9 PASS.
+- **Acceptance Criteria**: Tất cả 9 test cases đều đạt $100\%$ PASS.
+- **Verification / Test**: Thực thi script test trên GPU T4.
+- **Artifact / Log**: `results/preflight/P3_verification_log.md`.
+- **Status**: **TODO**
+
+###### PHASE 6 — Ablation Protocol Preparation
+- **ID**: `P3-PHASE-6`
+- **Mục tiêu**: Chuẩn bị bộ 3 cấu hình thử nghiệm đối chứng có kiểm soát chặt chẽ để cô lập hiệu ứng của ASDW-Concat.
+- **Files liên quan**: `sage_lite/configs/p3_ablation/`.
+- **Bộ 3 cấu hình đối chứng**:
+  * **Run A (Control - Pure Compression)**: $\text{AvgPool}(28 \times 28) \to \text{ViT}$ (Không có refinement). Đo tổn thất thông tin thuần túy do nén $16\times$.
+  * **Run B (Generic Refinement)**: $\text{DW-PW } 3\times 3 \to \text{AvgPool}(28 \times 28) \to \text{ViT}$. Đo hiệu ứng tăng dung lượng đặc trưng thông thường.
+  * **Run C (Full P3 - Anisotropic Refinement)**: $\text{ASDW-Concat } (1\times 7 + 7\times 1 + 3\times 3) \to \text{AvgPool}(28 \times 28) \to \text{ViT}$. Đo hiệu ứng của inductive bias định hướng.
+- **Điều kiện đẳng cấu (Strict Invariance Controls)**:
+  - Cùng chung ViT depth (Depth 6 hoặc Depth 12 cố định).
+  - Cùng chung seed ($42$), data split Crack500 chuẩn, optimizer, learning rate, scheduler.
+  - Cùng chung batch size ($12$) và số epoch ($30$).
+- **Input / Output kiểm tra**:
+  - Input: 3 file cấu hình yaml chuẩn hóa.
+  - Output: Bảng so sánh tham số giữa 3 cấu hình xác nhận chỉ lệch nhau ở khối refinement.
+- **Acceptance Criteria**: $100\%$ các siêu tham số ngoài khối refinement phải đồng nhất.
+- **Verification / Test**: Diff kiểm tra giữa 3 file cấu hình.
+- **Artifact / Log**: `configs/b2_p3_run_a.yaml`, `configs/b2_p3_run_b.yaml`, `configs/b2_p3_run_c.yaml`.
+- **Status**: **TODO**
+
+###### PHASE 7 — Controlled Training & Metrics Collection
+- **ID**: `P3-PHASE-7`
+- **Mục tiêu**: Thực thi huấn luyện và thu thập đầy đủ bộ chỉ số đánh giá chuyên sâu cho phân đoạn vết nứt.
+- **Files liên quan**: `sage_lite/scripts/train_crack.py`, `sage_lite/sage/utils/advanced_metrics.py`.
+- **Bộ chỉ số đo lường tối thiểu**:
+  1. *Foreground Dice & IoU* (Đo độ chính xác vùng diện tích).
+  2. *Boundary IoU* (Đo độ sắc nét và bảo tồn biên của vết nứt mảnh).
+  3. *Hausdorff Distance 95 (HD95)* (Đo khoảng cách sai lệch tối đa của đường biên vết nứt).
+  4. *Average Precision (AP)* và *F1-score*.
+  5. *Epoch Time & Throughput (samples/s)*.
+  6. *Peak Allocated & Reserved VRAM*.
+  7. *Router Selection Entropy & Expert Utilization* (Kiểm tra phân phối định tuyến).
+- **Input / Output kiểm tra**:
+  - Input: Dữ liệu Crack500 đã tiền xử lý canonical.
+  - Output: Checkpoints tốt nhất (`best_val_dice.pth`) và file log JSONL/MD chứa toàn bộ kết quả.
+- **Acceptance Criteria**: Huấn luyện hoàn thành trọn vẹn 30 epochs không bị gián đoạn hay phát sinh lỗi số học; log ghi nhận đầy đủ chỉ số.
+- **Verification / Test**: Chạy validation chính thức trên test set của Crack500.
+- **Artifact / Log**: `results/experiments/P3_Crack500_Ablation_Results.md`.
+- **Status**: **TODO**
+
+###### PHASE 8 — Decision Gate (Thẩm Định & Quyết Định Cuối Cùng)
+- **ID**: `P3-PHASE-8`
+- **Mục tiêu**: Dựa trên bằng chứng thực nghiệm thu thập từ Phase 7 để đưa ra phán quyết kiến trúc chính thức cho SAGE-Lite.
+- **Files liên quan**: `docs/B2_Experimental_Roadmap.md`, `milestone_and_progress.md`.
+- **Quy tắc phán quyết (Decision Logic)**:
+  * **KỊCH BẢN 1: KEEP P3 (Chấp thuận chính thức)**
+    - *Điều kiện*: $\text{Run C} - \text{Run A} \ge +0.5\%$ Boundary IoU VÀ Run C giữ được ít nhất $98\%$ Foreground Dice so với Direct Baseline (không nén) VÀ Throughput đạt $> 2.0\text{ samples/s}$ ($>40\times$ speedup trên expert path).
+    - *Hành động*: Khóa P3 làm kiến trúc mặc định cho B2 trên toàn bộ các Milestone tiếp theo.
+  * **KỊCH BẢN 2: MODIFY P3 (Sửa đổi & Tinh chỉnh)**
+    - *Điều kiện*: Run C vượt trội hơn Run A về Boundary IoU nhưng tổng thể Foreground Dice bị sụt giảm quá $1.5\%$ so với Direct Baseline DO nén quá mức về $28 \times 28$.
+    - *Hành động*: Chuyển sang khảo sát **Config 56** ($112 \to 56$ cho S0, $56 \to 28$ cho S1) hoặc bổ sung normalization nhẹ (`GroupNorm(3, 3C)`).
+  * **KỊCH BẢN 3: REJECT P3 (Bác bỏ)**
+    - *Điều kiện*: $\text{Run C} \approx \text{Run B} \approx \text{Run A}$ (sai khác $< 0.1\%$ Boundary IoU) $\implies$ Khối refinement không có tác dụng cứu vãn thông tin trước phép nén; HOẶC Run C sinh ra quá nhiều false positives trên sỏi đá bê tông làm HD95 tăng vọt.
+    - *Hành động*: Hủy bỏ nhánh P3; chính thức kích hoạt **Proposal 1 (SRA)** làm hướng ưu tiên số 1.
+- **Input / Output kiểm tra**:
+  - Input: Bảng số liệu tổng hợp từ Phase 7.
+  - Output: Biên bản phán quyết kiến trúc được phê duyệt.
+- **Acceptance Criteria**: Quyết định được đưa ra thuần túy dựa trên số liệu thực nghiệm định lượng, không dựa trên cảm tính.
+- **Verification / Test**: Kiểm tra chéo số liệu giữa log training và kết quả eval chính thức.
+- **Artifact / Log**: Cập nhật kết luận chính thức vào `milestone_and_progress.md`.
+- **Status**: **TODO**
+
+---
+
+##### 3. Bảng Kiểm Tra Tiến Độ (Phase Checklist)
+- [ ] `P3-PHASE-0`: Freeze Design & Invariants Documentation
+- [ ] `P3-PHASE-1`: Codebase Audit & Execution Path Mapping (No Code Changes)
+- [ ] `P3-PHASE-2`: Tensor Shape Contract Specification
+- [ ] `P3-PHASE-3`: ASDW Module Signature & Complexity Audit
+- [ ] `P3-PHASE-4`: Integration Guard Logic & Checkpoint Plan
+- [ ] `P3-PHASE-5`: Minimal 9-Test Verification Suite Execution
+- [ ] `P3-PHASE-6`: 3-Run Ablation Protocol Configuration
+- [ ] `P3-PHASE-7`: Controlled Training & Metrics Benchmarking
+- [ ] `P3-PHASE-8`: Architectural Decision Gate Verdict
+
+---
+
+##### 4. Danh Sách Rủi Ro & Giả Thuyết Cần Theo Dõi (Risk & Assumption Registry)
+1. **Giả thuyết Pre-emphasis**: Giả định rằng việc khuếch đại cục bộ bằng ASDW có thể chống lại hiệu ứng pha loãng $16\times$ của AvgPool trên cửa sổ $4 \times 4$. *Theo dõi qua*: So sánh Boundary IoU Run C vs Run A.
+2. **Rủi ro Khuếch đại Nhiễu Nền (Gravel Noise)**: Kernel $1 \times 7$ và $7 \times 1$ có thể phản ứng với các rãnh sỏi đá thẳng, tạo false positives. *Theo dõi qua*: Chỉ số HD95 và trực quan hóa feature maps.
+3. **Hiện tượng Linear / Redundancy trong Concat**: 3 nhánh có thể phản hồi tương đồng trên vùng nền phẳng, gây lãng phí tham số của lớp $1 \times 1$. *Theo dõi qua*: Phân tích trọng số của lớp PWConv $1 \times 1$.
+4. **Giới hạn Nén $28 \times 28$**: Vết nứt mảnh $1$-pixel có thể bị xóa sổ hoàn toàn nếu độ tương phản ban đầu quá thấp, vượt quá khả năng cứu vãn của bất kỳ bộ lọc trước nén nào. *Theo dõi qua*: Kịch bản chuyển hướng sang Config 56 tại Decision Gate.
+
+---
+
+##### 5. Danh Sách CÁC ĐIỀU CẤM TUYỆT ĐỐI (Strict Negative Invariants)
+- ❌ **CẤM** viết code module hay sửa bất kỳ file `.py` nào trong Phase lập kế hoạch này.
+- ❌ **CẤM** sửa `main_block` hay can thiệp vào đường truyền $112 \times 112$ của Main CNN Path.
+- ❌ **CẤM** sửa khối `ViT-Tiny` hay viết lại cơ chế Attention nội bộ của timm ViT block.
+- ❌ **CẤM** kích hoạt module nén/refinement trên hướng ngược lại (`ViT -> CNN S0/S1`) hoặc các hướng CNN$\to$CNN.
+- ❌ **CẤM** sử dụng `BatchNorm2d` bên trong module refinement.
+- ❌ **CẤM** dùng các bộ lọc tiền xử lý cố định (Sobel/Laplacian) trên ảnh RGB.
+- ❌ **CẤM** đánh dấu hoàn tất (DONE) bất kỳ Phase nào nếu chưa chạy kiểm thử và chưa có file log minh chứng thực tế.
 
 #### PROPOSAL 1 — SECOND PRIORITY: SRA (Spatial Reduction Attention)
 * **Cơ chế**:
