@@ -329,18 +329,18 @@ flowchart TD
 
 - **Input / Output kiểm tra**:
   - Input: Script test invariants và script preflight real-data trên T4.
-  - Output: Log thực thi của test runner báo cáo 9/9 PASS và file báo cáo Preflight trên dữ liệu thật.
-- **Acceptance Criteria**: Tất cả 9 unit test cases đều đạt $100\%$ PASS; Bảng nghiệm thu Preflight trên T4 đạt $100\%$ tiêu chuẩn PASS không OOM và không rò rỉ bộ nhớ.
+  - Output: Log thực thi của test runner báo cáo 12/12 PASS và file báo cáo Preflight trên dữ liệu thật.
+- **Acceptance Criteria**: Tất cả 12 unit test cases đều đạt $100\%$ PASS; Bảng nghiệm thu Preflight trên T4 đạt $100\%$ tiêu chuẩn PASS không OOM và không rò rỉ bộ nhớ.
 - **Verification / Test**: Thực thi script test và script preflight trên GPU Tesla T4.
 - **Artifact / Log**: `results/preflight/P3_verification_log.md` và `docs/P3_Phase0_Preflight_Log.md` (chuẩn hóa tương đương `docs/B2_Phase0_Preflight_Log.md`).
-- **Status**: **TODO**
+- **Status**: **CLOSED & FROZEN**
 
 ###### PHASE 6 — Ablation Protocol Preparation
 - **ID**: `P3-PHASE-6`
 - **Mục tiêu**: Chuẩn bị bộ 3 cấu hình thử nghiệm đối chứng có kiểm soát chặt chẽ để cô lập hiệu ứng của ASDW-Concat.
 - **Files liên quan**: `sage_lite/configs/p3_ablation/`.
 - **Bộ 3 cấu hình đối chứng**:
-  * **Run A (Control - Pure Compression)**: $\text{AvgPool}(28 \times 28) \to \text{ViT}$ (Không có refinement). Đo tổn thất thông tin thuần túy do nén $16\times$.
+  * **Run A — Compression Control under Common Fixed PE28 Treatment**: `no refinement + common fixed PE28 + AvgPool28 -> ViT`. Đo lường hiệu ứng nén không gian $28 \times 28$ dưới cùng xử lý vị trí Fixed PE28 chung, không có khối tinh chỉnh refinement.
   * **Run B (Generic Refinement - Near-Matched-Capacity Control)**: $3 \times \text{DWConv}_{3 \times 3} \to \text{Concat}(3C) \to \text{GELU} \to \text{PWConv}_{3C \to C}(1 \times 1) \to \text{Residual}(\gamma) \to \text{AvgPool}(28 \times 28) \to \text{ViT}$.
     - Cấu trúc 3 nhánh isotropic đối xứng:
       $$H_1 = \operatorname{DWConv}_{3 \times 3}(X), \quad H_2 = \operatorname{DWConv}_{3 \times 3}(X), \quad H_3 = \operatorname{DWConv}_{3 \times 3}(X)$$
@@ -348,19 +348,24 @@ flowchart TD
     - **Ý nghĩa so sánh Near-Matched-Capacity**:
       + Cả Run B và Run C đều sở hữu 3 nhánh depthwise, cùng ghép nối tạo tensor $3C$ channels, cùng qua bộ chiếu Pointwise $3C \to C$ ($3C^2$ tham số: $6,912$ params ở S0 và $27,648$ params ở S1), cùng hàm kích hoạt $\text{GELU}$ và hệ số scaling $\gamma = 10^{-2}$.
       + Hai cấu hình có cùng cấu trúc Concat/GELU/PW và dung lượng rất gần nhau: Run B tổng $38,450$ params, Run C tổng $37,874$ params. Chênh lệch nhỏ $576$ parameters đến từ số lượng trọng số depthwise ($27C$ vs $23C$: Run B dùng $3 \times (3 \times 3)$, Run C dùng $1 \times 7 + 7 \times 1 + 3 \times 3$). Phần Pointwise $3C \to C$ chiếm đại đa số (>86%–92% tham số) là hoàn toàn giống nhau $100\%$.
-      + Nhờ đó, nếu Run C vượt trội hơn Run B trên tập Val, toàn bộ chênh lệch được khẳng định chắc chắn đến từ **anisotropic inductive bias** dành riêng cho hình thái vết nứt, không bị gây nhiễu bởi dung lượng mạng (capacity confounder), đồng thời giữ phương pháp luận sạch sẽ mà không cần thêm tham số nhân tạo.
-  * **Run C (Full P3 - Anisotropic Refinement)**: $\text{ASDW-Concat } (1\times 7 + 7\times 1 + 3\times 3) \to \text{Concat}(3C) \to \text{GELU} \to \text{PWConv}_{3C \to C}(1 \times 1) \to \text{Residual}(\gamma) \to \text{AvgPool}(28 \times 28) \to \text{ViT}$. Đo hiệu ứng của inductive bias định hướng trên cùng ngân sách tham số.
+      + **Bản chất đối chứng Near-Matched-Capacity**: Run B và Run C đóng vai trò là các kiểm soát gần tương đương về dung lượng tham số (near-matched-capacity controls, chênh lệch chính xác $\Delta = 576$ tham số: Run B = 38,450 vs Run C = 37,874, không gọi là bằng tham số tuyệt đối). Việc so sánh Run C vs Run B cung cấp bằng chứng thực nghiệm về hiệu ứng của cấu trúc depthwise định hướng / đa tỷ lệ (directional / multi-scale structure) dưới cùng mức dung lượng tương đương, thay vì khẳng định tuyệt đối là toàn bộ chênh lệch chắc chắn $100\%$ chỉ đến từ anisotropic inductive bias.
+  * **Run C (Full P3 - Anisotropic Refinement)**: $\text{ASDW-Concat } (1\times 7 + 7\times 1 + 3\times 3) \to \text{Concat}(3C) \to \text{GELU} \to \text{PWConv}_{3C \to C}(1 \times 1) \to \text{Residual}(\gamma) \to \text{AvgPool}(28 \times 28) \to \text{ViT}$. Đo hiệu ứng của cấu trúc depthwise định hướng / đa tỷ lệ trên dung lượng gần tương đương (near-matched capacity).
 - **Điều kiện đẳng cấu (Strict Invariance Controls)**:
-  - **Cùng chung ViT depth = Base Depth đã được KHÓA ở Phase 1** (ví dụ nếu Phase 1 chọn Depth 6 thì cả 3 Run A, B, C đều chạy trên Depth 6 cố định, tuyệt đối không để biến depth mở trong P3 ablation).
-  - Cùng chung seed ($42$), data split Crack500 chuẩn, optimizer, learning rate, scheduler.
-  - Cùng chung batch size ($12$) và số epoch ($30$).
+  - **Cùng chung ViT depth = Base Depth đã được KHÓA ở Phase 1** (Locked Base Depth = 4 cố định, kế thừa từ kết quả B1 sweep Top 1 Val Dice 0.7428; tuyệt đối không mở biến depth trong P3 ablation).
+  - Cùng chung seed ($42$), data split Crack500 chuẩn, optimizer (AdamW, weight decay 0.05), learning rate ($10^{-4}$), scheduler (CosineAnnealingLR với 3 epochs warmup).
+  - Cùng chung batch size ($12$) và ngân sách huấn luyện (`epochs: 30`, `patience: 6`).
+  - **Ngữ nghĩa Ngân sách Huấn luyện (Training-Horizon Semantics)**: `epochs = 30` là ngân sách epoch tối đa (*maximum epoch budget*) và cơ chế dừng sớm EarlyStopping được phép kích hoạt (`patience = 6`). Đây không phải là khung huấn luyện cố định tắt early stopping.
+  - **Quy tắc Biến thực nghiệm Duy nhất (Only-Variable Semantic)**: `p3_mode` là biến hành vi mô hình thực nghiệm duy nhất (*`p3_mode` is the only model-behavior experimental variable*). Trường `output_dir` chỉ khác nhau nhằm mục đích cô lập checkpoint và artifact lưu trữ (*`output_dir` differs only for checkpoint/artifact isolation*).
+  - **Ghi chú Phương pháp luận (Methodological Note)**:
+    + So sánh giữa Run A, Run B và Run C là **thử nghiệm đối chứng P3 có kiểm soát dưới cùng xử lý Fixed PE28 chung** (*controlled P3 ablation under common Fixed PE28*).
+    + So sánh giữa Run C và Direct Baseline là **so sánh cấp độ toàn hệ thống** (*system-level comparison*), không phải là so sánh cô lập riêng hiệu ứng ASDW thuần túy (*not a pure ASDW-isolation comparison*).
 - **Input / Output kiểm tra**:
   - Input: 3 file cấu hình yaml chuẩn hóa.
   - Output: Bảng so sánh tham số giữa 3 cấu hình xác nhận chỉ lệch nhau ở khối refinement.
 - **Acceptance Criteria**: $100\%$ các siêu tham số ngoài khối refinement phải đồng nhất.
 - **Verification / Test**: Diff kiểm tra giữa 3 file cấu hình.
-- **Artifact / Log**: `configs/b2_p3_run_a.yaml`, `configs/b2_p3_run_b.yaml`, `configs/b2_p3_run_c.yaml`.
-- **Status**: **TODO**
+- **Artifact / Log**: `sage_lite/configs/p3_ablation/b2_p3_run_a.yaml`, `sage_lite/configs/p3_ablation/b2_p3_run_b.yaml`, `sage_lite/configs/p3_ablation/b2_p3_run_c.yaml`.
+- **Status**: **FROZEN**
 
 ###### PHASE 7 — Controlled Training & Metrics Collection
 - **ID**: `P3-PHASE-7`
@@ -387,19 +392,18 @@ flowchart TD
 - **Mục tiêu**: Dựa trên bằng chứng thực nghiệm thu thập từ Phase 7 (đo trên tập Validation) để đưa ra phán quyết kiến trúc chính thức cho SAGE-Lite.
 - **Files liên quan**: `docs/B2_Experimental_Roadmap.md`, `milestone_and_progress.md`.
 - **Khung tiêu chí đánh giá 4 trụ cột (4-Pillar Evaluation Framework)**:
-  1. *Trụ cột 1: Chất lượng phân đoạn tổng thể (Segmentation Quality & Accuracy)*: So sánh Foreground Val Dice và Val IoU giữa Run C (ASDW), Run B (Generic 3×3), Run A (Pure Compression) và Direct Baseline (không nén).
+  1. *Trụ cột 1: Chất lượng phân đoạn tổng thể (Segmentation Quality & Accuracy)*: So sánh Foreground Val Dice và Val IoU giữa Run C (ASDW), Run B (Generic 3×3), Run A (Compression Control under Common Fixed PE28 Treatment) và Direct Baseline (không nén).
   2. *Trụ cột 2: Hành vi bảo tồn chi tiết & biên nứt mảnh (Thin-crack & Boundary Behavior)*: Đánh giá khả năng bảo tồn topo và đường biên sắc nét qua Val Boundary IoU và Val Hausdorff Distance 95 (HD95).
-  3. *Trụ cột 3: Hiệu năng thực thi & Mức tiêu thụ bộ nhớ (Runtime & Memory Footprint)*: Đo lường tốc độ tăng tốc thực tế (speedup) trên expert path ($>10\times$ đến $50\times$), throughput tổng thể (samples/s) và VRAM headroom an toàn trên Tesla T4.
+  3. *Trụ cột 3: Hiệu năng thực thi & Mức tiêu thụ bộ nhớ (Runtime & Memory Footprint)*: Đo lường tốc độ tăng tốc thực tế (speedup) trên expert path (chỉ số chẩn đoán báo cáo so với Direct Baseline expert-path latency theo giao thức đo chuẩn hóa), throughput tổng thể (samples/s) và VRAM headroom an toàn trên Tesla T4. Speedup đóng vai trò là chỉ số chẩn đoán (diagnostic metric), không phải là cổng bác bỏ cứng (hard rejection gate) đơn lẻ chưa đăng ký trước.
   4. *Trụ cột 4: Chẩn đoán mẫu lỗi & Rủi ro suy thoái (Failure Modes & Noise Analysis)*: Kiểm tra xem module có bị bẫy khuếch đại sỏi đá/nhiễu nền thành false positives (làm tăng đột biến HD95) hay không; kiểm tra gradient saturation và sự cân bằng phân phối của Router.
 
 - **Quy tắc phán quyết dựa trên bằng chứng (Evidence-based Decision Logic)**:
-
 | Tiêu chí / Metric | KEEP P3 (Chấp thuận chính thức) | MODIFY P3 (Sửa đổi & Tinh chỉnh) | EQUIVALENCE BAND (Dải tương đương) | REJECT P3 (Bác bỏ nhánh P3) |
 |---|---|---|---|---|
 | **$\Delta \text{Val Boundary IoU } (\text{Run C} - \text{Run A})$** | $\ge +0.5\%$ | $\ge +0.5\%$ | — | $< +0.1\%$ (Không cải thiện biên) |
 | **$\Delta \text{Val Dice } (\text{Run C} \text{ vs Direct Baseline})$** | Sụt giảm $\le 1.5\%$ | Sụt giảm $> 1.5\%$ (Nén quá thô) | — | Sụt giảm $> 3.0\%$ (Suy thoái nặng) |
 | **$\Delta \text{Val HD95 } (\text{Run C} - \text{Run A})$** | Không tăng hoặc giảm | Không tăng $> 15\%$ | — | Tăng $\ge +15\%$ |
-| **P3 Expert-Path Speedup** | $\ge \text{preregistered target}$ | $\ge \text{preregistered target}$ | — | $< 10\times$ (Không đạt mục tiêu tốc độ) |
+| **P3 Expert-Path Speedup (Diagnostic Metric)** | $\ge \text{preregistered target}$ (đạt kỳ vọng chẩn đoán so với Direct Baseline) | $\ge \text{preregistered target}$ (đạt kỳ vọng chẩn đoán so với Direct Baseline) | — | Báo cáo chẩn đoán; không áp dụng ngưỡng $< 10\times$ ad-hoc chưa đăng ký làm hard reject |
 | **So sánh với Run B ($\text{Run C} \text{ vs } \text{Run B}$)** | Vượt trội ngoài Equivalence Band | Vượt trội ngoài Equivalence Band | $|\Delta \text{Boundary IoU}| < 0.2\%$ VÀ $|\Delta \text{Dice}| < 0.3\%$ | Thua kém hoặc nằm trong Equivalence Band |
 
 * **Hành động cụ thể theo từng phán quyết**:

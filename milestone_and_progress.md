@@ -17,10 +17,10 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Hoàn thành triển khai và kiểm thử B2 (Full SAGE-Lite) trên codebase `sage_lite/` (Branch `crack500-audit`). Sẵn sàng chạy thực nghiệm trên Colab.
+Hoàn thành P3-PHASE-1 đến P3-PHASE-6 (Triển khai P3, Verification Suite 12/12 PASS, Run-A Runtime Gate PASS, và Two-Stage Optimizer Preflight PASS cho Run A, B, C). Sẵn sàng khởi chạy P3-PHASE-7: Controlled Training & Metrics Collection trên Google Colab T4.
 
 State:
-Completed Implementation & Smoke Tests (Ready for Colab Training)
+P3 Protocol FROZEN & Two-Stage Optimizer Preflight PASS (Ready for Phase-7 Training)
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  
@@ -111,12 +111,11 @@ Knowledge Being Learned:
 - Động lực học định tuyến và nguyên lý bảo tồn tín hiệu vết nứt mảnh trong mạng MoE lai CNN-Transformer ở độ phân giải cao.
 
 Current Issue:
-- Không có issue. Two-Stage protocol đã được unit-test 100% PASS, B2 throughput profiling đã hoàn tất trên Colab T4.
+- Không có issue. Two-Stage Training & Optimizer Preflight đã PASS 100% cho cả 3 cấu hình Run A, Run B và Run C (343/343 tensors khớp tuyệt đối, 0 missing, 0 duplicates, shared experts cô lập chuẩn ở CNN main blocks, Stage 2 LR ratio 1:1 bảo toàn).
 
 Next Step:
-- Chốt budget số epoch huấn luyện cho Phase 1 (Stage 1 & Stage 2) dựa trên throughput thực tế (~14 phút/epoch).
-- Khởi động Run 1 (B2 Depth 12) trên Google Colab T4 theo giao thức Two-Stage để lấy mốc baseline.
-- Chuẩn bị đặc tả chi tiết cho Proposal 3 (module enhancement, compression targets, interface preservation, minimal ablation) trước khi tiến hành bước triển khai tiếp theo.
+- Tiến hành thực thi P3-PHASE-7: Huấn luyện chính thức 3 cấu hình Run A (`b2_p3_run_a.yaml`), Run B (`b2_p3_run_b.yaml`), Run C (`b2_p3_run_c.yaml`) trên Google Colab T4 theo giao thức Two-Stage Training đã khóa.
+- Thu thập metrics trên Validation set để phục vụ P3-PHASE-8 Decision Gate (tuyệt đối không truy cập tập Test).
 
 
 ## Milestones & SKs (Dependency-order)
@@ -281,4 +280,18 @@ sage-lite/
   + Depth 12: Val Dice 0.7419, Val Loss 1.2332 (Top 3) | Test Setting A Dice 0.6902 | Test Setting B Dice 0.6926.
   + **Quyết định Chiến lược:** Chưa freeze ViT depth từ B1; B1 đóng vai trò screening. Depth tối ưu của SAGE-Lite sẽ được đo đạc và chốt qua **B2 Depth Ablation `{4, 6, 12}`** khi có SAGE routing. Không cần chạy lại B1. Sẵn sàng huấn luyện B1 trên DeepCrack.
 - **2026-09-23**: Khởi tạo lộ trình thực nghiệm chi tiết cho B2 (Full SAGE-Lite) từ Phase 0 đến Phase 6. Lộ trình được tài liệu hóa tại `docs/B2_Experimental_Roadmap.md`. Đã hoàn tất cài đặt kỹ thuật B2, sẵn sàng chạy Phase 0 (Runtime preflight) trên Colab.
+- **2026-09-25**: Hoàn thành Chuẩn bị Giao thức Thử nghiệm Đối chứng P3 (P3-PHASE-6):
+  + Đối chiếu và chuẩn hóa toàn diện thuật ngữ giữa Phase 6 và Phase 8 trong `docs/B2_Experimental_Roadmap.md`: Run A được định danh chính xác là "Compression Control under Common Fixed PE28 Treatment" (`no refinement + common fixed PE28 + AvgPool28 -> ViT`); Run B và Run C được xác định là các kiểm soát gần tương đương về dung lượng ("near-matched-capacity controls", Run B = 38,450 vs Run C = 37,874 params, lệch 576 params ở DW) cung cấp bằng chứng thực nghiệm về cấu trúc định hướng/đa tỷ lệ; Speedup được chuẩn hóa thành chỉ số chẩn đoán (diagnostic metric) so với Direct Baseline expert-path latency theo 4-Pillar Framework, loại bỏ ngưỡng bác bỏ cứng ad-hoc `< 10x` chưa đăng ký trước.
+  + Khởi tạo bộ 3 file cấu hình YAML chuẩn hóa tại `sage_lite/configs/p3_ablation/`: `b2_p3_run_a.yaml` (Run A, `p3_mode: "A"`), `b2_p3_run_b.yaml` (Run B, `p3_mode: "B"`), `b2_p3_run_c.yaml` (Run C, `p3_mode: "C"`).
+  + Xác minh ma trận tham số (Diff Matrix): 100% siêu tham số ngoài khối refinement (Locked Base Depth = 4, Seed = 42, Batch Size = 12, Epochs = 30, Learning Rate = 1e-4, 9 khóa của `sage_config`, data paths) hoàn toàn đẳng cấu và đồng nhất.
+  + Chuẩn hóa và đóng băng giao thức cuối cùng (Final Protocol Freeze): Khẳng định `p3_mode` là biến hành vi mô hình duy nhất (`output_dir` chỉ để cô lập artifact); khóa ngữ nghĩa `epochs = 30` là ngân sách tối đa có early stopping (`patience = 6`); ghi nhận ghi chú phương pháp luận phân biệt rõ A/B/C (kiểm soát dưới PE28 chung) vs Direct Baseline (so sánh cấp độ hệ thống); chuẩn hóa kết quả nghiệm thu Phase 5 là 12/12 tests PASS. P3-PHASE-6 chính thức được đánh dấu **FROZEN**.
+- **2026-09-25**: Hoàn thành Kiểm tra Runtime Run-A và Tiền kiểm tra Tối ưu hóa Hai giai đoạn (Two-Stage Optimizer Preflight) cho cả 3 Run A, Run B, Run C (P3-PHASE-6 & P3-PHASE-7 Preflight):
+  + **Run-A Runtime Gate PASS**: Xác minh kiểu runtime của `stage0.p3_refinement` và `stage1.p3_refinement` là `nn.Identity()`. Nhánh nén P3 ($28 \times 28$, `backbone.pe28_fixed`, $784$ tokens) được kích hoạt chuẩn xác; đường direct high-res cũ tuyệt đối không bị gọi cho ViT experts.
+  + **Run A Two-Stage Preflight PASS**: 333/333 tensors được hạch toán đầy đủ (0 duplicate, 0 missing); 132 shared tensors thuộc duy nhất về CNN main blocks; `model.set_shared_experts([0, 1, 2, 3])` thực thi chuẩn; scheduler Stage 2 khởi tạo lại với `warmup=3`.
+  + **Run B & Run C Two-Stage Preflight PASS**:
+    * Run B: 10 P3 tensors (38,450 params). Stage 1 phân bổ vào nhóm `backbone` (LR $10^{-5}$, WD 0.05). Stage 2 sau reload và `set_shared_experts([0,1,2,3])` thuộc strictly về `other_and_routers` (LR $10^{-4}$, WD 0.05), không lẫn vào `shared_experts`. Khớp 343/343 trainable tensors (0 missing, 0 duplicate).
+    * Run C: 10 P3 tensors (37,874 params). Stage 1 phân bổ vào `backbone` (LR $10^{-5}$, WD 0.05). Stage 2 thuộc strictly về `other_and_routers` (LR $10^{-4}$, WD 0.05), không lẫn vào `shared_experts`. Khớp 343/343 trainable tensors (0 missing, 0 duplicate).
+    * Tỷ lệ LR Stage 2: `stage2_shared_lr : stage2_base_lr = 1e-4 : 1e-4 = 1:1` được bảo toàn nghiêm ngặt.
+  + Cả 3 cấu hình Run A, Run B, Run C đã sẵn sàng 100% để bước vào P3-PHASE-7: Huấn luyện chính thức.
+
 
