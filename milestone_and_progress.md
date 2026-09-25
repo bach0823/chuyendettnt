@@ -17,10 +17,12 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Hoàn thành P3-PHASE-1 đến P3-PHASE-6 (Triển khai P3, Verification Suite 12/12 PASS, Run-A Runtime Gate PASS, và Two-Stage Optimizer Preflight PASS cho Run A, B, C). Sẵn sàng khởi chạy P3-PHASE-7: Controlled Training & Metrics Collection trên Google Colab T4.
+Hoàn thành giải quyết 2 launch-path inconsistencies theo yêu cầu:
+1. `p3_mode` propagation: `scripts/train_crack.py` đã truyền chính xác `p3_mode=config.get('p3_mode', None)` vào constructor `create_b2_unet` và bổ sung `--locked-base` CLI flag.
+2. PE28 Provenance & Initialization Alignment: `scripts/preflight_p3_realdata.py` đã đồng bộ `pretrained=True`, kiểm chứng derivation toán học 2D bicubic 14x14 -> 28x28 từ PE14, và kiểm tra tính đẳng cấu bitwise giữa Run A, Run B, Run C. Toàn bộ 12/12 unit tests PASS 100%. Sẵn sàng chạy Real-Data Preflight và Training chính thức trên Google Colab Tesla T4.
 
 State:
-P3 Protocol FROZEN & Two-Stage Optimizer Preflight PASS (Ready for Phase-7 Training)
+P3 Launch-Path Inconsistencies Resolved (Commit `ba69da4` pushed to `crack500-audit`). Ready for Colab T4 Preflight & Training.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  
