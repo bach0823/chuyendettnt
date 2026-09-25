@@ -17,12 +17,13 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Hoàn thành giải quyết 2 launch-path inconsistencies theo yêu cầu:
+Hoàn thành giải quyết triệt để 2 launch-path inconsistencies và siết chặt cổng kiểm định nguồn gốc Locked Base:
 1. `p3_mode` propagation: `scripts/train_crack.py` đã truyền chính xác `p3_mode=config.get('p3_mode', None)` vào constructor `create_b2_unet` và bổ sung `--locked-base` CLI flag.
-2. PE28 Provenance & Initialization Alignment: `scripts/preflight_p3_realdata.py` đã đồng bộ `pretrained=True`, kiểm chứng derivation toán học 2D bicubic 14x14 -> 28x28 từ PE14, và kiểm tra tính đẳng cấu bitwise giữa Run A, Run B, Run C. Toàn bộ 12/12 unit tests PASS 100%. Sẵn sàng chạy Real-Data Preflight và Training chính thức trên Google Colab Tesla T4.
+2. PE28 Provenance & Initialization Alignment: `scripts/preflight_p3_realdata.py` đã đồng bộ `pretrained=True`, kiểm chứng derivation toán học 2D bicubic 14x14 -> 28x28 từ PE14, và bổ sung cổng kiểm định xuất xứ Locked Base (Hàng N trong bảng báo cáo). Nếu không truyền `--locked-base`, preflight sẽ cảnh báo và chặn lại với phán quyết `GATED (Locked Base Checkpoint required)`. Khi truyền `--locked-base`, preflight trích xuất và đối chiếu bitwise trực tiếp với `backbone.positional_embeddings` trong file checkpoint thật.
+3. Huấn luyện 30 epoch chính thức giữ nguyên trạng thái GATED cho đến khi chạy Preflight với checkpoint cụ thể trên Tesla T4.
 
 State:
-P3 Launch-Path Inconsistencies Resolved (Commit `ba69da4` pushed to `crack500-audit`). Ready for Colab T4 Preflight & Training.
+P3 Launch-Path Inconsistencies Resolved & Strict Locked-Base Provenance Gate Enforced (Commit `31f4390` pushed to `crack500-audit`). Ready for Colab T4 Preflight with `--locked-base`.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  
