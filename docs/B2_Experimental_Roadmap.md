@@ -6,6 +6,7 @@ Cập nhật kế hoạch thực nghiệm B2 theo roadmap sau. Mục tiêu là k
 * **Kế hoạch Triển khai SAGE-Lite Gốc**: [`SAGE_lite_Implementation_Plan.md`](file:///d:/truong/SpecialSubjectTTNT/SAGE_lite_Implementation_Plan.md) — Đặc tả toàn diện về Backbone lai ConvNeXtV2-Femto + ViT-Tiny (Mục 1), Xử lý Positional Embedding & CLS Token (Mục 2), Standard Conv Decoder (Mục 3), Router Hidden Dim & Exploration Noise (Mục 4), Residual Fusion (Mục 5), SA-Hub Pairwise $O(D^2)$ Adaptation (Mục 6), SAGE Full Injection Logic & Zero-cost Bypass (Mục 7), và Bộ tiền xử lý Canonical Frozen (`img_size=448`) cho Crack500 / DeepCrack (Mục 8).
 * **Nhật ký Kỹ thuật & Ghi chú Hệ thống**: [`docs/SAGE_LITE_NOTES.md`](file:///d:/truong/SpecialSubjectTTNT/docs/SAGE_LITE_NOTES.md).
 * **Báo cáo Tiền trạm Phần cứng B2 Phase 0 (Tesla T4)**: [`docs/B2_Phase0_Preflight_Log.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Phase0_Preflight_Log.md).
+* **Giao thức Thực nghiệm & Lộ trình Thực thi Kiểm soát Tính toán Crack500 (Phases 0–8)**: [`docs/Crack500_Experimental_Protocol_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/Crack500_Experimental_Protocol_Roadmap.md) — Tài liệu đặc tả chuẩn xác lập 8 nguyên tắc bắt buộc, kiểm định bằng chứng Phase 0 (Audit Depth, LR, P3 Modes), xử lý mâu thuẫn giao thức và phân bổ ngân sách thực nghiệm tối ưu.
 
 ## Nguyên tắc chung
 
