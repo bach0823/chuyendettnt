@@ -17,13 +17,15 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Hoàn thành giải quyết triệt để 2 launch-path inconsistencies và siết chặt cổng kiểm định nguồn gốc Locked Base:
-1. `p3_mode` propagation: `scripts/train_crack.py` đã truyền chính xác `p3_mode=config.get('p3_mode', None)` vào constructor `create_b2_unet` và bổ sung `--locked-base` CLI flag.
-2. PE28 Provenance & Initialization Alignment: `scripts/preflight_p3_realdata.py` đã đồng bộ `pretrained=True`, kiểm chứng derivation toán học 2D bicubic 14x14 -> 28x28 từ PE14, và bổ sung cổng kiểm định xuất xứ Locked Base (Hàng N trong bảng báo cáo). Nếu không truyền `--locked-base`, preflight sẽ cảnh báo và chặn lại với phán quyết `GATED (Locked Base Checkpoint required)`. Khi truyền `--locked-base`, preflight trích xuất và đối chiếu bitwise trực tiếp với `backbone.positional_embeddings` trong file checkpoint thật.
-3. Huấn luyện 30 epoch chính thức giữ nguyên trạng thái GATED cho đến khi chạy Preflight với checkpoint cụ thể trên Tesla T4.
+Hoàn thành nghiệm thu Phase 1 Full Confirmation trên Crack500 (D12, BS14, 30 epochs):
+1. **P3-A (Identity Control):** Best Val Dice = **0.7543**, Best Val Loss = **1.0140** (thấp nhất toàn bảng), 0 tham số P3 bổ sung.
+2. **P3-B (Generic DW Control):** Best Val Dice = **0.7496**, Best Val Loss = **1.0495**, 38,450 tham số P3. (Chính thức LOẠI BỎ do kém hơn cả A và C).
+3. **P3-C (ASDW Refinement):** Best Val Dice = **0.7557**, Best Val Loss = **1.0889**, 37,874 tham số P3. (Giữ làm ứng viên Top 1 Dice).
+4. **Throughput Impact:** Nhánh P3 spatial compression nén về 28x28 giúp tăng tốc độ huấn luyện gấp ~3.2 lần trên Colab T4 (~3.9-4.0 min/epoch vs ~13.0 min/epoch của B2 Base thuần).
+5. **Decision Gate 1:** Thuộc Case B (Equivalence, $\Delta = 0.14\% < 0.3\%$). Khóa cặp ứng viên sáng giá nhất: P3-C (Top 1 Dice) và P3-A (Top 1 Loss & Zero Param Simplicity) để bước vào Phase 2 (Depth Screening).
 
 State:
-P3 Launch-Path Inconsistencies Resolved & Strict Locked-Base Provenance Gate Enforced (Commit `31f4390` pushed to `crack500-audit`). Ready for Colab T4 Preflight with `--locked-base`.
+Phase 1 Full Confirmation Completed & Decision Gate 1 Passed (Case B: Keep P3-C & P3-A, Drop P3-B). Ready for Phase 2 Depth Screening.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  

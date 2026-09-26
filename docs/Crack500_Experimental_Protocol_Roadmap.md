@@ -221,16 +221,18 @@ flowchart TD
   - Seed: **42**.
   - Ngân sách screening: **8–10 epochs** (Stage 1 = 4–5 epochs, Stage 2 = 4–5 epochs).
 * **Số run cần chạy**: **2 runs** (P3-A short, P3-B short). Đối với P3-C, có thể chạy thêm 1 short run đồng bộ hoặc trích xuất checkpoint tại epoch 9 của Canonical P3-C làm đối chứng.
-* **Bảng báo cáo mẫu Phase 1**:
-  | Mode | Best short Val Dice | Epoch | Final Val Dice | Runtime (s/ep) | Status |
-  |:---:|:---:|:---:|:---:|:---:|:---:|
-  | **P3-A** | TBD | TBD | TBD | TBD | SCREENING |
-  | **P3-B** | TBD | TBD | TBD | TBD | SCREENING |
-  | **P3-C** | *(Ref: 0.7557 @ ep 9)* | TBD | TBD | TBD | REFERENCE |
-* **Quy tắc phán quyết (Decision Rule)**:
-  - *Case A (P3-C tách biệt $\Delta \text{Dice} \ge +0.5\%$)*: Khóa P3-C làm ứng viên duy nhất bước vào Phase 2.
-  - *Case B (A/B/C cách nhau $< 0.3\%$)*: Giữ các ứng viên sát nhau, chuyển tiếp sang Phase 2.
-  - *Case C (P3-C không tốt hơn A/B)*: Dừng lại, báo cáo kết quả, không mặc định tiếp tục tuning P3-C.
+* **Bảng kết quả chính thức Phase 1 (Full Confirmation 30 Epochs, D12, BS14)**:
+  | Mode | Refinement Module | P3 Params | Best Val Dice | Best Val Loss | Best Epoch | Throughput (T4) | Status / Verdict |
+  |:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+  | **P3-A** | `nn.Identity()` | 0 | **0.7543** | **1.0140** | S2, Ep 13 | ~3.9 min/ep | **KEEP (Top Loss & Simplicity)** |
+  | **P3-B** | $3\times\text{DWConv}(3\times3)$ | 38,450 | **0.7496** | **1.0495** | S2, Ep 15 | ~4.1 min/ep | **DROP (Inferior to A & C)** |
+  | **P3-C** | ASDW ($1\times7+7\times1+3\times3$) | 37,874 | **0.7557** | **1.0889** | S2, Ep 9 | ~4.0 min/ep | **KEEP (Top Val Dice)** |
+
+* **Phán quyết tại Decision Gate 1 (Decision Gate 1 Verdict)**:
+  - $\Delta \text{Val Dice}(\text{P3-C} - \text{P3-A}) = 0.7557 - 0.7543 = +0.0014$ ($+0.14\% < 0.3\%$).
+  - Thuộc **Case B (Equivalence / Very Close Range)**.
+  - **Hành động**: Loại bỏ P3-B (`0.7496`). Giữ nguyên 2 ứng viên sáng giá nhất: **P3-C** (độ chính xác phân đoạn cao nhất) và **P3-A** (tinh gọn tối đa, 0 tham số bổ sung, Val Loss thấp nhất) để tiến sang **Phase 2 (Depth Screening)**.
+  - Chi tiết xem tại báo cáo nghiệm thu: [`results/B2_Crack500_P3_ABC_Comparison_Results.md`](file:///d:/truong/SpecialSubjectTTNT/SAGE_LITE/results/B2_Crack500_P3_ABC_Comparison_Results.md).
 
 ---
 
