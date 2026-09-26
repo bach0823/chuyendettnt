@@ -221,18 +221,23 @@ flowchart TD
   - Seed: **42**.
   - Ngân sách screening: **8–10 epochs** (Stage 1 = 4–5 epochs, Stage 2 = 4–5 epochs).
 * **Số run cần chạy**: **2 runs** (P3-A short, P3-B short). Đối với P3-C, có thể chạy thêm 1 short run đồng bộ hoặc trích xuất checkpoint tại epoch 9 của Canonical P3-C làm đối chứng.
-* **Bảng kết quả chính thức Phase 1 (Full Confirmation 30 Epochs, D12, BS14)**:
-  | Mode | Refinement Module | P3 Params | Best Val Dice | Best Val Loss | Best Epoch | Throughput (T4) | Status / Verdict |
-  |:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-  | **P3-A** | `nn.Identity()` | 0 | **0.7543** | **1.0140** | S2, Ep 13 | ~3.9 min/ep | **KEEP (Top Loss & Simplicity)** |
-  | **P3-B** | $3\times\text{DWConv}(3\times3)$ | 38,450 | **0.7496** | **1.0495** | S2, Ep 15 | ~4.1 min/ep | **DROP (Inferior to A & C)** |
-  | **P3-C** | ASDW ($1\times7+7\times1+3\times3$) | 37,874 | **0.7557** | **1.0889** | S2, Ep 9 | ~4.0 min/ep | **KEEP (Top Val Dice)** |
+* **Bảng Tổng Hợp Kết Quả Thực Nghiệm Phase 1 (Full 30-Epoch Confirmation on T4)**:
 
-* **Phán quyết tại Decision Gate 1 (Decision Gate 1 Verdict)**:
-  - $\Delta \text{Val Dice}(\text{P3-C} - \text{P3-A}) = 0.7557 - 0.7543 = +0.0014$ ($+0.14\% < 0.3\%$).
-  - Thuộc **Case B (Equivalence / Very Close Range)**.
-  - **Hành động**: Loại bỏ P3-B (`0.7496`). Giữ nguyên 2 ứng viên sáng giá nhất: **P3-C** (độ chính xác phân đoạn cao nhất) và **P3-A** (tinh gọn tối đa, 0 tham số bổ sung, Val Loss thấp nhất) để tiến sang **Phase 2 (Depth Screening)**.
-  - Chi tiết xem tại báo cáo nghiệm thu: [`results/B2_Crack500_P3_ABC_Comparison_Results.md`](file:///d:/truong/SpecialSubjectTTNT/SAGE_LITE/results/B2_Crack500_P3_ABC_Comparison_Results.md).
+| Cấu hình (Mode) | Refinement Module | Tham số P3 | Best Val Dice | Best Val Loss | Best Epoch | Stage 1 Best Dice | Throughput (Colab T4) | Final $\gamma$ (S0 / S1) | Trạng thái Nghiệm thu |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **P3-A (Identity Control)** | `nn.Identity()` | **0** | **0.7543** | **1.0140** | Stage 2, Ep 13 | 0.7158 (Ep 14) | **~3.9 min / epoch** (~1.72s/it) | N/A (Identity) | **CONFIRMED CANDIDATE** |
+| **P3-B (Generic DW Control)** | $3 \times \text{DWConv}(3\times3)$ | 38,450 | **0.7496** | **1.0495** | Stage 2, Ep 15 | 0.7179 (Ep 10) | **~4.1 min / epoch** (~1.80s/it) | 0.0105 / 0.0136 | **CONFIRMED (ELIMINATED)** |
+| **P3-C (ASDW Refinement)** | ASDW ($1\times7 + 7\times1 + 3\times3$) | 37,874 | **0.7557** | **1.0889** | Stage 2, Ep 9 | 0.7180 (Ep 10) | **~4.0 min / epoch** (~1.78s/it) | 0.0063 / 0.0071 | **TOP 1 DICE CANDIDATE** |
+| *B2 Base D12 (No P3 / Pure)* | *None (Full $112\times112$)* | *0* | *0.7057 (S1 ep 4)* | *1.5203* | *In-Progress (S1)* | *0.7057 (S1)* | *~13.0 min / epoch* (~4.90s/it) | *N/A* | *Bottleneck Baseline* |
+
+* **Phán quyết Thực nghiệm Tại Decision Gate 1 (Phase 1 Verdict)**:
+  - **Khoảng cách P3-C vs P3-A**: $\Delta \text{Val Dice} = 0.7557 - 0.7543 = +0.0014 \ (+0.14\% < 0.3\%)$. P3-A đạt Val Loss thấp hơn rõ rệt (**1.0140** vs 1.0889).
+  - Tình huống thực nghiệm rơi vào **Case B (Equivalence / Very Close Candidates)**: P3-A và P3-C nằm trong dải tương đương. Cả hai đều vượt trội so với P3-B (`0.7496`).
+  - **Quyết định tuyển chọn**:
+    1. **Loại bỏ P3-B**: Kém hơn P3-C $0.61\%$ và kém hơn P3-A $0.47\%$.
+    2. **Duy trì 2 ứng viên xuất sắc nhất**: **P3-C** (Peak Accuracy) và **P3-A** (Minimal Architecture, Lowest Loss).
+    3. **Khẳng định giá trị tăng tốc của P3**: Cả 3 biến thể P3 đạt tốc độ **~4.0 min/epoch** (~3.25x nhanh hơn so với ~13.0 min/epoch của B2 Base thuần), chứng minh tính đúng đắn của giải pháp nén không gian $28 \times 28$.
+  - Chi tiết báo cáo xem tại: [`results/B2_Crack500_P3_ABC_Comparison_Results.md`](file:///d:/truong/SpecialSubjectTTNT/SAGE_LITE/results/B2_Crack500_P3_ABC_Comparison_Results.md).
 
 ---
 
