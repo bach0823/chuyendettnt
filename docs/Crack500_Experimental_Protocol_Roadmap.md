@@ -273,23 +273,23 @@ flowchart TD
 
 ---
 
-### 4.5. PHASE 5 — Tinh Chỉnh Cặp LR × Gamma (Joint Small Grid 2×2)
-* **Mục tiêu**: Khảo sát tương tác giữa tốc độ học và hệ số khởi tạo $\gamma$ mà không gây bùng nổ tổ hợp.
-* **Thiết kế lưới**:
-  - LR: Candidate chính + candidate phụ gần nhất từ Phase 4.
-  - Gamma: Baseline $\gamma_{\text{init}} = 0.01$ + một candidate gamma được xác lập dựa trên quan sát thực tế từ Phase 1 và Phase 4.
-  - Theo dõi độc lập $\gamma_{\text{S0}}$ và $\gamma_{\text{S1}}$.
-* **Số run cần chạy**: Đúng **4 short runs** ($2 \times 2$, 8–10 epochs).
+### 4.5. PHASE 5 — Tinh Chỉnh Cặp LR × Gamma (BLOCKED / PENDING DESIGN)
+* **Trạng thái**: **BLOCKED / PENDING DESIGN** (Tạm khóa).
+* **Nguyên tắc**: Không tự tiện trích xuất hay phát minh giá trị candidate gamma thứ hai khi chưa có protocol được định nghĩa và thống nhất trước.
+* Nếu sau Phase 1 và Phase 4 không có cơ sở đủ rõ cho gamma thứ hai, không ép chạy lưới 2x2. Có thể chuyển hướng sang một gamma screening nhỏ hoặc giữ nguyên baseline $\gamma_{\text{init}}=0.01$ (đã ghi nhận hội tụ tốt tại $\sim 0.0063 - 0.0071$).
 
 ---
 
 ### 4.6. PHASE 6 — Xác Nhận Toàn Diện (Full Confirmation)
-* **Mục tiêu**: Huấn luyện chính thức đầy đủ 30 epochs cho DUY NHẤT 1 hoặc tối đa 2 cấu hình sống sót qua các vòng screening.
+* **Mục tiêu**: Huấn luyện chính thức đầy đủ 30 epochs cho các cấu hình ứng viên hàng đầu.
+* **Nguyên tắc phân bổ**:
+  - Full confirmation **tối thiểu 1 run** (target tối thiểu, không phải hard constraint ép chỉ 1).
+  - Nếu các candidate từ vòng short screening sát nhau hoặc thứ hạng chưa ổn định: **full-confirm 2 candidate gần nhất** để bảo đảm không chọn winner dựa trên nhiễu của short run.
+  - Tuyệt đối không full-confirm toàn bộ grid.
 * **Giao thức chuẩn**:
   - Total Epochs: **30** (Stage 1 = 15, Stage 2 = 15, Early Stopping patience = 6, Warmup = 3).
-  - Batch Size: **14** (hoặc 12 nếu hardware yêu cầu).
-  - Bắt buộc ghi nhận: Checkpoint, SHA256 checksum, training log, Best Val Dice, Best Epoch, final $\gamma_{\text{S0}}/\gamma_{\text{S1}}$.
-* **Số run cần chạy**: **1 run** (hoặc 2 runs nếu có 2 candidate cạnh tranh gắt gao).
+  - Batch Size: **14** (chuẩn T4 an toàn đã qua thực nghiệm).
+  - Bắt buộc lưu trữ: Checkpoint, SHA256 checksum, training log, Best Val Dice, Best Epoch, final $\gamma_{\text{S0}}/\gamma_{\text{S1}}$.
 
 ---
 
@@ -328,9 +328,31 @@ flowchart TD
 
 ---
 
-## 6. Đề Xuất Các Bước Hành Động Cụ Thể (Actionable Next Steps)
+## 6. Lệnh Thực Thi Full Confirmation Cho Run A & Run B Trên Google Colab (Tesla T4)
 
-Trước khi kích hoạt bất kỳ lệnh huấn luyện nào trên Google Colab, cần thực hiện theo đúng trình tự:
-1. **Giải quyết Xung đột 1 trong `scripts/train_crack.py`**: Cho phép `p3_mode in ('A', 'B')` chạy ở chế độ Standalone tương tự như P3-C (khi không truyền `--locked-base`), nhằm đảm bảo điều kiện xuất phát điểm đồng nhất cho Phase 1 screening.
-2. **Giải quyết Xung đột 2 trong cấu hình**: Tạo các tệp cấu hình screening chuẩn hóa cho Phase 1: `b2_p3_run_a_screening.yaml` và `b2_p3_run_b_screening.yaml` với `num_transformer_layers: 12`, `batch_size: 14`, `num_workers: 2`, `epochs: 10`.
-3. **Tiến hành Phase 1 trên Colab T4**: Chạy tuần tự 2 short runs cho P3-A và P3-B, thu thập Best Val Dice và đối chiếu với mốc reference của P3-C tại Decision Gate 1.
+Sau khi kiểm chứng tính khả thi Standalone và hoàn tất Preflight 3-batch cho cả P3-A và P3-B (commit `5de9e54`), toàn bộ mã nguồn và cấu hình huấn luyện chuẩn **30 epochs (D12, BS14, Two-Stage)** đã sẵn sàng để thực thi full confirmation ngang hàng với Canonical P3-C.
+
+### Bước 1: Đồng bộ mã nguồn mới nhất trên Colab
+```bash
+%cd /content/SAGE_LITE
+!git pull origin crack500-audit
+!pip install -e . -q
+```
+
+### Bước 2: Huấn luyện Full Confirmation Run A (Identity Control)
+```bash
+!python scripts/train_crack.py \
+    --config configs/p3_ablation/b2_p3_run_a.yaml \
+    --two-stage
+```
+*Output Checkpoint dự kiến:* `/content/drive/MyDrive/crack_seg/P3_A_Canonical_Base_D12/best_model_b2_global.pth`
+
+### Bước 3: Huấn luyện Full Confirmation Run B (Generic DW Refinement)
+```bash
+!python scripts/train_crack.py \
+    --config configs/p3_ablation/b2_p3_run_b.yaml \
+    --two-stage
+```
+*Output Checkpoint dự kiến:* `/content/drive/MyDrive/crack_seg/P3_B_Canonical_Base_D12/best_model_b2_global.pth`
+
+*(Cả 2 lệnh trên đều chạy độc lập Standalone từ ImageNet-pretrained, tự động ghi log, lưu Best Val Checkpoint và xuất các chỉ số chi tiết tại mỗi epoch).*
