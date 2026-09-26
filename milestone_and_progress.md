@@ -17,15 +17,17 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Hoàn thành nghiệm thu Phase 1 Full Confirmation trên Crack500 (D12, BS14, 30 epochs):
-1. **P3-A (Identity Control):** Best Val Dice = **0.7543**, Best Val Loss = **1.0140** (thấp nhất toàn bảng), 0 tham số P3 bổ sung.
-2. **P3-B (Generic DW Control):** Best Val Dice = **0.7496**, Best Val Loss = **1.0495**, 38,450 tham số P3. (Chính thức LOẠI BỎ do kém hơn cả A và C).
-3. **P3-C (ASDW Refinement):** Best Val Dice = **0.7557**, Best Val Loss = **1.0889**, 37,874 tham số P3. (Giữ làm ứng viên Top 1 Dice).
-4. **Throughput Impact:** Nhánh P3 spatial compression nén về 28x28 giúp tăng tốc độ huấn luyện gấp ~3.2 lần trên Colab T4 (~3.9-4.0 min/epoch vs ~13.0 min/epoch của B2 Base thuần).
-5. **Decision Gate 1:** Thuộc Case B (Equivalence, $\Delta = 0.14\% < 0.3\%$). Khóa cặp ứng viên sáng giá nhất: P3-C (Top 1 Dice) và P3-A (Top 1 Loss & Zero Param Simplicity) để bước vào Phase 2 (Depth Screening).
+Nghiệm thu thực nghiệm Phase 1 (Full Confirmation 30 epochs) & Triển khai Protocol Kiểm chứng Hội tụ Đồng đẳng (Convergence Parity) cho P3-A:
+1. **Kết quả Phase 1 Đã Xác Nhận (Colab T4, BS14, D12, 30 Epochs):**
+   - **P3-C (ASDW):** Best Val Dice = **0.7557**, Best Val Loss = **1.0889** (Stage 2 Ep 9). EarlyStopping kích hoạt chuẩn tại Ep 15 sau 6 epoch không cải thiện ($9 + 6 = 15$). Hội tụ đầy đủ.
+   - **P3-A (Identity):** Best Val Dice = **0.7543**, Best Val Loss = **1.0140** (Stage 2 Ep 13). Bị chặn bởi trần ngân sách cứng 30 epochs tại Ep 15 khi mới qua 2 epoch không cải thiện.
+   - **P3-B (Generic DW):** Best Val Dice = **0.7496**, Best Val Loss = **1.0495**. Chính thức bị LOẠI BỎ.
+   - **Throughput:** P3 spatial compression nén 28x28 tăng tốc ~3.25x (~4.0 min/ep vs ~13.0 min/ep của Base).
+2. **Triển khai Patch Nối tiếp Stage 2 (--resume-stage2):** Đã bổ sung tính năng nạp checkpoint `--checkpoint`, khôi phục baseline Best Dice `0.7543` / Loss `1.0140`, hỗ trợ `--stage2-epochs` và `--initial-epochs-no-improve` trong `scripts/train_crack.py` (Commit `7da1341` trên `crack500-audit`).
+3. **Tiến trình tiếp theo:** Chạy mở rộng Stage 2 (+10-15 epochs) cho P3-A trên Colab T4 để đạt hội tụ tự nhiên (hoặc patience=6) trước khi chốt phán quyết Decision Gate 1.
 
 State:
-Phase 1 Full Confirmation Completed & Decision Gate 1 Passed (Case B: Keep P3-C & P3-A, Drop P3-B). Ready for Phase 2 Depth Screening.
+Phase 1 Extension Ready: P3-A Stage 2 Resumption mechanism patched, tested, and pushed. Awaiting Colab execution for Convergence Parity verification.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  

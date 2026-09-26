@@ -239,6 +239,21 @@ flowchart TD
     3. **Khẳng định giá trị tăng tốc của P3**: Cả 3 biến thể P3 đạt tốc độ **~4.0 min/epoch** (~3.25x nhanh hơn so với ~13.0 min/epoch của B2 Base thuần), chứng minh tính đúng đắn của giải pháp nén không gian $28 \times 28$.
   - Chi tiết báo cáo xem tại: [`results/B2_Crack500_P3_ABC_Comparison_Results.md`](file:///d:/truong/SpecialSubjectTTNT/SAGE_LITE/results/B2_Crack500_P3_ABC_Comparison_Results.md).
 
+#### 4.1.1. Bổ sung Protocol: Kiểm Chứng Hội Tụ Đồng Đẳng (Convergence Parity Verification) cho P3-A
+* **Phát hiện thực nghiệm về tính bất đối xứng hội tụ**:
+  - **P3-C**: Đạt đỉnh tại Stage 2 Epoch 9 (`Val Dice = 0.7557`), sau đó trải qua 6 epoch không cải thiện liên tiếp (Epoch 10–15). Cơ chế `EarlyStopping (patience=6)` kích hoạt chuẩn xác tại Epoch 15 ($9 + 6 = 15$). **Hội tụ thực nghiệm đã được chứng minh đầy đủ.**
+  - **P3-A**: Đạt đỉnh tại Stage 2 Epoch 13 (`Val Dice = 0.7543`), sau đó chỉ mới chạy 2 epoch (Epoch 14: `0.7495`, Epoch 15: `0.7485`) thì chạm trần ngân sách cứng 30 epochs (Stage 1: 15, Stage 2: 15). Số epoch không cải thiện mới dừng ở 2/6. **Chưa có bằng chứng P3-A đã hết dư địa tăng trưởng hay bị chặn bởi trần ngân sách.**
+* **Nguyên tắc mở rộng (Patience Verification Extension)**:
+  - **Không vội vàng chốt lựa chọn**: Trì hoãn việc chốt chọn P3-C hay P3-A cho đến khi P3-A được kiểm chứng hội tụ đầy đủ với cùng điều kiện kiểm thử patience = 6.
+  - **Cơ chế tiếp tục (Resumption Contract)**:
+    - Nạp trực tiếp checkpoint tốt nhất của P3-A: `/content/drive/MyDrive/crack_seg/P3_A_Canonical_Base_D12/best_model_b2_global.pth` (ghi nhận tại Epoch 13 với Val Dice = `0.7543`, Val Loss = `1.0140`).
+    - Huấn luyện nối tiếp Stage 2 từ 10 đến 15 epochs bằng cờ `--resume-stage2` và `--checkpoint`.
+    - Giữ nguyên baseline đánh giá: `best_dice` khởi tạo từ `0.7543`, `best_loss` khởi tạo từ `1.0140`. Chỉ ghi đè mô hình tốt nhất nếu thực sự vượt mốc kỷ lục này.
+    - Bộ đếm patience `epochs_no_improve` có thể khởi tạo từ 2 (tính cả Ep 14 & 15) hoặc cho một cửa sổ 6 epoch mới. Huấn luyện dừng ngay khi `EarlyStopping` kích hoạt tự nhiên hoặc hết ngân sách mở rộng.
+* **Quy tắc phân định sau mở rộng**:
+  - **Nếu P3-A vượt P3-C ($\text{Dice} \ge 0.7557$)**: P3-A trở thành Ứng viên Số 1 tuyệt đối (thắng cả về Dice, Loss lẫn số lượng tham số 0 param).
+  - **Nếu P3-A kích hoạt EarlyStopping mà không vượt 0.7557**: P3-C chính thức được xác nhận là Ứng viên Số 1 về Max Dice với bằng chứng hội tụ hoàn toàn đối đẳng và công bằng.
+
 ---
 
 ### 4.2. PHASE 2 — Sàng Lọc Chiều Sâu ViT (Depth Screening)
