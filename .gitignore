@@ -21,12 +21,11 @@ venv/
 sage_lite/
 SAGE/
 SAGE.md
-.agents/
+!.agents/skills/
 
 # Workspace folders
 notebooks/
 scripts/
-results/
 datasets/
 repo_info.json
 
