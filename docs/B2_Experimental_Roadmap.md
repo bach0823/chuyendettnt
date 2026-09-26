@@ -557,7 +557,12 @@ Do thay depth ảnh hưởng đến architecture và routing scale, Phase 1 ch�
 
 * **Cố định dùng chung**:
   - `batch_size = 12` (runtime setting đã xác thực qua Real-Data Preflight trên T4)
-  - `img_size = 448`, `seed = 42`, `lr = 1e-4`, `epochs = 30`, `patience = 6`
+  - `img_size = 448`, `seed = 42`, `lr = 1e-4`, `patience = 6`
+  - **Giao thức Epoch mới cho Fresh Depth Experiments (D6/D8/D10/D12)**:
+    + Stage 1: **17 epochs**
+    + Stage 2: **18 epochs**
+    + Total Budget: **35 epochs** (`epochs = 35`, `stage1_epochs = 17`)
+    *(Lưu ý: Các run canonical D8/D12 30 epochs trước đây được bảo toàn nguyên trạng dưới dạng kết quả lịch sử).*
   - Canonical preprocessing (Crack500 random crop 448x448, smart filter `fg_pixels >= 20`, reflect pad)
   - SAGE config: `top_k = 4`, `hidden = 64`, `gating = sigmoid`, `noise = ON`, `logit_mod = ON`, `LB = 0.01`, `dropout = 0.1`, `fusion_type = residual`, `residual_scale = 0.1`.
 * **Bộ cấu hình thực nghiệm Phase 1**:

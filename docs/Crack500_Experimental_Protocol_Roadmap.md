@@ -256,20 +256,26 @@ flowchart TD
 
 ---
 
-### 4.2. PHASE 2 — Sàng Lọc Chiều Sâu ViT (Depth Screening)
-* **Mục tiêu**: Đánh giá thực nghiệm chiều sâu ViT (D4, D6, D12) trên cấu hình P3 đã chọn khi có sự hiện diện của cơ chế SAGE.
-* **Các ứng viên**: Depth 4, Depth 6, Depth 12.
+### 4.2. PHASE 2 — Sàng Lọc Chiều Sâu ViT (Depth Screening & Scaling)
+* **Mục tiêu**: Đánh giá thực nghiệm chiều sâu ViT (tập ứng viên D6, D8, D10, D12) trên cấu hình P3 đã chọn khi có sự hiện diện của cơ chế SAGE.
+* **Các ứng viên**: Depth 6, Depth 8, Depth 10, Depth 12.
 * **Nguyên tắc**:
   - Không suy diễn từ kết quả B1.
   - Giữ nguyên cơ chế P3 attached để tránh phát sinh thêm nhánh B2-pure gây tốn compute.
   - Theo dõi biến động $\gamma_{\text{S0}}$ và $\gamma_{\text{S1}}$ như chỉ số chẩn đoán (diagnostic monitoring), không tune gamma giữa các depth.
-* **Số run cần chạy**: **2 runs** (D4 short 8–10 epochs, D6 short 8–10 epochs). D12 lấy từ Existing Reference.
+  - Các kết quả D8 canonical 30E (`0.7596`) và D12 canonical 30E (`0.7557`) được lưu trữ nguyên vẹn làm mốc đối chiếu lịch sử.
+* **Giao thức Epoch mới cho Fresh Depth Experiments (D6 / D8 / D10 / D12)**:
+  - **Stage 1**: **17 epochs**
+  - **Stage 2**: **18 epochs**
+  - **Total**: **35 epochs**
+  - Cơ chế kiểm soát: `patience = 6`, `warmup_epochs = 3`, `two_stage = true`.
 * **Bảng báo cáo mẫu Phase 2**:
   | Depth | Mode | Best Dice | Epoch | Gamma S0 | Gamma S1 | Runtime (s/ep) | Status |
   |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-  | **D4** | Selected P3 | TBD | TBD | TBD | TBD | TBD | SCREENING |
-  | **D6** | Selected P3 | TBD | TBD | TBD | TBD | TBD | SCREENING |
-  | **D12** | Selected P3 | 0.7557 | 9 | 0.0063 | 0.0071 | ~38s | EXISTING REF |
+  | **D6** | Selected P3 | TBD | TBD | TBD | TBD | TBD | FRESH 35E |
+  | **D8** | Selected P3 | 0.7596 | S2 Ep 13 | 0.0126 | 0.0155 | ~3m20s | CANONICAL 30E / RESUME EXT |
+  | **D10** | Selected P3 | TBD | TBD | TBD | TBD | TBD | FRESH 35E |
+  | **D12** | Selected P3 | 0.7557 | S2 Ep 9 | 0.0063 | 0.0071 | ~4m05s | CANONICAL 30E REF |
 
 ---
 
@@ -303,13 +309,14 @@ flowchart TD
 ---
 
 ### 4.6. PHASE 6 — Xác Nhận Toàn Diện (Full Confirmation)
-* **Mục tiêu**: Huấn luyện chính thức đầy đủ 30 epochs cho các cấu hình ứng viên hàng đầu.
+* **Mục tiêu**: Huấn luyện chính thức đầy đủ cho các cấu hình ứng viên hàng đầu.
 * **Nguyên tắc phân bổ**:
   - Full confirmation **tối thiểu 1 run** (target tối thiểu, không phải hard constraint ép chỉ 1).
   - Nếu các candidate từ vòng short screening sát nhau hoặc thứ hạng chưa ổn định: **full-confirm 2 candidate gần nhất** để bảo đảm không chọn winner dựa trên nhiễu của short run.
   - Tuyệt đối không full-confirm toàn bộ grid.
 * **Giao thức chuẩn**:
-  - Total Epochs: **30** (Stage 1 = 15, Stage 2 = 15, Early Stopping patience = 6, Warmup = 3).
+  - **Giao thức Lịch sử (Historical Canonical Protocol)**: Total Epochs: **30** (Stage 1 = 15, Stage 2 = 15, Early Stopping patience = 6, Warmup = 3) đã áp dụng cho P3-A, P3-B, P3-C D12, và P3-C D8 canonical.
+  - **Giao thức Mới cho Fresh Depth Experiments (D6 / D8 / D10 / D12)**: Total Epochs: **35** (Stage 1 = **17**, Stage 2 = **18**, Early Stopping patience = 6, Warmup = 3).
   - Batch Size: **14** (chuẩn T4 an toàn đã qua thực nghiệm).
   - Bắt buộc lưu trữ: Checkpoint, SHA256 checksum, training log, Best Val Dice, Best Epoch, final $\gamma_{\text{S0}}/\gamma_{\text{S1}}$.
 
