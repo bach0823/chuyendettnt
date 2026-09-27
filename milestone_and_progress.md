@@ -17,17 +17,20 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Nghiệm thu thực nghiệm Phase 1 (Full Confirmation 30 epochs) & Triển khai Protocol Kiểm chứng Hội tụ Đồng đẳng (Convergence Parity) cho P3-A:
-1. **Kết quả Phase 1 Đã Xác Nhận (Colab T4, BS14, D12, 30 Epochs):**
-   - **P3-C (ASDW):** Best Val Dice = **0.7557**, Best Val Loss = **1.0889** (Stage 2 Ep 9). EarlyStopping kích hoạt chuẩn tại Ep 15 sau 6 epoch không cải thiện ($9 + 6 = 15$). Hội tụ đầy đủ.
-   - **P3-A (Identity):** Best Val Dice = **0.7543**, Best Val Loss = **1.0140** (Stage 2 Ep 13). Bị chặn bởi trần ngân sách cứng 30 epochs tại Ep 15 khi mới qua 2 epoch không cải thiện.
-   - **P3-B (Generic DW):** Best Val Dice = **0.7496**, Best Val Loss = **1.0495**. Chính thức bị LOẠI BỎ.
-   - **Throughput:** P3 spatial compression nén 28x28 tăng tốc ~3.25x (~4.0 min/ep vs ~13.0 min/ep của Base).
-2. **Triển khai Patch Nối tiếp Stage 2 (--resume-stage2):** Đã bổ sung tính năng nạp checkpoint `--checkpoint`, khôi phục baseline Best Dice `0.7543` / Loss `1.0140`, hỗ trợ `--stage2-epochs` và `--initial-epochs-no-improve` trong `scripts/train_crack.py` (Commit `7da1341` trên `crack500-audit`).
-3. **Tiến trình tiếp theo:** Chạy mở rộng Stage 2 (+10-15 epochs) cho P3-A trên Colab T4 để đạt hội tụ tự nhiên (hoặc patience=6) trước khi chốt phán quyết Decision Gate 1.
+Nghiệm thu thực nghiệm P3-C D8 Continuation & Khóa Protocol 35 Epochs cho Depth Ablation:
+1. **P3-C D8 Continuation & Convergence Confirmation (Colab T4, BS14, 6 epochs extension):**
+   - **Baseline checkpoint nạp:** `best_model_b2_global.pth` (Stage 2 Ep 13, Val Dice = **0.7596**, Val Loss = **1.0700**, Gamma S0 = `0.0126`, S1 = `0.0155`).
+   - **Kết quả 6 Extension Epochs:** Duy trì ổn định quanh 0.7331 - 0.7528. Không có epoch nào phá vỡ mốc 0.7596.
+   - **EarlyStopping:** Kích hoạt chuẩn mực tại Extension Epoch 6 (patience = 6/6). Xác nhận **0.7596** là đỉnh hội tụ tự nhiên thực sự của D8 trên Crack500, loại bỏ hoàn toàn nghi ngờ về "budget ceiling".
+   - **Bảo toàn Gamma:** Patch `--resume-stage2` giữ nguyên gamma learned (~0.0120 / ~0.0160) chính xác suốt 6 epochs.
+   - **Lưu trữ toàn diện:** Trích xuất từ `P3_C_Canonical_Base_D8_Extended_Full.zip` vào `results/P3_C_Routing_Diagnostics_D8/`, `results/logs/` và cập nhật bảng `results/p3_abc_epoch_by_epoch_metrics.*`.
+2. **Cập nhật Protocol Ngân sách Depth Mới (35 Epochs):**
+   - Áp dụng cho các depth run mới (D6, D8, D10, D12): **17 epochs Stage 1 + 18 epochs Stage 2 = 35 epochs tổng cộng**.
+   - Hỗ trợ CLI override `--stage1-epochs` và `--stage2-epochs` trong `scripts/train_crack.py` (Commit `4a0df79` trên `crack500-audit`).
+3. **Tiến trình tiếp theo:** Khởi chạy thực nghiệm D6 với ngân sách 35 epochs (17 S1 + 18 S2) trên Colab T4.
 
 State:
-Phase 1 Extension Ready: P3-A Stage 2 Resumption mechanism patched, tested, and pushed. Awaiting Colab execution for Convergence Parity verification.
+P3-C D8 Convergence Fully Verified (EarlyStopping @ Ext Ep 6, Best Val Dice 0.7596). Depth Protocol 35E (17 S1 + 18 S2) Locked & Pushed. Ready for D6 execution.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  
