@@ -27,10 +27,15 @@ Nghiệm thu thực nghiệm P3-C D8 Continuation & Khóa Protocol 35 Epochs cho
 2. **Cập nhật Protocol Ngân sách Depth Mới (35 Epochs):**
    - Áp dụng cho các depth run mới (D6, D8, D10, D12): **17 epochs Stage 1 + 18 epochs Stage 2 = 35 epochs tổng cộng**.
    - Hỗ trợ CLI override `--stage1-epochs` và `--stage2-epochs` trong `scripts/train_crack.py` (Commit `4a0df79` trên `crack500-audit`).
-3. **Tiến trình tiếp theo:** Khởi chạy thực nghiệm D6 với ngân sách 35 epochs (17 S1 + 18 S2) trên Colab T4.
+3. **Nghiệm thu D6 Canonical & Nâng cấp Kiến trúc Checkpoint Toàn diện (Full-State):**
+   - **D6 Canonical Run hoàn tất 35 Epochs:** Best Stage 2 Val Dice = **0.7599** (Stage 2 Ep 16, Loss 0.9602). E17 = 0.7563, E18 = 0.7583 (chạm sàn LR $10^{-6}$).
+   - **D6 Post-hoc Convergence Audit:** Hỗ trợ tiếp nối ở mức sàn LR `--resume-stage2-low-lr` (`--low-lr 1e-6`, baseline `--best-dice 0.7599 --best-loss 0.9602 --initial-epochs-no-improve 2 --stage2-epochs 6`) không bị warm-restart.
+   - **Nâng cấp Kiến trúc Checkpoint (Từ D10 trở đi):** Tách bạch chuẩn mực 2 loại checkpoint:
+     + `best_model_*.pth`: Lưu trọng số + metrics (nhẹ, phục vụ evaluation / routing diagnostics).
+     + `last_model_*.pth`: Lưu **Full Training State** (weights, AdamW moments `optimizer_state_dict`, scheduler position, AMP scaler, RNGs, early stopping counter). Khi resume từ D10+, quá trình tiếp nối sẽ hoàn toàn seamless như chưa từng ngắt Colab (Commit `f88948f` trên `crack500-audit`).
 
 State:
-P3-C D8 Convergence Fully Verified (EarlyStopping @ Ext Ep 6, Best Val Dice 0.7596). Depth Protocol 35E (17 S1 + 18 S2) Locked & Pushed. Ready for D6 execution.
+D6 Canonical Complete (Best Val Dice 0.7599 @ S2 Ep 16). Checkpoint Architecture Upgraded to Full State for D10+ (Commit `f88948f`). D6 Post-hoc Extension Ready.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  
