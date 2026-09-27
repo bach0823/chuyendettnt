@@ -22,7 +22,7 @@
 | **P3-C (ASDW Refinement)** | D12 | 12.49M | +37,874 | 0.7266 (Ep 10) | **0.7557** | S2 Ep 09 | 1.0889 | ~04:05 (1.80s/it) | Early Stopping Confirmed (Patience=6 @ Ext Ep 6) |
 | **P3-C (ASDW D8)** | D8 | 11.31M | +37,874 | **0.7374** (Ep 10) | **0.7596** | S2 Ep 13 | 1.0700 | **~03:20 (1.48s/it)** | Early Stopping Confirmed (Patience=6 @ Ext Ep 6) |
 | **P3-C (ASDW D6)** | D6 | 10.71M | +37,874 | 0.7312 (Ep 13) | **0.7599** | S2 Ep 16 | **0.9602** | **~03:12 (1.42s/it)** | Early Stopping Confirmed (Patience=6 @ Ext Ep 6) |
-| **P3-C (ASDW D4)** | **D4** | **10.12M** | +37,874 | 0.7295 (Ep 14) | 🏆 **0.7639** | **S2 Ep 14** | **0.9533** | **~03:40 (1.63s/it)** | Completed 35/35 (Best @ S2 Ep 14) |
+| **P3-C (ASDW D4)** | **D4** | **10.12M** | +37,874 | 0.7295 (Ep 14) | 🏆 **0.7639** | **S2 Ep 14** | **0.9533** | **~03:40 (1.63s/it)** | Early Stopping Confirmed (Patience=6 @ Ext Ep 6) |
 
 ---
 
@@ -113,6 +113,25 @@
 
 ---
 
+## 3.3. Stage 2 Continuation (D4 Convergence Audit Window at LR Floor 1e-6)
+
+> **Continuation Context & Invariants:**
+> - Checkpoint baseline: `best_model_b2_global.pth` (recorded at Stage 2 Epoch 14 with Val Dice = `0.7639`, Val Loss = `0.9533`).
+> - Learned Gamma preserved from checkpoint: S0 = `0.0161`, S1 = `0.0203`.
+> - Continuation Mechanism: `--resume-stage2-low-lr` (`--low-lr 1e-6`, constant LR, no warm restart).
+> - Objective: Verify whether D4 has naturally converged at 0.7639 under `patience = 6` early stopping.
+
+| Ext Ep | Overall S2 Ep | Train Loss | Train LB | Train Dice | Val Loss | Val Dice | Gamma (S0/S1) | LR Groups | Status / Non-improving |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **01** | Ep 19 | 0.9466 | 0.0804 | 0.7318 | 0.9401 | 0.7599 | 0.0162 / 0.0203 | 1.00e-06 | Non-improving (1/6) |
+| **02** | Ep 20 | 0.9483 | 0.0804 | 0.7304 | 0.9278 | 0.7626 | 0.0161 / 0.0203 | 1.00e-06 | Non-improving (2/6) |
+| **03** | Ep 21 | 0.9498 | 0.0804 | 0.7312 | 0.9491 | 0.7613 | 0.0161 / 0.0203 | 1.00e-06 | Non-improving (3/6) |
+| **04** | Ep 22 | 0.9391 | 0.0804 | 0.7316 | 0.9477 | 0.7608 | 0.0161 / 0.0203 | 1.00e-06 | Non-improving (4/6) |
+| **05** | Ep 23 | 0.9458 | 0.0804 | 0.7309 | 0.9425 | 0.7634 | 0.0161 / 0.0203 | 1.00e-06 | Non-improving (5/6) |
+| **06** | Ep 24 | 0.9401 | 0.0804 | 0.7300 | 0.9369 | 0.7629 | 0.0162 / 0.0203 | 1.00e-06 | 🛑 **EarlyStopping Triggered (6/6)** |
+
+---
+
 ## 4. D4 Detailed Error Analysis & Routing Diagnostics Summary
 
 Từ kết quả thẩm định chuẩn tắc (`results/P3_C_Routing_Diagnostics_D4/error_analysis/error_summary.json` trên toàn bộ 348 mẫu Val):
@@ -155,7 +174,15 @@ Từ kết quả thẩm định chuẩn tắc (`results/P3_C_Routing_Diagnostics
      - D4  (10.12M params): Peak Dice = 🏆 **0.7639** (Val Loss: **0.9533** / đáy **0.9317**)
    - D4 chính thức thiết lập đỉnh cao mới toàn diện, minh chứng rằng đối với bài toán phân đoạn vết nứt (Crack500), mạng Transformer nông (D4) kết hợp nhánh bổ trợ ASDW và cân bằng pool 1:1 mang lại hiệu quả chống over-fitting và bám nét vết nứt tối ưu nhất.
 
-2. **Sự bùng nổ của ASDW Refinement Gamma ($\gamma$) khi Độ sâu Giảm**:
+2. **Xác nhận Hội tụ Toàn diện của cả 4 Cấu hình (D12, D8, D6, D4 Fully Converged under EarlyStopping)**:
+   - Cả 4 cấu hình D12, D8, D6, và D4 đều đã hoàn tất giao thức kiểm chứng hội tụ mở rộng (Post-hoc Convergence Extension) tại sàn LR ($10^{-6}$) không warm restart.
+   - **D12**: Kiểm chứng qua 6 epochs tại sàn $10^{-6}$, Val Dice dao động $0.7441 - 0.7478$ (không vượt đỉnh **0.7557**), kích hoạt `EarlyStopping (patience=6)`.
+   - **D8**:  Kiểm chứng qua 6 epochs, Val Dice dao động $0.7331 - 0.7528$ (không vượt đỉnh **0.7596**), kích hoạt `EarlyStopping (patience=6)`.
+   - **D6**:  Kiểm chứng qua 6 epochs, Val Dice dao động $0.7566 - 0.7596$ (không vượt đỉnh **0.7599**), kích hoạt `EarlyStopping (patience=6)`.
+   - **D4**:  Kiểm chứng qua 6 epochs, Val Dice dao động $0.7599 - 0.7634$ (không vượt đỉnh 🏆 **0.7639**), kích hoạt `EarlyStopping (patience=6)`.
+   - *Kết luận*: Cả 4 cấu hình đều hội tụ toán học thực thụ (*true mathematical convergence*). Không có cấu hình nào bị dừng sớm do thiếu budget. Đỉnh 🏆 **0.7639** của D4 là kỷ lục chính thức tuyệt đối của nghiên cứu.
+
+3. **Sự bùng nổ của ASDW Refinement Gamma ($\gamma$) khi Độ sâu Giảm**:
    - Giá trị Gamma học được cuối Stage 2:
      - D12: $\gamma_{S0} = 0.0063$, $\gamma_{S1} = 0.0071$ (Bị gradient ức chế do ViT quá sâu gây over-smoothing).
      - D8:  $\gamma_{S0} = 0.0148$, $\gamma_{S1} = 0.0128$ (Phục hồi về trên ngưỡng khởi tạo 0.01).

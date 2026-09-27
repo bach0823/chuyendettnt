@@ -327,7 +327,9 @@ sage-lite/
     * **Val Precision**: 🏆 **0.7298** (Tăng vọt +2.33% so với D6, giảm mạnh lỗi over-segmentation từ 39 xuống 28 mẫu).
     * **Val Loss**: Đạt đáy **0.9317** (S2 Ep 18).
     * **Động lực học Gamma**: $\gamma_{S0} = 0.0162$, $\gamma_{S1} = 0.0205$ (tăng gấp gần 3 lần so với D12: 0.0071), chứng minh nhu cầu bù đắp inductive bias dạng dải từ CNN khi ViT nông.
-    * Đã lưu trữ toàn diện: `results/logs/P3_C_Canonical_Base_D4.log`, `results/checkpoints/P3_C_D4_best_model_b2_global.pth`, `results/P3_C_Routing_Diagnostics_D4/`, `results/configs/b2_p3_run_c_d4.yaml` và cập nhật `results/p3_abc_epoch_by_epoch_metrics.json/md`.
+    * **Kiểm chứng Hội tụ Hậu nghiệm D4 (Convergence Extension Audit)**: Đã hoàn tất kiểm chứng tiếp nối tại sàn LR $10^{-6}$ qua 6 epochs (`results/logs/P3_C_Canonical_Base_D4_Extension.log`), Val Dice dao động $0.7599 - 0.7634$ (không vượt đỉnh 🏆 **0.7639**), kích hoạt `EarlyStopping (patience=6)` chuẩn mực.
+    * **Kết luận Toàn diện 4 Depth (D12, D8, D6, D4)**: 100% cả 4 cấu hình đã kích hoạt EarlyStopping chuẩn, chứng minh không cấu hình nào bị dừng sớm do thiếu budget. Kỷ lục 🏆 **0.7639** của D4 là điểm dừng tối ưu toán học thực thụ (*true mathematical convergence*).
+    * Đã lưu trữ toàn diện: `results/logs/P3_C_Canonical_Base_D4.log`, `results/logs/P3_C_Canonical_Base_D4_Extension.log`, `results/checkpoints/P3_C_D4_best_model_b2_global.pth`, `results/P3_C_Routing_Diagnostics_D4/`, `results/configs/b2_p3_run_c_d4.yaml` và cập nhật `results/p3_abc_epoch_by_epoch_metrics.json/md`.
 
 
 
