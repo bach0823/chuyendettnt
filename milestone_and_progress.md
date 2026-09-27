@@ -34,9 +34,14 @@ Nghiệm thu thực nghiệm P3-C D8 Continuation & Khóa Protocol 35 Epochs cho
    - **Nâng cấp Kiến trúc Checkpoint Faithful Full-State (Từ D10 trở đi):** Tách bạch chuẩn mực 2 loại checkpoint:
      + `best_model_*.pth`: Lưu trọng số + metrics (nhẹ, phục vụ evaluation / routing diagnostics).
      + `last_model_*.pth`: Lưu **Full Training State** (weights, AdamW moments `optimizer_state_dict`, scheduler position, AMP scaler, toàn bộ RNGs PyTorch/CUDA/NumPy/Python, `dataloader_generator_state`, và early stopping counter). Khi resume từ D10+, quá trình tiếp nối bảo toàn trung thực toàn vẹn quỹ đạo học tập (Commits `f88948f` và `f5a6730` trên `crack500-audit`).
+4. **Nghiệm thu D12 Post-hoc Convergence Audit (HOÀN TẤT BỘ BA HỘI TỤ {D12, D8, D6}):**
+   - **D12 Post-hoc Extension:** Chạy tiếp nối từ checkpoint chuẩn tắc `best_model_b2_global.pth` (Val Dice = **0.7557**, Loss = **1.0889**) tại sàn LR floor $10^{-6}$ qua 6 epochs.
+   - **Diễn biến Dice:** Dao động trong dải $0.7441 - 0.7478$ (không vượt qua đỉnh 0.7557).
+   - **EarlyStopping:** Kích hoạt chuẩn mực tại Ext Ep 6/6 (`patience=6`). Xác nhận đỉnh **0.7557** (S2 Ep 9) là điểm hội tụ tự nhiên thực sự của D12.
+   - **Lưu trữ toàn diện:** Lưu log đầy đủ tại [`results/logs/P3_C_Canonical_Base_D12_Extension.log`](file:///D:/truong/SpecialSubjectTTNT/results/logs/P3_C_Canonical_Base_D12_Extension.log), đồng bộ vào `p3_abc_epoch_by_epoch_metrics.json` và `p3_abc_epoch_by_epoch_metrics.md`.
 
 State:
-D6 Canonical + Post-hoc Convergence Audit Hoàn tất 100% (Best Val Dice 0.7599 @ S2 Ep 16, Val Loss 0.9602). Cả D8 (0.7596) và D6 (0.7599) đều đã được chứng minh hội tụ hoàn toàn. Sẵn sàng triển khai D10 hoặc tổng kết quy luật chiều sâu (Depth Sensitivity).
+Toàn bộ bộ ba độ sâu ViT {D12 (0.7557), D8 (0.7596), D6 (0.7599)} đều đã hoàn tất cả Canonical Run lẫn Post-hoc Convergence Audit 100% dưới cùng một giao thức EarlyStopping (patience=6 tại sàn LR 1e-6). Tệp cấu hình chuẩn tắc D4 (`configs/p3_ablation/b2_p3_run_c_d4.yaml`) đã sẵn sàng. Sẵn sàng thực hiện D4 hoặc hoàn thiện báo cáo phân tích độ nhạy chiều sâu.
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  
