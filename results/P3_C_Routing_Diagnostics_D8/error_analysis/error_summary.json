@@ -6,7 +6,7 @@
     "checkpoint": "/content/drive/MyDrive/crack_seg/P3_C_Canonical_Base_D8/best_model_b2_global.pth",
     "total_samples": 348,
     "evaluation_protocol": "setting_a",
-    "timestamp": "2026-09-26 18:57:26"
+    "timestamp": "2026-09-27 06:35:27"
   },
   "overall_metrics": {
     "dice": {

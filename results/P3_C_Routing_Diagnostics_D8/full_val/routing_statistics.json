@@ -22,7 +22,7 @@
     "data_root": "/content/dataset/Crack500",
     "evaluation_mode": "eval",
     "exploration_noise_active": false,
-    "timestamp": "2026-09-26T18:56:09.063297"
+    "timestamp": "2026-09-27T06:34:09.306214"
   },
   "routers": [
     {

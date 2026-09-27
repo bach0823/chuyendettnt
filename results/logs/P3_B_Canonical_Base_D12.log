@@ -1,0 +1,190 @@
+<USER_REQUEST>
+lưu 
+/content/SAGE_LITE
+  Installing build dependencies ... done
+  Checking if build backend supports build_editable ... done
+  Getting requirements to build editable ... done
+  Preparing editable metadata (pyproject.toml) ... done
+  Building editable for sage-lite (pyproject.toml) ... done
+2026-09-26 12:02:09 [INFO ]  Logging initialized. Log file: /content/drive/MyDrive/crack_seg/P3_B_Canonical_Base_D12/train.log
+2026-09-26 12:02:09 [INFO ]  Loaded config from configs/p3_ablation/b2_p3_run_b.yaml
+2026-09-26 12:02:09 [INFO ]  Using device: cuda
+[ConfigurableDataset] Loaded TRAIN: 1896 samples from /content/dataset/Crack500/train/images
+2026-09-26 12:02:09 [INFO ]  Evaluation protocol for validation: setting_a
+2026-09-26 12:02:09 [INFO ]  Loading ConvNeXt-V2: convnextv2_femto.fcmae (pretrained=True)
+2026-09-26 12:02:09 [INFO ]  Loading pretrained weights from Hugging Face hub (timm/convnextv2_femto.fcmae)
+2026-09-26 12:02:09 [INFO ]  HTTP Request: GET https://huggingface.co/api/agent-harnesses "HTTP/1.1 200 OK"
+2026-09-26 12:02:10 [INFO ]  HTTP Request: HEAD https://huggingface.co/timm/convnextv2_femto.fcmae/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-09-26 12:02:10 [WARNI]  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-09-26 12:02:10 [INFO ]  HTTP Request: GET https://huggingface.co/api/models/timm/convnextv2_femto.fcmae/xet-read-token/ad8895ca0e753755810acaa2068a7ebf497e6b2a "HTTP/1.1 200 OK"
+
+model.safetensors: downloading bytes:  81% 15.7M/19.4M [00:01<00:00, 14.9MB/s,  162kB/s  ]
+model.safetensors: downloading bytes: 100% 18.7M/18.7M [00:01<00:00, 12.7MB/s, 1.79MB/s  ]
+model.safetensors: reconstructing file: 100% 19.4M/19.4M [00:01<00:00, 13.2MB/s, 1.87MB/s  ]
+2026-09-26 12:02:11 [INFO ]  [timm/convnextv2_femto.fcmae] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-09-26 12:02:12 [INFO ]  Removed ConvNeXt classification head
+2026-09-26 12:02:12 [INFO ]  Loading ViT-Tiny: vit_tiny_patch16_224 (pretrained=True)
+2026-09-26 12:02:12 [INFO ]  Loading pretrained weights from Hugging Face hub (timm/vit_tiny_patch16_224.augreg_in21k_ft_in1k)
+2026-09-26 12:02:12 [INFO ]  HTTP Request: HEAD https://huggingface.co/timm/vit_tiny_patch16_224.augreg_in21k_ft_in1k/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+2026-09-26 12:02:12 [INFO ]  HTTP Request: GET https://huggingface.co/api/models/timm/vit_tiny_patch16_224.augreg_in21k_ft_in1k/xet-read-token/7d3afdd0cf93ad84d986eb2d6bcc5812ebd0b106 "HTTP/1.1 200 OK"
+
+model.safetensors: downloading bytes:  65% 14.9M/22.9M [00:01<00:00, 17.2MB/s,  525kB/s  ]
+model.safetensors: downloading bytes: 100% 21.7M/21.7M [00:01<00:00, 14.4MB/s, 2.07MB/s  ]
+model.safetensors: reconstructing file: 100% 22.9M/22.9M [00:01<00:00, 15.2MB/s, 2.20MB/s  ]
+2026-09-26 12:02:14 [INFO ]  [timm/vit_tiny_patch16_224.augreg_in21k_ft_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-09-26 12:02:14 [INFO ]  Configured 12 ViT blocks (embed_dim=192)
+2026-09-26 12:02:14 [INFO ]  [Explicit CLS Handling] Detected 197 tokens in ViT pos_embed. Discarded CLS token (1 token), retained exactly 196 spatial patch tokens.
+2026-09-26 12:02:14 [INFO ]  Loaded patch_pos: shape=(1, 196, 192) (grid: 14x14)
+2026-09-26 12:02:14 [INFO ]  ================================================================================
+2026-09-26 12:02:14 [INFO ]  BUILDING HETEROGENEOUS EXPERT POOL (CNN Stages + Transformer Blocks)
+2026-09-26 12:02:14 [INFO ]  ================================================================================
+2026-09-26 12:02:14 [INFO ]  
+Step 1a: Wrapping ConvNeXt stages IN-PLACE...
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  
+Step 1b: Wrapping Transformer blocks IN-PLACE...
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  Initialized SAGE Hierarchical Router: top_k=4, experts=16, gating=sigmoid, logit_modulation=True
+2026-09-26 12:02:14 [INFO ]  
+Step 2: Building expert pool from wrapped .main_block attributes...
+2026-09-26 12:02:14 [INFO ]    - Added 4 CNN main_blocks to pool.
+2026-09-26 12:02:14 [INFO ]    - Added 12 Transformer main_blocks to pool.
+2026-09-26 12:02:14 [INFO ]  
+[OK] Built expert pool with 16 experts, linked to all SageLayer instances.
+2026-09-26 12:02:14 [INFO ]  ================================================================================
+2026-09-26 12:02:14 [INFO ]  
+================================================================================
+2026-09-26 12:02:14 [INFO ]  PRE-POPULATING SAHUB ADAPTERS
+2026-09-26 12:02:14 [INFO ]  ================================================================================
+2026-09-26 12:02:14 [INFO ]     - Created a master set of 24 potential adapter layers.
+2026-09-26 12:02:14 [INFO ]     - Populated 16 SAHub instances with all adapter layers.
+2026-09-26 12:02:14 [INFO ]  ================================================================================
+2026-09-26 12:02:14 [INFO ]  Loaded B2 with 12 ViT blocks, full SAGE-Lite injection, and p3_mode='B'
+2026-09-26 12:02:14 [INFO ]  Initialized B2 model
+2026-09-26 12:02:14 [INFO ]  P3-B Standalone Initialization: ImageNet-pretrained, no parent checkpoint
+2026-09-26 12:02:14 [INFO ]  P3 Refinement gamma initialized: S0=0.0100, S1=0.0100
+2026-09-26 12:02:14 [INFO ]  
+========================================
+STARTING STAGE 1
+========================================
+Epoch 1/15 [Train]: 100% 136/136 [09:44<00:00,  4.30s/it, loss=2.2198, dice=0.1522, lb=0.1967]
+2026-09-26 12:13:21 [INFO ]  Epoch 1/15 - Train Loss: 2.1998 (LB: 0.1830), Train Dice: 0.1326 | Val Loss: 2.0209, Val Dice: 0.1535 | LR: BB=4.00e-06, Dec=3.40e-05, SAGE=3.40e-05, P3=3.40e-05 (gamma: S0=0.0099, S1=0.0100)
+2026-09-26 12:13:22 [INFO ]  New best Stage 1 model saved with Val Dice: 0.1535 and Val Loss: 2.0209
+2026-09-26 12:13:22 [INFO ]  *** New GLOBAL best model saved (Dice: 0.1535) ***
+Epoch 2/15 [Train]: 100% 136/136 [04:32<00:00,  2.00s/it, loss=1.9255, dice=0.3543, lb=0.1809]
+2026-09-26 12:19:09 [INFO ]  Epoch 2/15 - Train Loss: 1.9498 (LB: 0.1735), Train Dice: 0.4467 | Val Loss: 1.6297, Val Dice: 0.6004 | LR: BB=7.00e-06, Dec=6.70e-05, SAGE=6.70e-05, P3=6.70e-05 (gamma: S0=0.0095, S1=0.0112)
+2026-09-26 12:19:09 [INFO ]  New best Stage 1 model saved with Val Dice: 0.6004 and Val Loss: 1.6297
+2026-09-26 12:19:10 [INFO ]  *** New GLOBAL best model saved (Dice: 0.6004) ***
+Epoch 3/15 [Train]: 100% 136/136 [04:23<00:00,  1.94s/it, loss=1.7424, dice=0.6620, lb=0.1743]
+2026-09-26 12:24:49 [INFO ]  Epoch 3/15 - Train Loss: 1.7823 (LB: 0.1679), Train Dice: 0.5830 | Val Loss: 1.5865, Val Dice: 0.5887 | LR: BB=9.14e-06, Dec=9.05e-05, SAGE=9.05e-05, P3=9.05e-05 (gamma: S0=0.0098, S1=0.0112)
+Epoch 4/15 [Train]: 100% 136/136 [04:21<00:00,  1.92s/it, loss=1.6988, dice=0.5507, lb=0.1696]
+2026-09-26 12:30:27 [INFO ]  Epoch 4/15 - Train Loss: 1.7150 (LB: 0.1647), Train Dice: 0.6022 | Val Loss: 1.5530, Val Dice: 0.6635 | LR: BB=8.51e-06, Dec=8.36e-05, SAGE=8.36e-05, P3=8.36e-05 (gamma: S0=0.0100, S1=0.0111)
+2026-09-26 12:30:27 [INFO ]  New best Stage 1 model saved with Val Dice: 0.6635 and Val Loss: 1.5530
+2026-09-26 12:30:27 [INFO ]  *** New GLOBAL best model saved (Dice: 0.6635) ***
+Epoch 5/15 [Train]: 100% 136/136 [04:11<00:00,  1.85s/it, loss=1.6646, dice=0.7156, lb=0.1671]
+2026-09-26 12:35:56 [INFO ]  Epoch 5/15 - Train Loss: 1.6541 (LB: 0.1633), Train Dice: 0.6252 | Val Loss: 1.4692, Val Dice: 0.6398 | LR: BB=7.75e-06, Dec=7.52e-05, SAGE=7.52e-05, P3=7.52e-05 (gamma: S0=0.0103, S1=0.0118)
+Epoch 6/15 [Train]: 100% 136/136 [04:10<00:00,  1.84s/it, loss=1.7892, dice=0.3909, lb=0.1641]
+2026-09-26 12:41:23 [INFO ]  Epoch 6/15 - Train Loss: 1.6070 (LB: 0.1626), Train Dice: 0.6323 | Val Loss: 1.4469, Val Dice: 0.6130 | LR: BB=6.89e-06, Dec=6.58e-05, SAGE=6.58e-05, P3=6.58e-05 (gamma: S0=0.0103, S1=0.0117)
+Epoch 7/15 [Train]: 100% 136/136 [04:04<00:00,  1.80s/it, loss=1.5802, dice=0.5955, lb=0.1651]
+2026-09-26 12:46:50 [INFO ]  Epoch 7/15 - Train Loss: 1.5618 (LB: 0.1621), Train Dice: 0.6463 | Val Loss: 1.4448, Val Dice: 0.6980 | LR: BB=5.97e-06, Dec=5.57e-05, SAGE=5.57e-05, P3=5.57e-05 (gamma: S0=0.0103, S1=0.0121)
+2026-09-26 12:46:51 [INFO ]  New best Stage 1 model saved with Val Dice: 0.6980 and Val Loss: 1.4448
+2026-09-26 12:46:51 [INFO ]  *** New GLOBAL best model saved (Dice: 0.6980) ***
+Epoch 8/15 [Train]: 100% 136/136 [04:06<00:00,  1.81s/it, loss=1.4934, dice=0.7668, lb=0.1661]
+2026-09-26 12:52:20 [INFO ]  Epoch 8/15 - Train Loss: 1.5271 (LB: 0.1619), Train Dice: 0.6539 | Val Loss: 1.3888, Val Dice: 0.7002 | LR: BB=5.03e-06, Dec=4.53e-05, SAGE=4.53e-05, P3=4.53e-05 (gamma: S0=0.0098, S1=0.0120)
+2026-09-26 12:52:20 [INFO ]  New best Stage 1 model saved with Val Dice: 0.7002 and Val Loss: 1.3888
+2026-09-26 12:52:21 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7002) ***
+Epoch 9/15 [Train]: 100% 136/136 [04:05<00:00,  1.81s/it, loss=1.2897, dice=0.7666, lb=0.1629]
+2026-09-26 12:57:46 [INFO ]  Epoch 9/15 - Train Loss: 1.4986 (LB: 0.1616), Train Dice: 0.6623 | Val Loss: 1.3483, Val Dice: 0.7064 | LR: BB=4.11e-06, Dec=3.52e-05, SAGE=3.52e-05, P3=3.52e-05 (gamma: S0=0.0097, S1=0.0121)
+2026-09-26 12:57:46 [INFO ]  New best Stage 1 model saved with Val Dice: 0.7064 and Val Loss: 1.3483
+2026-09-26 12:57:47 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7064) ***
+Epoch 10/15 [Train]: 100% 136/136 [04:07<00:00,  1.82s/it, loss=1.4330, dice=0.5808, lb=0.1634]
+2026-09-26 13:03:13 [INFO ]  Epoch 10/15 - Train Loss: 1.4776 (LB: 0.1615), Train Dice: 0.6626 | Val Loss: 1.3120, Val Dice: 0.7179 | LR: BB=3.25e-06, Dec=2.58e-05, SAGE=2.58e-05, P3=2.58e-05 (gamma: S0=0.0096, S1=0.0125)
+2026-09-26 13:03:13 [INFO ]  New best Stage 1 model saved with Val Dice: 0.7179 and Val Loss: 1.3120
+2026-09-26 13:03:14 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7179) ***
+Epoch 11/15 [Train]: 100% 136/136 [04:05<00:00,  1.81s/it, loss=1.4923, dice=0.6937, lb=0.1650]
+2026-09-26 13:08:41 [INFO ]  Epoch 11/15 - Train Loss: 1.4598 (LB: 0.1615), Train Dice: 0.6662 | Val Loss: 1.3244, Val Dice: 0.7176 | LR: BB=2.49e-06, Dec=1.74e-05, SAGE=1.74e-05, P3=1.74e-05 (gamma: S0=0.0095, S1=0.0123)
+Epoch 12/15 [Train]: 100% 136/136 [04:09<00:00,  1.84s/it, loss=1.4301, dice=0.6578, lb=0.1630]
+2026-09-26 13:14:12 [INFO ]  Epoch 12/15 - Train Loss: 1.4447 (LB: 0.1615), Train Dice: 0.6776 | Val Loss: 1.3076, Val Dice: 0.7093 | LR: BB=1.86e-06, Dec=1.05e-05, SAGE=1.05e-05, P3=1.05e-05 (gamma: S0=0.0094, S1=0.0124)
+Epoch 13/15 [Train]: 100% 136/136 [04:10<00:00,  1.84s/it, loss=1.2129, dice=0.8284, lb=0.1622]
+2026-09-26 13:19:43 [INFO ]  Epoch 13/15 - Train Loss: 1.4385 (LB: 0.1614), Train Dice: 0.6741 | Val Loss: 1.3086, Val Dice: 0.7094 | LR: BB=1.39e-06, Dec=5.28e-06, SAGE=5.28e-06, P3=5.28e-06 (gamma: S0=0.0096, S1=0.0125)
+Epoch 14/15 [Train]: 100% 136/136 [04:06<00:00,  1.82s/it, loss=1.4160, dice=0.6778, lb=0.1636]
+2026-09-26 13:25:12 [INFO ]  Epoch 14/15 - Train Loss: 1.4322 (LB: 0.1614), Train Dice: 0.6778 | Val Loss: 1.3005, Val Dice: 0.7157 | LR: BB=1.10e-06, Dec=2.08e-06, SAGE=2.08e-06, P3=2.08e-06 (gamma: S0=0.0097, S1=0.0125)
+Epoch 15/15 [Train]: 100% 136/136 [04:09<00:00,  1.83s/it, loss=1.5138, dice=0.7004, lb=0.1622]
+2026-09-26 13:30:43 [INFO ]  Epoch 15/15 - Train Loss: 1.4301 (LB: 0.1614), Train Dice: 0.6846 | Val Loss: 1.2949, Val Dice: 0.7121 | LR: BB=1.00e-06, Dec=1.00e-06, SAGE=1.00e-06, P3=1.00e-06 (gamma: S0=0.0097, S1=0.0125)
+2026-09-26 13:30:43 [INFO ]  Stage 1 finished. Total epochs used so far: 15/30
+2026-09-26 13:30:43 [INFO ]  
+========================================
+STARTING STAGE 2
+========================================
+2026-09-26 13:30:43 [INFO ]  Loading best Stage 1 checkpoint from /content/drive/MyDrive/crack_seg/P3_B_Canonical_Base_D12/best_model_b2_stage1.pth
+2026-09-26 13:30:44 [INFO ]  Stage 2: Updated shared expert indices to [0, 1, 2, 3]
+2026-09-26 13:30:44 [INFO ]  Stage 2 Optimizer: shared_lr=1.00e-04, base_lr=1.00e-04, p3_lr=1.00e-04
+Epoch 1/15 [Train]: 100% 136/136 [04:06<00:00,  1.82s/it, loss=1.4776, dice=0.6869, lb=0.1628]
+2026-09-26 13:36:11 [INFO ]  Epoch 1/15 - Train Loss: 1.4637 (LB: 0.1616), Train Dice: 0.6724 | Val Loss: 1.3386, Val Dice: 0.6996 | LR: Shared=3.40e-05, Others=3.40e-05, P3=3.40e-05 (gamma: S0=0.0096, S1=0.0125)
+2026-09-26 13:36:11 [INFO ]  New best Stage 2 model saved with Val Dice: 0.6996 and Val Loss: 1.3386
+Epoch 2/15 [Train]: 100% 136/136 [04:05<00:00,  1.81s/it, loss=1.3986, dice=0.7003, lb=0.1625]
+2026-09-26 13:41:35 [INFO ]  Epoch 2/15 - Train Loss: 1.4581 (LB: 0.1615), Train Dice: 0.6641 | Val Loss: 1.2837, Val Dice: 0.6919 | LR: Shared=6.70e-05, Others=6.70e-05, P3=6.70e-05 (gamma: S0=0.0101, S1=0.0127)
+Epoch 3/15 [Train]: 100% 136/136 [04:09<00:00,  1.84s/it, loss=1.3424, dice=0.7773, lb=0.1625]
+2026-09-26 13:47:06 [INFO ]  Epoch 3/15 - Train Loss: 1.4373 (LB: 0.1614), Train Dice: 0.6610 | Val Loss: 1.2990, Val Dice: 0.7197 | LR: Shared=9.05e-05, Others=9.05e-05, P3=9.05e-05 (gamma: S0=0.0100, S1=0.0138)
+2026-09-26 13:47:07 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7197 and Val Loss: 1.2990
+2026-09-26 13:47:07 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7197) ***
+Epoch 4/15 [Train]: 100% 136/136 [04:03<00:00,  1.79s/it, loss=1.2165, dice=0.7396, lb=0.1626]
+2026-09-26 13:52:34 [INFO ]  Epoch 4/15 - Train Loss: 1.3958 (LB: 0.1612), Train Dice: 0.6715 | Val Loss: 1.2371, Val Dice: 0.6984 | LR: Shared=8.36e-05, Others=8.36e-05, P3=8.36e-05 (gamma: S0=0.0100, S1=0.0137)
+Epoch 5/15 [Train]: 100% 136/136 [04:10<00:00,  1.84s/it, loss=1.4360, dice=0.5115, lb=0.1620]
+2026-09-26 13:58:08 [INFO ]  Epoch 5/15 - Train Loss: 1.3528 (LB: 0.1611), Train Dice: 0.6734 | Val Loss: 1.2476, Val Dice: 0.7220 | LR: Shared=7.52e-05, Others=7.52e-05, P3=7.52e-05 (gamma: S0=0.0103, S1=0.0133)
+2026-09-26 13:58:09 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7220 and Val Loss: 1.2476
+2026-09-26 13:58:09 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7220) ***
+Epoch 6/15 [Train]: 100% 136/136 [04:02<00:00,  1.78s/it, loss=1.4279, dice=0.5854, lb=0.1620]
+2026-09-26 14:03:34 [INFO ]  Epoch 6/15 - Train Loss: 1.3081 (LB: 0.1609), Train Dice: 0.6860 | Val Loss: 1.2001, Val Dice: 0.7294 | LR: Shared=6.58e-05, Others=6.58e-05, P3=6.58e-05 (gamma: S0=0.0098, S1=0.0132)
+2026-09-26 14:03:35 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7294 and Val Loss: 1.2001
+2026-09-26 14:03:35 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7294) ***
+Epoch 7/15 [Train]: 100% 136/136 [04:08<00:00,  1.83s/it, loss=1.2168, dice=0.7254, lb=0.1615]
+2026-09-26 14:09:10 [INFO ]  Epoch 7/15 - Train Loss: 1.2745 (LB: 0.1609), Train Dice: 0.6872 | Val Loss: 1.1350, Val Dice: 0.7249 | LR: Shared=5.57e-05, Others=5.57e-05, P3=5.57e-05 (gamma: S0=0.0100, S1=0.0134)
+Epoch 8/15 [Train]: 100% 136/136 [04:05<00:00,  1.81s/it, loss=1.1666, dice=0.7525, lb=0.1621]
+2026-09-26 14:14:38 [INFO ]  Epoch 8/15 - Train Loss: 1.2396 (LB: 0.1609), Train Dice: 0.6951 | Val Loss: 1.1345, Val Dice: 0.6835 | LR: Shared=4.53e-05, Others=4.53e-05, P3=4.53e-05 (gamma: S0=0.0101, S1=0.0136)
+Epoch 9/15 [Train]: 100% 136/136 [04:02<00:00,  1.79s/it, loss=1.1908, dice=0.6984, lb=0.1620]
+2026-09-26 14:20:06 [INFO ]  Epoch 9/15 - Train Loss: 1.2163 (LB: 0.1608), Train Dice: 0.7016 | Val Loss: 1.0700, Val Dice: 0.7384 | LR: Shared=3.52e-05, Others=3.52e-05, P3=3.52e-05 (gamma: S0=0.0099, S1=0.0134)
+2026-09-26 14:20:07 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7384 and Val Loss: 1.0700
+2026-09-26 14:20:07 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7384) ***
+Epoch 10/15 [Train]: 100% 136/136 [04:02<00:00,  1.78s/it, loss=1.0632, dice=0.6556, lb=0.1621]
+2026-09-26 14:25:33 [INFO ]  Epoch 10/15 - Train Loss: 1.1946 (LB: 0.1608), Train Dice: 0.7019 | Val Loss: 1.0665, Val Dice: 0.7464 | LR: Shared=2.58e-05, Others=2.58e-05, P3=2.58e-05 (gamma: S0=0.0101, S1=0.0137)
+2026-09-26 14:25:33 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7464 and Val Loss: 1.0665
+2026-09-26 14:25:33 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7464) ***
+Epoch 11/15 [Train]: 100% 136/136 [04:04<00:00,  1.80s/it, loss=1.1977, dice=0.7498, lb=0.1619]
+2026-09-26 14:31:00 [INFO ]  Epoch 11/15 - Train Loss: 1.1800 (LB: 0.1608), Train Dice: 0.7047 | Val Loss: 1.0596, Val Dice: 0.7338 | LR: Shared=1.74e-05, Others=1.74e-05, P3=1.74e-05 (gamma: S0=0.0102, S1=0.0136)
+Epoch 12/15 [Train]: 100% 136/136 [04:03<00:00,  1.79s/it, loss=1.3105, dice=0.5635, lb=0.1613]
+2026-09-26 14:36:30 [INFO ]  Epoch 12/15 - Train Loss: 1.1619 (LB: 0.1607), Train Dice: 0.7111 | Val Loss: 1.0502, Val Dice: 0.7391 | LR: Shared=1.05e-05, Others=1.05e-05, P3=1.05e-05 (gamma: S0=0.0104, S1=0.0137)
+Epoch 13/15 [Train]: 100% 136/136 [04:03<00:00,  1.79s/it, loss=1.1754, dice=0.6789, lb=0.1618]
+2026-09-26 14:41:58 [INFO ]  Epoch 13/15 - Train Loss: 1.1561 (LB: 0.1607), Train Dice: 0.7172 | Val Loss: 1.0468, Val Dice: 0.7491 | LR: Shared=5.28e-06, Others=5.28e-06, P3=5.28e-06 (gamma: S0=0.0105, S1=0.0137)
+2026-09-26 14:41:58 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7491 and Val Loss: 1.0468
+2026-09-26 14:41:59 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7491) ***
+Epoch 14/15 [Train]: 100% 136/136 [04:03<00:00,  1.79s/it, loss=1.2193, dice=0.6794, lb=0.1616]
+2026-09-26 14:47:27 [INFO ]  Epoch 14/15 - Train Loss: 1.1486 (LB: 0.1607), Train Dice: 0.7179 | Val Loss: 1.0458, Val Dice: 0.7411 | LR: Shared=2.08e-06, Others=2.08e-06, P3=2.08e-06 (gamma: S0=0.0105, S1=0.0136)
+Epoch 15/15 [Train]: 100% 136/136 [04:04<00:00,  1.80s/it, loss=1.0183, dice=0.8490, lb=0.1622]
+2026-09-26 14:52:58 [INFO ]  Epoch 15/15 - Train Loss: 1.1466 (LB: 0.1607), Train Dice: 0.7199 | Val Loss: 1.0495, Val Dice: 0.7496 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0105, S1=0.0136)
+2026-09-26 14:52:58 [INFO ]  New best Stage 2 model saved with Val Dice: 0.7496 and Val Loss: 1.0495
+2026-09-26 14:52:58 [INFO ]  *** New GLOBAL best model saved (Dice: 0.7496) ***
+2026-09-26 14:52:58 [INFO ]  Stage 2 finished. Total epochs used so far: 30/30
+
+
+/content/SAGE_LITE
+  Installing build dependencies ... done
+  Checking if build backend supports build_editable ... done
+  Getting requirements to build editable ... done
+  Preparing editable metadata (pyproject.toml) ... done
+  Building editable for sage-lite (pyproject.toml) ... done
+2026-09-26 11:53:37 [INFO ]  Logging initialized. Log file: /content/drive/MyDrive/crack_seg/
