@@ -12,6 +12,7 @@ Skill này định nghĩa các nguyên tắc bất biến (invariants) và best 
 - **Experiment-Specific Constraints:** KHÔNG hard-code các giả định của một experiment (ví dụ: loss function, input shape, số blocks, batch size candidates, số iteration) làm template bắt buộc. Mọi thông số (candidate batch size, loss, model, input shape, etc.) phải được lấy theo **experiment hiện tại**. (Ví dụ: B0 là Baseline, nhưng R1, R2 sẽ có cấu trúc và parameter khác).
 - **Target Hardware Invariant (Tesla T4 Primary):** Google Colab Tesla T4 (16GB VRAM) là môi trường phần cứng chuẩn duy nhất để đo đạc: OOM probe, batch-size search, throughput benchmark, và official training. Tuyệt đối **KHÔNG** chạy các tác vụ đo đạc tải CUDA nặng trên GPU local (GTX 1650 4GB). Máy local chỉ phục vụ code editing, static audit, git sync, hoặc test cú pháp/mock CPU.
 - **Colab Cell Syntax Invariant:** Khi cung cấp lệnh để chạy trong Colab Notebook, **BẮT BUỘC** định dạng sẵn 100% cú pháp cell notebook: dùng `%cd` cho chuyển thư mục và `!` cho mọi lệnh shell (`!git`, `!python`, `!pip`). Tuyệt đối không đưa bash thô thiếu `!` và `%`.
+- **Checkpoint Archival Invariant (Best + Last Models):** Khi chuẩn bị cell export/download hoặc lưu trữ artifacts sau huấn luyện, **BẮT BUỘC** lưu trữ cả **Best Model** (`best_model_*.pth`) lẫn **Last Model** (`last_model_*.pth`). Tuyệt đối không chỉ lọc riêng `best_model`. Cả hai checkpoint này đều cần thiết: `best_model` để đánh giá benchmark đỉnh cao, và `last_model` để phục vụ audit quỹ đạo, kiểm tra over-fitting cuối lịch trình, hoặc resume tiếp nối.
 
 ## 2. Environment Setup & Preflight (Tập trung & Tái lập)
 - **All-in-One Preflight Verification Cell Invariant:** Luôn chuẩn bị sẵn **MỘT CELL DUY NHẤT** tích hợp toàn bộ các bước tiền kiểm (Preflight) để User chỉ cần copy-paste bấm chạy 1 lần duy nhất trước khi chạy tác vụ chính:
@@ -173,41 +174,63 @@ Nhằm tối ưu hóa tốc độ I/O, loại bỏ xung đột xác thực Googl
 2. **Nén dữ liệu bằng Python `shutil.make_archive` (Tránh lệnh Shell `zip` lỗi path):**
    - Lệnh shell `!zip -r ...` thường xuyên gặp lỗi `name not matched: Nothing to do!` do đường dẫn thư mục nguồn không tồn tại, gõ nhầm version (ví dụ D8 thay vì D4), hoặc xử lý dấu gạch chéo không tương thích.
    - **BẮT BUỘC** sử dụng script Python với `shutil.make_archive` và kiểm tra `os.path.exists()` trước khi nén để fail-fast và hiển thị thông báo lỗi rõ ràng nếu đường dẫn sai.
-3. **Tự động tải về máy cục bộ bằng `google.colab.files.download`:**
+3. **BẮT BUỘC lưu trữ cả Best Model (`best_model_*.pth`) lẫn Last Model (`last_model_*.pth`):**
+   - Khi gom artifacts vào bundle hoặc đóng gói zip, **BẮT BUỘC** gom toàn bộ các file `.pth` sinh ra trong thư mục chạy (sử dụng `glob.glob(os.path.join(RUN_DIR, "*.pth"))`).
+   - Tuyệt đối không chỉ lọc riêng `best_model_b2_global.pth`. Phải bảo tồn cả `last_model` (ví dụ `last_model_b2_stage2.pth`) để phục vụ audit quỹ đạo, kiểm tra over-fitting cuối lịch trình, hoặc resume tiếp nối trung thực.
+4. **Tự động tải về máy cục bộ bằng `google.colab.files.download`:**
    - Kèm theo tính năng kiểm tra dung lượng file (in kích thước theo MB) trước khi kích hoạt download trình duyệt.
 
 **Template Cell Colab xuất xưởng chuẩn (Copy-paste ready):**
 ```python
 import os
 import shutil
+import glob
 from google.colab import files
 
-RUN_DIR = "/content/P3_C_Canonical_Base_D4"
-ZIP_BASE = "/content/P3_C_Canonical_Base_D4_Full"
-ZIP_OUTPUT = f"{ZIP_BASE}.zip"
+RUN_DIR = "/content/P3_C_Canonical_Base_D8_E33"
+BUNDLE_DIR = "/content/P3_C_Canonical_Base_D8_Full"
+ZIP_OUTPUT = f"{BUNDLE_DIR}.zip"
 
-if not os.path.exists(RUN_DIR):
-    raise FileNotFoundError(f"[ERROR] Không tìm thấy thư mục: {RUN_DIR}")
+os.makedirs(BUNDLE_DIR, exist_ok=True)
 
-# Thu thập thống kê artifact
-pth_files = [f for f in os.listdir(RUN_DIR) if f.endswith(".pth")]
-diag_dir = os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics")
-has_diag = os.path.exists(diag_dir)
-
+# 1. Gom TẤT CẢ Checkpoints (.pth) — Đảm bảo có cả best_model và last_model
+pth_files = glob.glob(os.path.join(RUN_DIR, "*.pth"))
 print("=" * 80)
 print(f"BẮT ĐẦU ĐÓNG GÓI ARTIFACT: {RUN_DIR}")
-print(f"Checkpoints tìm thấy: {pth_files}")
-print(f"Routing Diagnostics: {'Có' if has_diag else 'Không có'}")
+print(f"Checkpoints tìm thấy ({len(pth_files)}):")
+for pth in pth_files:
+    print(f"  - {os.path.basename(pth)}")
+    shutil.copy2(pth, os.path.join(BUNDLE_DIR, os.path.basename(pth)))
+
+# 2. Gom Train Log & Config
+if os.path.exists(os.path.join(RUN_DIR, "train.log")):
+    shutil.copy2(os.path.join(RUN_DIR, "train.log"), os.path.join(BUNDLE_DIR, "train.log"))
+
+# 3. Gom Diagnostics (nếu có)
+diag_dirs = [
+    "/content/P3_C_Routing_Diagnostics_D8",
+    os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics"),
+]
+found_diag = next((d for d in diag_dirs if os.path.exists(d)), None)
+if found_diag:
+    dest_diag = os.path.join(BUNDLE_DIR, os.path.basename(found_diag))
+    if os.path.exists(dest_diag):
+        shutil.rmtree(dest_diag)
+    shutil.copytree(found_diag, dest_diag)
+    print(f"Routing Diagnostics: Đã gom từ {found_diag}")
+else:
+    print("Routing Diagnostics: Không tìm thấy")
+
 print("=" * 80)
 
-# Nén toàn bộ thư mục
-shutil.make_archive(base_name=ZIP_BASE, format="zip", root_dir=RUN_DIR)
-
+# 4. Nén và Kích hoạt Tải về
+shutil.make_archive(base_name=BUNDLE_DIR, format="zip", root_dir=BUNDLE_DIR)
 zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
 print(f"ĐÃ NÉN THÀNH CÔNG: {ZIP_OUTPUT} ({zip_size_mb:.2f} MB)")
 print("Đang kích hoạt tải file về máy...")
 files.download(ZIP_OUTPUT)
 ```
+
 
 ## 9. Experiment Results Log (BẮT BUỘC ĐỌC & CẬP NHẬT)
 
