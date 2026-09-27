@@ -8,7 +8,7 @@ description: Invariants and best practices for creating and managing Colab Noteb
 Skill này định nghĩa các nguyên tắc bất biến (invariants) và best practices chung để viết Google Colab Notebooks cho dự án SAGE-Lite. Các nguyên tắc này đảm bảo tính tái lập (reproducibility), giữ code sạch và mô phỏng thực tế mà không bị ràng buộc cứng vào một experiment cụ thể.
 
 ## 1. Architectural Invariants
-- **Notebook = Driver:** Notebook chỉ đóng vai trò "người lái" (mount drive, setup environment, chạy VRAM probe, gọi entry point training/evaluation). Tuyệt đối không viết logic model, kiến trúc layer hay hàm training trực tiếp vào notebook. Mọi implementation phải nằm trong source code của repo.
+- **Notebook = Driver (No-Drive Preference):** Notebook chỉ đóng vai trò "người lái" (setup environment, chạy VRAM probe, gọi entry point training/evaluation, nén và tải artifacts về máy tính cá nhân). Khuyến khích chạy thuần túy trên ổ đĩa ảo `/content/` của Colab và bỏ mount Google Drive để tránh phiền toái popup cấp quyền, độ trễ FUSE I/O và nghẽn dung lượng 15GB. Tuyệt đối không viết logic model, kiến trúc layer hay hàm training trực tiếp vào notebook. Mọi implementation phải nằm trong source code của repo.
 - **Experiment-Specific Constraints:** KHÔNG hard-code các giả định của một experiment (ví dụ: loss function, input shape, số blocks, batch size candidates, số iteration) làm template bắt buộc. Mọi thông số (candidate batch size, loss, model, input shape, etc.) phải được lấy theo **experiment hiện tại**. (Ví dụ: B0 là Baseline, nhưng R1, R2 sẽ có cấu trúc và parameter khác).
 - **Target Hardware Invariant (Tesla T4 Primary):** Google Colab Tesla T4 (16GB VRAM) là môi trường phần cứng chuẩn duy nhất để đo đạc: OOM probe, batch-size search, throughput benchmark, và official training. Tuyệt đối **KHÔNG** chạy các tác vụ đo đạc tải CUDA nặng trên GPU local (GTX 1650 4GB). Máy local chỉ phục vụ code editing, static audit, git sync, hoặc test cú pháp/mock CPU.
 - **Colab Cell Syntax Invariant:** Khi cung cấp lệnh để chạy trong Colab Notebook, **BẮT BUỘC** định dạng sẵn 100% cú pháp cell notebook: dùng `%cd` cho chuyển thư mục và `!` cho mọi lệnh shell (`!git`, `!python`, `!pip`). Tuyệt đối không đưa bash thô thiếu `!` và `%`.
@@ -121,7 +121,7 @@ Khi người dùng yêu cầu "lưu kết quả / lưu kq / lưu run X", Agent *
    - Ngay sau khi ghi nhận và cập nhật xong các file kết quả (`results/*.md`, `results/*.json`, `results/configs/*.yaml`, `results/figures/*.png`), Agent **bắt buộc phải `git add`, `git commit` và `git push` trực tiếp lên repository `SpecialSubjectTTNT`**.
 4. **Tận dụng Công cụ Phân tích Sẵn có (Zero Reinventing the Wheel):**
    - Khi cần phân tích sâu hay trực quan hóa (routing diagnostics, error analysis, visual gallery), **Agent PHẢI ưu tiên sử dụng các công cụ chuẩn có sẵn trong repo** (`tools/analyze_routing.py`, `tools/run_p3_c_error_analysis.py`).
-   - Cung cấp sẵn Cell Colab hoàn chỉnh 100% cú pháp notebook (`%cd`, `!python`) với đúng đường dẫn checkpoint, config, output dir trên Google Drive và lệnh nén zip kèm checkpoint `.pth` để người dùng chỉ việc copy-paste chạy 1 lần.
+   - Cung cấp sẵn Cell Colab hoàn chỉnh 100% cú pháp notebook (`%cd`, `!python`) với đường dẫn output dir cục bộ (hoặc Drive nếu người dùng yêu cầu) và lệnh nén zip kèm checkpoint `.pth` để người dùng chỉ việc copy-paste chạy 1 lần. Lưu ý rằng `tools/run_p3_c_error_analysis.py` đã tự động nội suy đường dẫn `routing_statistics.json` (từ thư mục con `full_val/`), `data_root` (từ file YAML config) và `checkpoint` (từ `output_dir`), giúp đơn giản hóa dòng lệnh tối đa.
 
 ## 7. Faithful Stateful Training Resumption & Dual Checkpoint Architecture Protocol
 
@@ -164,7 +164,52 @@ Khi người dùng yêu cầu "lưu kết quả / lưu kq / lưu run X", Agent *
 - **Tiếp nối Hậu nghiệm cho Checkpoint Cũ (Post-hoc Low-LR Audit - D6):**
   - Với checkpoint lịch sử chỉ có weights: Dùng `--resume-stage2-low-lr` (`--low-lr 1e-6`) cùng các cờ tường minh `--best-dice`, `--best-loss`, `--initial-epochs-no-improve` để kiểm chứng hội tụ mà không làm sai lệch kết quả canonical.
 
-## 8. Experiment Results Log (BẮT BUỘC ĐỌC & CẬP NHẬT)
+## 8. Colab Archival & Export Pattern (No-Drive Standalone Download & Python shutil)
+
+Nhằm tối ưu hóa tốc độ I/O, loại bỏ xung đột xác thực Google Drive FUSE mount, và tránh nguy cơ tràn dung lượng Google Drive 15GB, quy trình xuất xưởng dữ liệu (artifacts export) trên Google Colab được chuẩn hóa như sau:
+
+1. **Ưu tiên chạy hoàn toàn trên Colab Local Disk (`/content/`):**
+   - Lưu trữ checkpoint, tensorboard log, và diagnostic output trực tiếp trong thư mục `/content/...` (ví dụ `/content/runs/...` hoặc `/content/P3_C_Canonical_Base_D4`).
+2. **Nén dữ liệu bằng Python `shutil.make_archive` (Tránh lệnh Shell `zip` lỗi path):**
+   - Lệnh shell `!zip -r ...` thường xuyên gặp lỗi `name not matched: Nothing to do!` do đường dẫn thư mục nguồn không tồn tại, gõ nhầm version (ví dụ D8 thay vì D4), hoặc xử lý dấu gạch chéo không tương thích.
+   - **BẮT BUỘC** sử dụng script Python với `shutil.make_archive` và kiểm tra `os.path.exists()` trước khi nén để fail-fast và hiển thị thông báo lỗi rõ ràng nếu đường dẫn sai.
+3. **Tự động tải về máy cục bộ bằng `google.colab.files.download`:**
+   - Kèm theo tính năng kiểm tra dung lượng file (in kích thước theo MB) trước khi kích hoạt download trình duyệt.
+
+**Template Cell Colab xuất xưởng chuẩn (Copy-paste ready):**
+```python
+import os
+import shutil
+from google.colab import files
+
+RUN_DIR = "/content/P3_C_Canonical_Base_D4"
+ZIP_BASE = "/content/P3_C_Canonical_Base_D4_Full"
+ZIP_OUTPUT = f"{ZIP_BASE}.zip"
+
+if not os.path.exists(RUN_DIR):
+    raise FileNotFoundError(f"[ERROR] Không tìm thấy thư mục: {RUN_DIR}")
+
+# Thu thập thống kê artifact
+pth_files = [f for f in os.listdir(RUN_DIR) if f.endswith(".pth")]
+diag_dir = os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics")
+has_diag = os.path.exists(diag_dir)
+
+print("=" * 80)
+print(f"BẮT ĐẦU ĐÓNG GÓI ARTIFACT: {RUN_DIR}")
+print(f"Checkpoints tìm thấy: {pth_files}")
+print(f"Routing Diagnostics: {'Có' if has_diag else 'Không có'}")
+print("=" * 80)
+
+# Nén toàn bộ thư mục
+shutil.make_archive(base_name=ZIP_BASE, format="zip", root_dir=RUN_DIR)
+
+zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
+print(f"ĐÃ NÉN THÀNH CÔNG: {ZIP_OUTPUT} ({zip_size_mb:.2f} MB)")
+print("Đang kích hoạt tải file về máy...")
+files.download(ZIP_OUTPUT)
+```
+
+## 9. Experiment Results Log (BẮT BUỘC ĐỌC & CẬP NHẬT)
 
 **[CRITICAL]** Tất cả kết quả thực nghiệm được lưu vĩnh viễn trong repository chính tại:
 ```
