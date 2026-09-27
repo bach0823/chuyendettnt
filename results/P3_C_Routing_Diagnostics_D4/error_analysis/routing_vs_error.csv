@@ -1,0 +1,4 @@
+Performance_Tier,Sample_Count,Mean_Dice,Median_Dice,Mean_Routing_Entropy,Std_Routing_Entropy,Mean_CNN_Fraction,Mean_ViT_Fraction,Mean_HHI_Concentration,Mean_gs_Gate
+High_Dice (>75%),87,0.9013,0.8963,1.9999,0.0,0.3542,0.6458,0.1561,0.501
+Low_Dice (<25%),87,0.5468,0.6121,1.9999,0.0,0.3596,0.6404,0.1552,0.5015
+Medium_Dice (25-75%),174,0.8038,0.8049,1.9999,0.0,0.3479,0.6521,0.1591,0.5011

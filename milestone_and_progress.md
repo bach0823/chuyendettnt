@@ -312,7 +312,22 @@ sage-lite/
   + **Run B & Run C Two-Stage Preflight PASS**:
     * Run B: 10 P3 tensors (38,450 params). Stage 1 phân bổ vào nhóm `backbone` (LR $10^{-5}$, WD 0.05). Stage 2 sau reload và `set_shared_experts([0,1,2,3])` thuộc strictly về `other_and_routers` (LR $10^{-4}$, WD 0.05), không lẫn vào `shared_experts`. Khớp 343/343 trainable tensors (0 missing, 0 duplicate).
     * Run C: 10 P3 tensors (37,874 params). Stage 1 phân bổ vào `backbone` (LR $10^{-5}$, WD 0.05). Stage 2 thuộc strictly về `other_and_routers` (LR $10^{-4}$, WD 0.05), không lẫn vào `shared_experts`. Khớp 343/343 trainable tensors (0 missing, 0 duplicate).
-    * Tỷ lệ LR Stage 2: `stage2_shared_lr : stage2_base_lr = 1e-4 : 1e-4 = 1:1` được bảo toàn nghiêm ngặt.
-  + Cả 3 cấu hình Run A, Run B, Run C đã sẵn sàng 100% để bước vào P3-PHASE-7: Huấn luyện chính thức.
+- **2026-09-26**: Hoàn thành Huấn luyện Đối chứng Chuẩn tắc P3 (Canonical Baseline D12, 12 ViT blocks, 16 experts: 4 CNN + 12 ViT) trên Crack500:
+  + **Run A (Identity Control)**: Peak S1 Dice 0.7158, Peak S2 Dice **0.7543** (Val Loss 1.0140).
+  + **Run B (Generic DW)**: Peak S1 Dice 0.7179, Peak S2 Dice **0.7496** (Val Loss 1.0495).
+  + **Run C (ASDW Refinement)**: Peak S1 Dice 0.7266, Peak S2 Dice **0.7557** (Val Loss 1.0889).
+  + Run C (ASDW) vượt trội cả Run A (+0.14% Dice) và Run B (+0.61% Dice), chứng minh tính hiệu quả của cơ chế tinh chế bất đối xứng dải định hướng (1x7, 7x1).
+- **2026-09-27**: Hoàn thành Khảo sát Độ nhạy Độ sâu ViT (ViT-Depth Sweep D12 $\to$ D8 $\to$ D6 $\to$ D4) cho P3-C (ASDW):
+  + **P3-C D8 (8 ViT blocks, 12 experts)**: Peak S1 Dice **0.7374**, Peak S2 Dice **0.7596** (Val Loss 1.0700). Tốc độ tăng ~18% (1.48s/it).
+  + **P3-C D6 (6 ViT blocks, 10 experts)**: Peak S1 Dice 0.7312, Peak S2 Dice **0.7599** (Val Loss **0.9602**). Tốc độ tăng ~21% (1.42s/it).
+  + **Kiểm chứng Hội tụ Hậu nghiệm (Convergence Extension Audit)**: Đã kiểm chứng tiếp nối tại sàn LR $10^{-6}$ qua 6 epochs cho cả D12, D8 và D6; cả 3 đều kích hoạt `EarlyStopping (patience=6)` chuẩn mực mà không cải thiện thêm Dice, xác nhận điểm dừng toán học thực thụ.
+  + **P3-C D4 (4 ViT blocks, 8 experts: 4 CNN + 4 ViT, 1:1 symmetry, $k=4$)**:
+    * Thiết lập **KỶ LỤC MỚI TOÀN DỰ ÁN**: Peak Val Dice = 🏆 **0.7639** (@ S2 Ep 14), duy trì ổn định $>0.760$ liên tục suốt 5 epoch cuối (Ep 14-18, TB 0.7625).
+    * **Val IoU**: 🏆 **0.6412** (Cao nhất lịch sử).
+    * **Val Precision**: 🏆 **0.7298** (Tăng vọt +2.33% so với D6, giảm mạnh lỗi over-segmentation từ 39 xuống 28 mẫu).
+    * **Val Loss**: Đạt đáy **0.9317** (S2 Ep 18).
+    * **Động lực học Gamma**: $\gamma_{S0} = 0.0162$, $\gamma_{S1} = 0.0205$ (tăng gấp gần 3 lần so với D12: 0.0071), chứng minh nhu cầu bù đắp inductive bias dạng dải từ CNN khi ViT nông.
+    * Đã lưu trữ toàn diện: `results/logs/P3_C_Canonical_Base_D4.log`, `results/checkpoints/P3_C_D4_best_model_b2_global.pth`, `results/P3_C_Routing_Diagnostics_D4/`, `results/configs/b2_p3_run_c_d4.yaml` và cập nhật `results/p3_abc_epoch_by_epoch_metrics.json/md`.
+
 
 
