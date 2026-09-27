@@ -1,0 +1,30 @@
+2026-09-27 08:53:54 [INFO ]  Loaded B2 with 6 ViT blocks, full SAGE-Lite injection, and p3_mode='C'
+2026-09-27 08:53:54 [INFO ]  Initialized B2 model
+2026-09-27 08:53:54 [INFO ]  Loading checkpoint from /content/drive/MyDrive/crack_seg/P3_C_Canonical_Base_D6/best_model_b2_stage2.pth (resume/continue mechanism)...
+2026-09-27 08:53:54 [INFO ]  P3 Refinement gamma preserved from checkpoint: S0=0.0149, S1=0.0127
+2026-09-27 08:53:54 [INFO ]  Loading Stage 2 checkpoint for continuation: /content/drive/MyDrive/crack_seg/P3_C_Canonical_Base_D6/best_model_b2_stage2.pth
+2026-09-27 08:53:55 [INFO ]  Stage 2 Extension baseline initialized: Best Val Dice=0.7599, Best Val Loss=0.9602 (source: /content/drive/MyDrive/crack_seg/P3_C_Canonical_Base_D6/best_model_b2_stage2.pth)
+2026-09-27 08:53:55 [INFO ]  Stage 2 Extension learned gamma confirmed: S0=0.0149, S1=0.0127
+2026-09-27 08:53:55 [INFO ]  
+========================================
+STARTING STAGE 2
+========================================
+2026-09-27 08:53:55 [INFO ]  Stage 2: Updated shared expert indices to [0, 1, 2, 3]
+2026-09-27 08:53:55 [INFO ]  Stage 2 Low-LR Extension: keeping constant LR floor=1.00e-06 across all groups
+2026-09-27 08:53:55 [INFO ]  Stage 2 Optimizer: shared_lr=1.00e-06, base_lr=1.00e-06, p3_lr=1.00e-06
+2026-09-27 08:53:55 [INFO ]  Stage 2 Scheduler: Constant LR 1.00e-06 (warmup_epochs=0, no decay)
+2026-09-27 08:53:55 [INFO ]  Stage 2 Extension starting with baseline Dice=0.7599, Loss=0.9602, initial epochs_no_improve=0/6
+Epoch 1/10 [Train]: 100% 136/136 [10:51<00:00,  4.79s/it, loss=1.0891, dice=0.5888, lb=0.1012]
+2026-09-27 09:05:47 [INFO ]  Epoch 1/10 - Train Loss: 0.9700 (LB: 0.1004), Train Dice: 0.7325 | Val Loss: 0.9631, Val Dice: 0.7566 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0150, S1=0.0127)
+Epoch 2/10 [Train]: 100% 136/136 [03:18<00:00,  1.46s/it, loss=1.0389, dice=0.7553, lb=0.1024]
+2026-09-27 09:10:02 [INFO ]  Epoch 2/10 - Train Loss: 0.9638 (LB: 0.1004), Train Dice: 0.7349 | Val Loss: 0.9589, Val Dice: 0.7581 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0150, S1=0.0127)
+Epoch 3/10 [Train]: 100% 136/136 [03:21<00:00,  1.48s/it, loss=0.9584, dice=0.7554, lb=0.1010]
+2026-09-27 09:14:18 [INFO ]  Epoch 3/10 - Train Loss: 0.9680 (LB: 0.1004), Train Dice: 0.7350 | Val Loss: 0.9534, Val Dice: 0.7582 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0150, S1=0.0127)
+Epoch 4/10 [Train]: 100% 136/136 [03:08<00:00,  1.39s/it, loss=1.0244, dice=0.7644, lb=0.1004]
+2026-09-27 09:18:22 [INFO ]  Epoch 4/10 - Train Loss: 0.9631 (LB: 0.1004), Train Dice: 0.7401 | Val Loss: 0.9658, Val Dice: 0.7567 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0149, S1=0.0127)
+Epoch 5/10 [Train]: 100% 136/136 [03:05<00:00,  1.36s/it, loss=0.9543, dice=0.8626, lb=0.1008]
+2026-09-27 09:22:21 [INFO ]  Epoch 5/10 - Train Loss: 0.9647 (LB: 0.1004), Train Dice: 0.7326 | Val Loss: 0.9583, Val Dice: 0.7589 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0149, S1=0.0127)
+Epoch 6/10 [Train]: 100% 136/136 [03:10<00:00,  1.40s/it, loss=1.1415, dice=0.6499, lb=0.1012]
+2026-09-27 09:26:25 [INFO ]  Epoch 6/10 - Train Loss: 0.9646 (LB: 0.1004), Train Dice: 0.7327 | Val Loss: 0.9514, Val Dice: 0.7596 | LR: Shared=1.00e-06, Others=1.00e-06, P3=1.00e-06 (gamma: S0=0.0149, S1=0.0127)
+2026-09-27 09:26:26 [INFO ]  EarlyStopping triggered at epoch 6 (Patience: 6)
+2026-09-27 09:26:26 [INFO ]  Stage 2 finished. Total epochs used so far: 6/35
