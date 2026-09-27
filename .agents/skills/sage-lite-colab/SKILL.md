@@ -123,7 +123,46 @@ Khi người dùng yêu cầu "lưu kết quả / lưu kq / lưu run X", Agent *
    - Khi cần phân tích sâu hay trực quan hóa (routing diagnostics, error analysis, visual gallery), **Agent PHẢI ưu tiên sử dụng các công cụ chuẩn có sẵn trong repo** (`tools/analyze_routing.py`, `tools/run_p3_c_error_analysis.py`).
    - Cung cấp sẵn Cell Colab hoàn chỉnh 100% cú pháp notebook (`%cd`, `!python`) với đúng đường dẫn checkpoint, config, output dir trên Google Drive và lệnh nén zip kèm checkpoint `.pth` để người dùng chỉ việc copy-paste chạy 1 lần.
 
-## 7. Experiment Results Log (BẮT BUỘC ĐỌC & CẬP NHẬT)
+## 7. Stateful Training Resumption & Dual Checkpoint Architecture Protocol
+
+Để đảm bảo quá trình tiếp nối huấn luyện (resumption) sau khi ngắt kết nối hoặc chạy mở rộng hội tụ diễn ra chính xác 100% như chưa từng tắt Colab, hệ thống áp dụng kiến trúc Checkpoint Kép:
+
+### 1. Phân biệt rõ hai loại Checkpoint
+- **`best_model_*.pth` (Evaluation & Diagnostics Artifact):**
+  - Chỉ lưu `model_state_dict` + metrics (`best_dice`, `best_loss`, metadata kiến trúc).
+  - File nhẹ, dùng cho inference, evaluation trên tập Test và chạy routing diagnostics.
+- **`last_model_*.pth` (Full Stateful Continuity Anchor):**
+  - Lưu tại mỗi epoch (cả single-stage và two-stage).
+  - **BẮT BUỘC chứa Full Training State**:
+    ```python
+    {
+        "epoch": epoch,
+        "stage": stage,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),  # AdamW moments
+        "scheduler_state_dict": scheduler.state_dict(),  # Scheduler state
+        "scaler_state_dict": scaler.state_dict(),        # AMP scale factor
+        "val_dice": val_dice,
+        "val_loss": val_loss,
+        "best_dice": best_stage_dice,
+        "best_loss": best_stage_loss,
+        "epochs_no_improve": epochs_no_improve,          # Early stopping counter
+        "rng_state": torch.get_rng_state(),
+        "cuda_rng_state_all": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        "numpy_rng_state": np.random.get_state(),
+        "python_rng_state": random.getstate(),
+        "model_type": model_type,
+    }
+    ```
+
+### 2. Nguyên tắc Tiếp nối (Resumption Protocol)
+- **Tiếp nối Chuẩn (Full State Resumption - Từ D10 trở đi):**
+  - Khi checkpoint chứa `optimizer_state_dict`, script tự động khôi phục AdamW moments, vị trí scheduler, scaler và RNGs.
+  - Huấn luyện tiếp nối tự nhiên từ $E+1$ (ví dụ: E19 sau E18) tại mức LR chính xác của scheduler (sàn $10^{-6}$) mà KHÔNG warm-restart.
+- **Tiếp nối Hậu nghiệm cho Checkpoint Cũ (Post-hoc Low-LR Audit - D6):**
+  - Với checkpoint lịch sử chỉ có weights: Dùng `--resume-stage2-low-lr` (`--low-lr 1e-6`) cùng các cờ tường minh `--best-dice`, `--best-loss`, `--initial-epochs-no-improve` để kiểm chứng hội tụ mà không làm sai lệch kết quả canonical.
+
+## 8. Experiment Results Log (BẮT BUỘC ĐỌC & CẬP NHẬT)
 
 **[CRITICAL]** Tất cả kết quả thực nghiệm được lưu vĩnh viễn trong repository chính tại:
 ```
