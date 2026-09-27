@@ -123,9 +123,9 @@ Khi người dùng yêu cầu "lưu kết quả / lưu kq / lưu run X", Agent *
    - Khi cần phân tích sâu hay trực quan hóa (routing diagnostics, error analysis, visual gallery), **Agent PHẢI ưu tiên sử dụng các công cụ chuẩn có sẵn trong repo** (`tools/analyze_routing.py`, `tools/run_p3_c_error_analysis.py`).
    - Cung cấp sẵn Cell Colab hoàn chỉnh 100% cú pháp notebook (`%cd`, `!python`) với đúng đường dẫn checkpoint, config, output dir trên Google Drive và lệnh nén zip kèm checkpoint `.pth` để người dùng chỉ việc copy-paste chạy 1 lần.
 
-## 7. Stateful Training Resumption & Dual Checkpoint Architecture Protocol
+## 7. Faithful Stateful Training Resumption & Dual Checkpoint Architecture Protocol
 
-Để đảm bảo quá trình tiếp nối huấn luyện (resumption) sau khi ngắt kết nối hoặc chạy mở rộng hội tụ diễn ra chính xác 100% như chưa từng tắt Colab, hệ thống áp dụng kiến trúc Checkpoint Kép:
+Để đảm bảo quá trình tiếp nối huấn luyện (resumption) sau khi ngắt kết nối hoặc chạy mở rộng hội tụ bảo toàn tính liên tục của quỹ đạo học tập (faithful training-state resumption), hệ thống áp dụng kiến trúc Checkpoint Kép:
 
 ### 1. Phân biệt rõ hai loại Checkpoint
 - **`best_model_*.pth` (Evaluation & Diagnostics Artifact):**
@@ -151,14 +151,16 @@ Khi người dùng yêu cầu "lưu kết quả / lưu kq / lưu run X", Agent *
         "cuda_rng_state_all": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
         "numpy_rng_state": np.random.get_state(),
         "python_rng_state": random.getstate(),
+        "dataloader_generator_state": g.get_state(),     # DataLoader shuffle permutation state
         "model_type": model_type,
     }
     ```
 
-### 2. Nguyên tắc Tiếp nối (Resumption Protocol)
-- **Tiếp nối Chuẩn (Full State Resumption - Từ D10 trở đi):**
-  - Khi checkpoint chứa `optimizer_state_dict`, script tự động khôi phục AdamW moments, vị trí scheduler, scaler và RNGs.
-  - Huấn luyện tiếp nối tự nhiên từ $E+1$ (ví dụ: E19 sau E18) tại mức LR chính xác của scheduler (sàn $10^{-6}$) mà KHÔNG warm-restart.
+### 2. Nguyên tắc Tiếp nối (Faithful Resumption Protocol)
+- **Tiếp nối Trạng thái Chuẩn (Faithful Full-State Resumption - Từ D10 trở đi):**
+  - Khôi phục đầy đủ: Model weights, AdamW 1st/2nd moments, Cosine scheduler phase, AMP scaler, Early stopping counter và toàn bộ các bộ sinh số ngẫu nhiên (RNG PyTorch, CUDA, NumPy, Python, cùng DataLoader Generator state).
+  - Đảm bảo tính liên tục của quỹ đạo tối ưu (trajectory continuity) và thứ tự shuffle batch giữa các epoch mà không bị reset seed hay warm-restart về LR cao.
+  - *Lưu ý về tính tái lập:* Tính tái lập là chuẩn mực toán học ở cấp độ trạng thái (stateful continuity); các khác biệt nhỏ ở mức bit-for-bit qua các môi trường GPU/CUDA driver khác nhau (non-deterministic floating-point kernels) là đặc tính cố hữu của phần cứng, nhưng quỹ đạo huấn luyện được bảo toàn trung thực.
 - **Tiếp nối Hậu nghiệm cho Checkpoint Cũ (Post-hoc Low-LR Audit - D6):**
   - Với checkpoint lịch sử chỉ có weights: Dùng `--resume-stage2-low-lr` (`--low-lr 1e-6`) cùng các cờ tường minh `--best-dice`, `--best-loss`, `--initial-epochs-no-improve` để kiểm chứng hội tụ mà không làm sai lệch kết quả canonical.
 
