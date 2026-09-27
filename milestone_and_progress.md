@@ -330,6 +330,19 @@ sage-lite/
     * **Kiểm chứng Hội tụ Hậu nghiệm D4 (Convergence Extension Audit)**: Đã hoàn tất kiểm chứng tiếp nối tại sàn LR $10^{-6}$ qua 6 epochs (`results/logs/P3_C_Canonical_Base_D4_Extension.log`), Val Dice dao động $0.7599 - 0.7634$ (không vượt đỉnh 🏆 **0.7639**), kích hoạt `EarlyStopping (patience=6)` chuẩn mực.
     * **Kết luận Toàn diện 4 Depth (D12, D8, D6, D4)**: 100% cả 4 cấu hình đã kích hoạt EarlyStopping chuẩn, chứng minh không cấu hình nào bị dừng sớm do thiếu budget. Kỷ lục 🏆 **0.7639** của D4 là điểm dừng tối ưu toán học thực thụ (*true mathematical convergence*).
     * Đã lưu trữ toàn diện: `results/logs/P3_C_Canonical_Base_D4.log`, `results/logs/P3_C_Canonical_Base_D4_Extension.log`, `results/checkpoints/P3_C_D4_best_model_b2_global.pth`, `results/P3_C_Routing_Diagnostics_D4/`, `results/configs/b2_p3_run_c_d4.yaml` và cập nhật `results/p3_abc_epoch_by_epoch_metrics.json/md`.
+- **2026-09-28**: Giải quyết Triệt để Cosine LR Schedule Confound & Tái huấn luyện D8 Chuẩn tắc (Option B: $t_{initial}=18$, budget 33 epochs):
+  + **Xác minh Confound**: Trước đây D8 chạy `budget=30` ($t_{initial}=15$) khiến LR tại S2 Ep 13 bị ép xuống $5.28 \times 10^{-6}$ (chênh 3.54x so với $1.87 \times 10^{-5}$ của D4/D6).
+  + **Kết quả Huấn luyện D8 Chuẩn tắc**: Khi được cấp cùng đường cong cosine suy giảm ($t_{initial}=18$), D8 tiếp tục fine-tune sâu đến Ep 17 và đạt đỉnh **0.7604** (Val Loss: **0.9999**).
+  + **Định vị Lại Bảng Xếp hạng (Fair Controlled Ranking)**:
+    * **D4**: 🏆 **0.7639** (Top 1 áp đảo, kiến trúc đối xứng 1:1 tối ưu).
+    * **D8**: **0.7604** (Chính thức vượt D6 sau khi gỡ bỏ rào cản LR schedule).
+    * **D6**: **0.7599** (Ổn định, tốc độ nhanh).
+    * **D12**: **0.7557** (Bị over-smoothing và CNN starvation).
+  + **Lưu trữ Trọn bộ Artifacts**:
+    * Checkpoint chuẩn: `results/checkpoints/P3_C_D8_best_model_b2_global.pth` (bản cũ được lưu tại `P3_C_D8_best_model_b2_global_e30.pth`).
+    * Log huấn luyện: `results/logs/P3_C_Canonical_Base_D8.log` & `results/logs/P3_C_Canonical_Base_D8_E33.log` (bản cũ tại `P3_C_Canonical_Base_D8_E30.log`).
+    * Toàn bộ Routing Diagnostics & Error Analysis: `results/P3_C_Routing_Diagnostics_D8/` (bản cũ tại `results/P3_C_Routing_Diagnostics_D8_E30/`).
+    * Dữ liệu định lượng: Cập nhật `results/p3_abc_epoch_by_epoch_metrics.json` & `.md`.
 
 
 
