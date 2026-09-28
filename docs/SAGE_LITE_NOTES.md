@@ -425,6 +425,106 @@ Trước hết, các con số khớp chéo với những gì tôi đã thấy: 6
 
 Chưa có cơ sở để thay GAP. Bằng chứng nghiêng về việc GAP giữ được thông tin về diện tích, còn độ mảnh thì khó đọc tuyến tính nhưng chưa biết có giúp ích không.
 
+---
+
+## Đối Chiếu Hệ Thống với SAGE Gốc (Mã Nguồn & Figure 9 SAGE Paper)
+
+*Ngày bổ sung: 2026-09-28*
+
+Dựa trên việc kiểm tra trực tiếp mã nguồn SAGE gốc (`SAGE/sage/components/router.py`) và phân tích biểu đồ tiến hóa gating $g_s$ qua huấn luyện (Figure 9 của paper SAGE gốc):
+
+### 1. Thẩm định Mã Nguồn Router SAGE Gốc vs SAGE-Lite
+- **Cơ chế Pooling**: SAGE gốc và SAGE-Lite sử dụng **chính xác cùng một cơ chế** ở cấp mã nguồn:
+  - CNN layers: `self.feature_aggregator = nn.AdaptiveAvgPool2d((1, 1))` (dòng 106), sau đó trích xuất `aggregated = self.feature_aggregator(x).squeeze(-1).squeeze(-1)` (dòng 189).
+  - ViT layers: `aggregated = x.mean(dim=1)` (dòng 191).
+  - Cổng $g_s$ và query SAR đều tính từ vector đã pool này (`g_s = torch.sigmoid(self.shared_expert_gate(aggregated))` và `query = self.query_projection(aggregated)`).
+- **Kết luận kiến trúc**: GAP không phải là sự sai lệch hay thiếu sót khi chuyển thể sang SAGE-Lite, mà là sự kế thừa nguyên vẹn từ thiết kế gốc của tác giả.
+
+### 2. So sánh Hành vi Động của Cổng $g_s$ (SAGE Gốc Fig. 9 vs SAGE-Lite Test 5)
+- **SAGE gốc (Hình 9a, 9b, 9c)**:
+  - *Phân phối ban đầu vs Cuối cùng (Fig 9a)*: $g_s$ trải rộng (spread) rõ rệt từ dạng hẹp ban đầu (~0.5) sang phân phối 2 thung lũng rõ ràng ở cuối quá trình train, mở rộng mạnh về cả hai phía (<0.4 và >0.6).
+  - *Độ lệch theo tầng (Fig 9c)*: Tầng CNN duy trì $g_s$ cao ổn định (~0.60–0.70, thiên về shared), trong khi tầng Transformer dao động rất mạnh qua các epoch (0.35 đến 0.65), thể hiện tính biến thiên lớn.
+- **SAGE-Lite (D4 Crack500 - Test 5)**:
+  - Biên độ điều biến $\Delta_{\text{family}} = \ln(g_s / (1 - g_s))$ có độ lệch chuẩn per-sample cực kỳ hẹp (**$\text{std} = 0.004 \to 0.012$**).
+  - Giá trị $g_s$ thực tế bị co cụm (ví dụ S1 dao động quanh 0.462, S2 quanh 0.526, B1-B3 quanh 0.501–0.504), không học được độ mở rộng/phân tách biên độ lớn như SAGE gốc.
+- **Nguyên nhân**: Sự khác biệt hành vi không nằm ở phương trình hay hàm pooling (vì code y hệt nhau), mà nằm ở:
+  1. *Đặc trưng miền bài toán*: WSI y tế có sự đa dạng mô học (cellular heterogeneity) lớn hơn nhiều so với binary crack segmentation.
+  2. *Training regime*: SAGE gốc train 60 epochs (có thời gian cho gate mở rộng trọng số) so với ngân sách epoch ngắn (~15–30 epochs) của SAGE-Lite.
+
+### 3. Tóm Lược Tình Trạng Định Tuyến SAGE-Lite Hiện Tại
+- **Không phải static ensemble toàn phần**: SAGE-Lite ở các tầng ViT sâu (đặc biệt B1 và B3) có sự thích nghi định tuyến rất rõ nét theo quy mô diện tích vết nứt ($gt\_area$, JSD đạt tới 0.38 bits; B3 chuyển từ 57% CNN ở vết nứt nhỏ xuống 7% CNN ở vết nứt lớn).
+- **Điểm mù thực sự (Blind Spot)**: Router hoàn toàn không đọc được độ mảnh ($thinness$, probe $R^2 < 0$, JSD $\approx 0$ trên mọi router), dù đây là biến tương quan âm mạnh nhất với các ca sụp đổ hiệu năng (Dice tụt).
+- **Cơ chế gating $g_s$ bị tê liệt biên độ**: Tín hiệu thích nghi hiện tại được dẫn dắt chủ yếu bởi SAR Base Logits ở các tầng sâu (khi nhiễu khám phá tự triệt tiêu xuống ~0.04), trong khi hệ số $g_s$ chưa phát huy được vai trò điều biến phân cấp do biên độ quá nhỏ ($\Delta \le 0.04$).
+
+---
+
+## Thực Nghiệm Chẩn Đoán Đa Chiều: Biểu Diễn Thinness trong Router
+
+*Ngày: 2026-09-28 | Mô hình: D4 P3-C Canonical | N=348 val Crack500 | Eval mode, seed=42*  
+*Tệp gốc: `diagnostics/thinness_representation/THINNESS_REPRESENTATION_REPORT.md`*
+
+### Bối cảnh & Câu hỏi
+
+Linear probe từ pooled feature `h` cho `thinness` có R² gần-0 hoặc âm (đặc biệt B2=-0.178, B3=-0.165), trong khi `gt_area` đạt R²=0.83–0.85. Hai giả thuyết được kiểm tra:
+- **H1**: Thông tin thinness tồn tại nhưng theo quan hệ phi tuyến; linear query không đọc được.
+- **H2**: GAP làm mất thông tin local geometry (biên cục bộ).
+
+### Kết quả Đa Chiều (5-fold CV, R² trên thinness)
+
+| Router | (1) Linear Ridge | (2) Poly Deg-2 | (3) MLP D→64→1 | (4) Pre-GAP Std | (5) Pre-GAP GMP |
+|--------|:---:|:---:|:---:|:---:|:---:|
+| S0 (112×112) | -0.145 | +0.002 | -0.085 | **+0.231** | -0.055 |
+| S1 (56×56) | +0.088 | -0.096 | +0.111 | **+0.228** | -0.143 |
+| S2 | +0.122 | +0.110 | +0.104 | +0.026 | -0.192 |
+| S3 | +0.049 | +0.115 | **+0.182** | -0.235 | -0.922 |
+| B0 | +0.200 | +0.039 | **+0.201** | -0.699 | -1.009 |
+| B1 | +0.117 | +0.049 | **+0.305** | -0.132 | -0.806 |
+| B2 | -0.179 | +0.103 | **+0.286** | -0.385 | -0.556 |
+| B3 | -0.165 | +0.105 | **+0.240** | -0.288 | -0.847 |
+
+### Kết Luận Đã Được Chứng Thực
+
+**Cả hai giả thuyết đều đúng — phân hóa rõ ràng theo độ sâu:**
+
+**Tầng nông S0/S1 — H2 đúng (GAP xóa sổ local geometry):**
+- Feature map 112×112 và 56×56 có spatial resolution cao, nhưng sau GAP, R² âm (-0.145).
+- Spatial Std (σ_c = std_{u,v}(X_{c,u,v})) trên pre-GAP feature map tăng vọt lên +0.231 (S0) và +0.228 (S1).
+- Nguyên nhân: Vết nứt mảnh tạo sharp localized peaks; phép tích phân phẳng của GAP (1/HW Σ X) triệt tiêu tỷ lệ biên-trên-diện tích. Spatial Std phản ánh được độ sắc nhọn cục bộ này.
+- GMP thất bại âm ở cả hai tầng → max pooling không capture được geometry của thin crack theo cách spatial std làm được.
+
+**Tầng sâu B1/B2/B3 — H1 đúng (thông tin phi tuyến trong h):**
+- Linear probe: B2=-0.179, B3=-0.165 (âm).
+- MLP D→64→1 (ReLU, Dropout=0.4, WD=0.01) đảo chiều hoàn toàn: B2=+0.286 (Δ+0.465), B3=+0.240 (Δ+0.405), B1=+0.305 (Δ+0.188).
+- Pre-GAP Spatial Std sụp đổ ở các tầng sâu (R² âm nặng đến -1.0) → ở độ phân giải 14×14, mỗi token đại diện cho vùng 32×32 px, chi tiết hình học mảnh đã được nén vào channel representation, không còn đọc được qua spatial statistics đơn giản.
+- **Cơ chế**: Thông tin thinness ở tầng sâu bị entangle phi tuyến giữa các kênh (dạng tỷ số h_a/h_b). Router hiện tại dùng `q = W_q h` và `logit = h^T w_m` — hoàn toàn tuyến tính — không giải mã được.
+
+**Trần tuyệt đối còn khiêm tốn:**
+- MLP tốt nhất chỉ đạt R²≈0.30 (B1), Spatial Std tốt nhất ≈0.23 (S0).
+- So với gt_area: R²>0.82–0.85 → thinness vốn dĩ là tín hiệu yếu hơn nhiều trong backbone này.
+
+### Chuỗi Suy Luận & Giới Hạn
+
+```
+Thinness info tồn tại (MLP decode được)     ✅ Confirmed (B1-B3)
+GAP xóa sổ local geometry ở tầng nông      ✅ Confirmed (S0-S1 via Spatial Std)
+          ↓
+Linear query_projection không đọc được      ✅ Confirmed (linear probe âm)
+          ↓
+Router mù với thinness khi routing          ✅ Confirmed (JSD≈0 tất cả routers)
+          ↓
+Thêm nonlinear vào router → fix?            ❓ CHƯA XÁC NHẬN — cần ablation thực sự
+          ↓
+Routing theo thinness → tăng Dice?          ❓ CHƯA XÁC NHẬN — cần expert chuyên hóa thin crack
+```
+
+### Quyết Định Kiến Trúc
+
+**Không thay đổi GAP hay router architecture ở giai đoạn này.** Diagnostic xác nhận bottleneck nhưng chưa chứng minh fix sẽ tăng Dice downstream. Post-hoc probe R² cao ≠ routing utility. Cần ablation thực sự (train lại với intervention) để validate benefit.
+
+Nếu muốn investigate tiếp: bước rẻ nhất tiếp theo là **static routing swap inference test** (fixed routing không adaptive vs routing hiện tại, so Dice) để tách contribution của routing khỏi ensemble quality.
+
+
+
 
 
 
