@@ -17,31 +17,28 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Nghiệm thu thực nghiệm P3-C D8 Continuation & Khóa Protocol 35 Epochs cho Depth Ablation:
-1. **P3-C D8 Continuation & Convergence Confirmation (Colab T4, BS14, 6 epochs extension):**
-   - **Baseline checkpoint nạp:** `best_model_b2_global.pth` (Stage 2 Ep 13, Val Dice = **0.7596**, Val Loss = **1.0700**, Gamma S0 = `0.0126`, S1 = `0.0155`).
-   - **Kết quả 6 Extension Epochs:** Duy trì ổn định quanh 0.7331 - 0.7528. Không có epoch nào phá vỡ mốc 0.7596.
-   - **EarlyStopping:** Kích hoạt chuẩn mực tại Extension Epoch 6 (patience = 6/6). Xác nhận **0.7596** là đỉnh hội tụ tự nhiên thực sự của D8 trên Crack500, loại bỏ hoàn toàn nghi ngờ về "budget ceiling".
-   - **Bảo toàn Gamma:** Patch `--resume-stage2` giữ nguyên gamma learned (~0.0120 / ~0.0160) chính xác suốt 6 epochs.
-   - **Lưu trữ toàn diện:** Trích xuất từ `P3_C_Canonical_Base_D8_Extended_Full.zip` vào `results/P3_C_Routing_Diagnostics_D8/`, `results/logs/` và cập nhật bảng `results/p3_abc_epoch_by_epoch_metrics.*`.
-2. **Cập nhật Protocol Ngân sách Depth Mới (35 Epochs):**
-   - Áp dụng cho các depth run mới (D6, D8, D10, D12): **17 epochs Stage 1 + 18 epochs Stage 2 = 35 epochs tổng cộng**.
-   - Hỗ trợ CLI override `--stage1-epochs` và `--stage2-epochs` trong `scripts/train_crack.py` (Commit `4a0df79` trên `crack500-audit`).
-3. **Nghiệm thu D6 Canonical & Kiểm chứng Hội tụ (Post-hoc Audit) & Nâng cấp Checkpoint:**
-   - **D6 Canonical Run hoàn tất 35 Epochs:** Best Stage 2 Val Dice = **0.7599** (Stage 2 Ep 16, Loss 0.9602). E17 = 0.7563, E18 = 0.7583 (chạm sàn LR $10^{-6}$).
-   - **Lưu trữ toàn diện D6:** Trích xuất từ `P3_C_Canonical_Base_D6_Full.zip` vào `results/P3_C_Routing_Diagnostics_D6/`, `results/logs/P3_C_Canonical_Base_D6.log`, `results/configs/b2_p3_run_c_d6.yaml` và cập nhật bảng so sánh đa chiều trong `results/p3_abc_epoch_by_epoch_metrics.*`.
-   - **D6 Post-hoc Convergence Audit (HOÀN TẤT & HỘI TỤ 100%):** Tiếp nối tại sàn LR `--resume-stage2-low-lr` (`1e-6`, constant LR, no warmup) suốt 6 epochs. Dice dao động ổn định trong dải $0.7566 - 0.7596$, kích hoạt `EarlyStopping (patience=6)` chuẩn xác tại Ext Ep 6/6 mà không vượt qua đỉnh 0.7599. Khẳng định đỉnh **0.7599** là điểm dừng tối ưu toán học thực thụ của D6.
-   - **Nâng cấp Kiến trúc Checkpoint Faithful Full-State (Từ D10 trở đi):** Tách bạch chuẩn mực 2 loại checkpoint:
-     + `best_model_*.pth`: Lưu trọng số + metrics (nhẹ, phục vụ evaluation / routing diagnostics).
-     + `last_model_*.pth`: Lưu **Full Training State** (weights, AdamW moments `optimizer_state_dict`, scheduler position, AMP scaler, toàn bộ RNGs PyTorch/CUDA/NumPy/Python, `dataloader_generator_state`, và early stopping counter). Khi resume từ D10+, quá trình tiếp nối bảo toàn trung thực toàn vẹn quỹ đạo học tập (Commits `f88948f` và `f5a6730` trên `crack500-audit`).
-4. **Nghiệm thu D12 Post-hoc Convergence Audit (HOÀN TẤT BỘ BA HỘI TỤ {D12, D8, D6}):**
-   - **D12 Post-hoc Extension:** Chạy tiếp nối từ checkpoint chuẩn tắc `best_model_b2_global.pth` (Val Dice = **0.7557**, Loss = **1.0889**) tại sàn LR floor $10^{-6}$ qua 6 epochs.
-   - **Diễn biến Dice:** Dao động trong dải $0.7441 - 0.7478$ (không vượt qua đỉnh 0.7557).
-   - **EarlyStopping:** Kích hoạt chuẩn mực tại Ext Ep 6/6 (`patience=6`). Xác nhận đỉnh **0.7557** (S2 Ep 9) là điểm hội tụ tự nhiên thực sự của D12.
-   - **Lưu trữ toàn diện:** Lưu log đầy đủ tại [`results/logs/P3_C_Canonical_Base_D12_Extension.log`](file:///D:/truong/SpecialSubjectTTNT/results/logs/P3_C_Canonical_Base_D12_Extension.log), đồng bộ vào `p3_abc_epoch_by_epoch_metrics.json` và `p3_abc_epoch_by_epoch_metrics.md`.
+Nghiệm thu hoàn tất Khảo sát Chiều sâu (5-Depth Scaling), Dung lượng Định tuyến (D4 K2 Screening) và Nghiên cứu Can thiệp Định tuyến (Routing Intervention Diagnostic):
+1. **Nghiệm thu Đầy Đủ 5 Độ Sâu ViT (Phase 1 Depth Scaling Complete):**
+   - **Bảng tổng kết 5 độ sâu:** {D4: **0.7639** (Peak S2 Ep 14, Loss 0.9533) > D8: **0.7604** (S2 Ep 17) > D6: **0.7599** (S2 Ep 16) > D2: **0.7578** (S2 Ep 16) > D12: **0.7557** (S2 Ep 9)}.
+   - **Khóa Base Depth chính thức**: **ViT Depth = 4 (D4)** đạt đỉnh phân đoạn cao nhất toàn cục trên Crack500 với dung lượng tối ưu 10.12M params (8 experts pool: 4 CNN + 4 ViT đối xứng 1:1). Toàn bộ checkpoints và log của cả 5 độ sâu đã được lưu trữ chuẩn tắc tại `results/checkpoints/` và `results/logs/`.
+2. **Nghiệm thu Thử Nghiệm Dung Lượng Định Tuyến D4 K2 (Phase 2 top_k Screening):**
+   - Huấn luyện chuẩn tắc 35 epochs với $top\_k = 2$ (25% pool capacity): Peak Stage 1 Val Dice = **0.7304** (Ep 13); Peak Stage 2 Val Dice = **0.7618** (Ep 16, Loss 0.9518, IoU 0.6386, Median Dice 0.8058).
+   - So với Baseline D4 K4 (0.7639): Bóp hẹp 50% số expert kích hoạt mỗi router chỉ làm giảm **0.21% Dice** (-0.0021) và **0.26% IoU** (-0.0026) với điểm hội tụ loss tương đương (0.9518 vs 0.9533).
+   - Lưu trữ toàn diện từ `P3_C_Canonical_Base_D4_K2_Full.zip` vào `results/P3_C_Routing_Diagnostics_D4_K2/`, `results/checkpoints/P3_C_D4_K2_*`, và `results/logs/P3_C_Canonical_Base_D4_K2.log`.
+3. **Chuỗi Thực Nghiệm Chẩn Đoán GAP & Đại Diện Hình Thái (Representation Diagnostics):**
+   - *GAP Routing Bottleneck Study*: Bác bỏ giả thuyết crack area < 1% (median thực tế 4.2%), chứng minh GAP giữ được tín hiệu diện tích ($R^2 = 0.79 - 0.85$), nhưng cổng $g_s$ bị tê liệt biên độ điều biến ($\Delta_{\text{family}} \le 0.04$).
+   - *Thinness Representation Study*: Chứng minh GAP làm mất local geometry ở tầng nông S0/S1 ($R^2 < 0$, phục hồi bởi spatial std lên $+0.23$), trong khi ở tầng sâu B1-B3 thông tin thinness tồn tại phi tuyến ($R^2_{linear} < 0$, phục hồi bởi MLP probe lên $+0.24 \to +0.30$).
+4. **Nghiên Cứu Can Thiệp Định Tuyến (Routing Intervention Diagnostic trên Canonical D4 Checkpoint, 348 mẫu Val):**
+   - **Câu hỏi cốt tử**: $\text{Adaptive Routing} \longrightarrow \text{Downstream Segmentation Utility?}$
+   - **Adaptive vs Frequency-based Static Top-4**: Dice **0.7639** vs **0.7636** ($\Delta = +0.00037$, 95% CI `[-0.00051, +0.00124]`, Paired $t$-test $p = \mathbf{0.4133}$, Wilcoxon $p = \mathbf{0.3053}$). Khẳng định: **Không có sự khác biệt có ý nghĩa thống kê** giữa adaptive routing và static routing trên checkpoint này.
+   - **Adaptive vs Random Top-4 (10 seeds)**: Dice **0.7639** vs **0.7633** ($\Delta = +0.00063$, 0.063 percentage points Dice, $p = 0.0335$, win rate 59.8%). Khẳng định: Statistically detectable $\neq$ practically important.
+   - **Phân vị vết nứt mảnh ($Q4$)**: Adaptive $0.6637$ vs Static $0.6636$ ($\Delta = \mathbf{0.0001}$). Zero evidence về việc adaptive routing đang giải cứu vết nứt mảnh.
+   - **Đúc kết "Information ≠ Utility"**: Nút thắt biểu diễn đo được ở tầng router hiện tại **chưa phải là nút thắt hiệu năng phân đoạn downstream của SAGE-Lite D4**.
+   - **Quyết định chiến lược**: **Tuyệt đối chưa đụng vào GAP hay sửa architecture router**. Tập trung phân tích expert pool quality và main path.
 
 State:
-Toàn bộ bộ ba độ sâu ViT {D12 (0.7557), D8 (0.7596), D6 (0.7599)} đều đã hoàn tất cả Canonical Run lẫn Post-hoc Convergence Audit 100% dưới cùng một giao thức EarlyStopping (patience=6 tại sàn LR 1e-6). Tệp cấu hình chuẩn tắc D4 (`configs/p3_ablation/b2_p3_run_c_d4.yaml`) đã sẵn sàng. Sẵn sàng thực hiện D4 hoặc hoàn thiện báo cáo phân tích độ nhạy chiều sâu.
+Đã hoàn thành trọn vẹn Phase 1 (Depth Scaling Study) với việc khóa chính thức ViT Depth = 4 (D4, Peak Val Dice = 0.7639). Đã hoàn thành 1/2 Phase 2 (top_k=2 screening đạt 0.7618). Chuỗi chẩn đoán Routing Intervention đã giải quyết dứt điểm nghi vấn về GAP và tính hữu dụng của adaptive routing trên checkpoint hiện tại. Sẵn sàng thực hiện run top_k=6 hoặc chuyển tiếp sang Phase 3 (Router Hidden Dim) theo lộ trình.
+
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
 > **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THAY ĐỔI, THÊM/BỚT BẤT KỲ BƯỚC PREPROCESSING NÀO (crop, padding, resize, augmentation, mask processing) CHO ĐẾN KHI HOÀN THÀNH TOÀN BỘ SAGE-LITE.**  

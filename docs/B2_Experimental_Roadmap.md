@@ -551,34 +551,37 @@ $$\underbrace{\text{Phase 1–6: Khóa Base SAGE-Lite Config}}_{\text{(Depth } \
 
 ---
 
-## Phase 1 — Khảo sát ViT depth (Baseline Scale) (ĐÃ SẴN SÀNG CẤU HÌNH ✅)
+## Phase 1 — Khảo sát ViT depth (Baseline Scale) (HOÀN TẤT & ĐÃ KHÓA BASE DEPTH = D4 ✅)
 
-Do thay depth ảnh hưởng đến architecture và routing scale, Phase 1 chạy đầu tiên để lock base architecture.
+Khảo sát 5 độ sâu ViT (D12, D8, D6, D4, D2) dưới giao thức canonical chuẩn mực 35 Epochs (17 S1 + 18 S2, Setting A, Crack500 Val 348 mẫu) đã hoàn tất 100%:
 
-* **Cố định dùng chung**:
-  - `batch_size = 12` (runtime setting đã xác thực qua Real-Data Preflight trên T4)
-  - `img_size = 448`, `seed = 42`, `lr = 1e-4`, `patience = 6`
-  - **Giao thức Epoch mới cho Fresh Depth Experiments (D6/D8/D10/D12)**:
-    + Stage 1: **17 epochs**
-    + Stage 2: **18 epochs**
-    + Total Budget: **35 epochs** (`epochs = 35`, `stage1_epochs = 17`)
-    *(Lưu ý: Các run canonical D8/D12 30 epochs trước đây được bảo toàn nguyên trạng dưới dạng kết quả lịch sử).*
-  - Canonical preprocessing (Crack500 random crop 448x448, smart filter `fg_pixels >= 20`, reflect pad)
-  - SAGE config: `top_k = 4`, `hidden = 64`, `gating = sigmoid`, `noise = ON`, `logit_mod = ON`, `LB = 0.01`, `dropout = 0.1`, `fusion_type = residual`, `residual_scale = 0.1`.
-* **Bộ cấu hình thực nghiệm Phase 1**:
-  * **Run 1: Depth 12** (`configs/b2_crack500_depth12.yaml` → `output_dir: .../B2_Crack500_Depth12`): 16 routers (4 CNN + 12 ViT), 16 experts, 13.9M params.
-  * **Run 2: Depth 6** (`configs/b2_crack500_depth6.yaml` → `output_dir: .../B2_Crack500_Depth6`): 10 routers (4 CNN + 6 ViT), 10 experts, 12.0M params.
-  * **Run 3: Depth 4** (`configs/b2_crack500_depth4.yaml` → `output_dir: .../B2_Crack500_Depth4`): 8 routers (4 CNN + 4 ViT), 8 experts, 10.1M params.
-* **Quy tắc Quyết định**: Chọn 1 depth tốt nhất **dựa duy nhất trên Validation Dice (tập Val)** để làm base cho Phase 2 (top_k). **TUYỆT ĐỐI KHÔNG DÙNG TEST SET ĐỂ CHỌN DEPTH**.
+| Cấu hình | ViT Depth | Số Routers | Số Experts Pool | Tổng Params | Peak S1 Dice | Peak S2 Dice (Global) | Val Loss @ Peak | Mean IoU | Median Dice |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **P3-C D4** | **4** | **8** | **8 (4 CNN + 4 ViT)** | **10.12M** | 0.7295 (Ep 14) | 🏆 **0.7639** (Ep 14) | **0.9533** | **0.6412** | **0.8066** |
+| **P3-C D8** | 8 | 12 | 12 (4 CNN + 8 ViT) | 11.31M | 0.7274 (Ep 10) | **0.7604** (Ep 17) | 0.9999 | 0.6385 | 0.8052 |
+| **P3-C D6** | 6 | 10 | 10 (4 CNN + 6 ViT) | 10.71M | **0.7312** (Ep 13) | **0.7599** (Ep 16) | 0.9602 | 0.6372 | 0.8016 |
+| **P3-C D2** | 2 | 6 | 6 (4 CNN + 2 ViT) | **9.20M** | 0.7190 (Ep 13) | **0.7578** (Ep 16) | **0.9477** | 0.6378 | 0.8020 |
+| **P3-C D12** | 12 | 16 | 16 (4 CNN + 12 ViT) | 12.49M | 0.7266 (Ep 10) | **0.7557** (Ep 09) | 1.0889 | 0.6341 | 0.7985 |
 
+* **Quyết định Khóa (Locked Decision)**: **ViT Depth = 4 (D4)** chính thức được khóa làm cấu hình nền tảng cho toàn bộ các Phase tiếp theo nhờ đạt Val Dice cao nhất toàn cục (**0.7639**), cân bằng đối xứng 1:1 hoàn hảo giữa CNN và ViT experts (4 CNN + 4 ViT), và tiết kiệm tham số đáng kể so với D12 (10.12M vs 12.49M).
 
-## Phase 2 — Khảo sát Routing Capacity (top_k)
+---
 
-* Fix: Base depth từ Phase 1.
-* Thử nghiệm (thay đổi top_k):
-  * Run 4: top_k = 2
-  * Run 5: top_k = 4 (đã chạy ở Phase 1)
-* Decision: Chọn top_k tốt nhất. (Nếu top_k=2 gần bằng top_k=4, ưu tiên top_k=2 vì FLOPS thấp hơn).
+## Phase 2 — Khảo sát Routing Capacity (top_k) trên Canonical D4 (ĐANG THỰC HIỆN ⏳)
+
+Khảo sát số lượng chuyên gia được kích hoạt tại mỗi router ($top\_k \in \{2, 4, 6\}$) trên nền tảng D4 (pool $M=8$ experts):
+
+* **Fix**: Base Depth = 4 (`num_transformer_layers: 4`, 8 routers, 8 experts).
+* **Tiến độ và Kết quả Thực nghiệm**:
+  * **Run 4 ($top\_k = 2$, 25% pool capacity)**: ✅ **HOÀN TẤT**. Peak S1 Dice = **0.7304** (Ep 13); Peak S2 Dice = **0.7618** (Ep 16, Loss 0.9518, IoU 0.6386, Median Dice 0.8058).
+  * **Run 5 ($top\_k = 4$, 50% pool capacity)**: ✅ **HOÀN TẤT** (Baseline D4 từ Phase 1). Peak S2 Dice = **0.7639** (Ep 14, Loss 0.9533, IoU 0.6412, Median Dice 0.8066).
+  * **Run 6 ($top\_k = 6$, 75% pool capacity)**: ⏳ Cấu hình sẵn sàng tại `configs/p3_ablation/b2_p3_run_c_d4_k6.yaml`.
+* **So Sánh Sơ Bộ ($top\_k=2$ vs $top\_k=4$)**:
+  - Giảm $top\_k$ từ 4 xuống 2 chỉ làm suy giảm nhẹ **-0.21% Dice** (-0.0021) và **-0.26% IoU** (-0.0026), trong khi cắt giảm 50% số expert forward calls trên mỗi router.
+* **Đúc Kết Từ Nghiên Cứu Can Thiệp Định Tuyến (Routing Intervention Diagnostic trên D4)**:
+  - Nghiên cứu đối chứng (Adaptive vs Static vs Random trên 348 mẫu Val) chứng minh: $\text{Adaptive} \approx \text{Static}$ ($\Delta = +0.00037, p = 0.4133$).
+  - **Nguyên lý Information ≠ Utility**: Việc chọn $top\_k$ thực chất là bài toán cân bằng giữa **dung lượng ensemble** và **chi phí FLOPS/tốc độ tính toán**, chứ không phải vấn đề routing selection động.
+
 
 ## Phase 3 — Khảo sát Router Hidden Dim
 

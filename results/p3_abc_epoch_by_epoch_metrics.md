@@ -191,3 +191,28 @@ Từ kết quả thẩm định chuẩn tắc (`results/P3_C_Routing_Diagnostics
      - D4:  $\gamma_{S0} = 0.0162$, $\gamma_{S1} = 🏆 **0.0205** (Bùng nổ cực đại, tối ưu cho nhánh dải 1x7, 7x1).
      - D2:  $\gamma_{S0} = 0.0117$, $\gamma_{S1} = 0.0141$ (Hạ nhiệt do ViT quá nông khiến gradient tinh chế không còn động lực lan truyền).
 
+---
+
+## 6. Phase 2 Routing Capacity ($top\_k$) Screening & Routing Intervention (Canonical D4)
+
+### 6.1. Bảng So Sánh Hiệu Năng $top\_k$ (Screening trên D4, 8 Experts Pool)
+
+| Cấu hình | $top\_k$ / Pool | Tỷ lệ kích hoạt | Peak S1 Dice | Peak S2 Dice (Global) | Val Loss @ Peak | Mean IoU | Median Dice | Trạng thái |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **P3-C D4 K4** (Baseline) | $4 / 8$ | 50% | 0.7295 (Ep 14) | 🏆 **0.7639** (Ep 14) | 0.9533 | **0.6412** | **0.8066** | Đã khóa làm Baseline chuẩn |
+| **P3-C D4 K2** | $2 / 8$ | 25% | **0.7304** (Ep 13) | **0.7618** (Ep 16) | **0.9518** | 0.6386 | 0.8058 | Hoàn tất 35 eps (giảm 0.21% Dice) |
+| **P3-C D4 K6** | $6 / 8$ | 75% | — | — | — | — | — | Đã cấu hình (`b2_p3_run_c_d4_k6.yaml`) |
+
+### 6.2. Kết Quả Can Thiệp Định Tuyến (Routing Intervention Diagnostic trên D4 Checkpoint, 348 mẫu Val)
+- **Adaptive Baseline vs Frequency-based Static Top-4**:
+  $$\text{Adaptive: } 0.7639 \quad \text{vs} \quad \text{Static: } 0.7636 \quad (\Delta = +0.00037, \; 95\%\text{ CI: } [-0.00051, +0.00124])$$
+  - Paired $t$-test: $t = 0.8192, p = \mathbf{0.4133}$ (không có ý nghĩa thống kê).
+  - Wilcoxon signed-rank: $W = 27942.0, p = \mathbf{0.3053}$ (không có ý nghĩa thống kê).
+  - Phân vị vết nứt mảnh nhất ($Q4$): Adaptive $0.6637$ vs Static $0.6636$ ($\Delta = \mathbf{0.0001}$).
+- **Adaptive Baseline vs Random Top-4 (10 seeds)**:
+  $$\text{Adaptive: } 0.7639 \quad \text{vs} \quad \text{Random: } 0.7633 \quad (\Delta = +0.00063, \; p = 0.0335)$$
+  - Chênh lệch có ý nghĩa thống kê nhưng effect size siêu bé ($0.063$ percentage points Dice).
+- **Nguyên lý "Information ≠ Utility"**:
+  Nút thắt biểu diễn hình thái ở router (đo được từ linear probe âm) hiện tại **không cấu thành nút thắt hiệu năng phân đoạn downstream**. SAGE-Lite D4 hoạt động như một tập hợp chuyên gia đa dạng mạnh mẽ, việc thay đổi chính sách chọn expert giữa adaptive và static hầu như không ảnh hưởng đến Dice.
+
+
