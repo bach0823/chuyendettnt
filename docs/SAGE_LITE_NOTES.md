@@ -523,6 +523,104 @@ Routing theo thinness → tăng Dice?          ❓ CHƯA XÁC NHẬN — cần e
 
 Nếu muốn investigate tiếp: bước rẻ nhất tiếp theo là **static routing swap inference test** (fixed routing không adaptive vs routing hiện tại, so Dice) để tách contribution của routing khỏi ensemble quality.
 
+---
+
+## Nghiệm Thu Kết Quả P3-C D4 K2 (Top-k = 2 Capacity Screening)
+
+*Ngày: 2026-09-28 | Mô hình: B2 P3-C D4 K2 Standalone (top_k=2, 8 experts pool: 4 CNN + 4 ViT) | Ngân sách: 35 Epochs (17 S1 + 18 S2) | Crack500 Val 348 mẫu, Setting A*  
+*Tệp lưu trữ: `results/P3_C_Canonical_Base_D4_K2_Full.zip`, Checkpoints: `results/checkpoints/P3_C_D4_K2_*`, Log: `results/logs/P3_C_Canonical_Base_D4_K2.log`*
+
+### 1. Diễn Biến Huấn Luyện 2 Giai Đoạn
+- **Stage 1 (Frozen Backbone, 17 eps)**:
+  - Đạt đỉnh tại **Epoch 13** với Val Dice = **0.7304**, Val Loss = `1.2559`.
+  - So với D4 K4 (Stage 1 peak = 0.7295 ở Ep 14): D4 K2 đạt hiệu năng Stage 1 tương đương, thậm chí nhỉnh hơn nhẹ (+0.0009).
+- **Stage 2 (Joint Training, 18 eps)**:
+  - Đạt đỉnh toàn cục tại **Epoch 16** với Val Dice = **0.7618**, Val Loss = `0.9518`.
+  - Epoch 17: Val Dice = 0.7571. Epoch 18 (sàn LR 1e-6): Val Dice = 0.7594, Val Loss = 0.9504.
+
+### 2. So Sánh Phân Phối Lỗi & Dung Lượng Kích Hoạt (D4 K4 vs D4 K2)
+
+| Chỉ số / Đặc trưng | P3-C D4 K4 (Baseline) | P3-C D4 K2 ($k=2$) | Chênh lệch ($\Delta$) |
+| :--- | :---: | :---: | :---: |
+| **Số expert chọn mỗi router ($k/M$)** | $4 / 8$ (50% pool) | $2 / 8$ (25% pool) | Giảm 50% expert kích hoạt |
+| **Peak Stage 1 Val Dice** | 0.7295 (Ep 14) | **0.7304** (Ep 13) | +0.0009 |
+| **Peak Stage 2 Val Dice (Global)** | **0.7639** (Ep 14) | **0.7618** (Ep 16) | **-0.0021** (-0.21%) |
+| **Val Loss @ Global Peak** | 0.9533 | **0.9518** | -0.0015 |
+| **Mean IoU** | **0.6412** | 0.6386 | -0.0026 (-0.26%) |
+| **Median Dice** | **0.8066** | 0.8058 | -0.0008 |
+| **Mean Precision** | 0.7298 | 0.7216 | -0.0082 |
+| **Mean Recall** | 0.8498 | **0.8573** | +0.0075 |
+
+*Nhận định*: Giảm $top\_k$ từ 4 xuống 2 giúp giảm một nửa số lượng chuyên gia cần tính toán trên mỗi tầng router, trong khi hiệu năng phân đoạn hầu như được bảo toàn trọn vẹn (chỉ giảm khiêm tốn **0.21% Dice** và **0.26% IoU**, với Loss hội tụ tương đương).
+
+---
+
+## Nghiên Cứu Can Thiệp Định Tuyến (Routing Intervention Diagnostic)
+
+*Ngày: 2026-09-28 | Mô hình: Canonical D4-P3-C Standalone Checkpoint (`best_model_b2_global.pth`, Ep 14, Val Dice: 0.7639)*  
+*Giao thức: Inference Only (Zero Training, Zero Arch Modification), Setting A, 348 mẫu Crack500 Val split*  
+*Tệp kết quả: `results/diagnostics/routing_intervention/` (Commit `63cfbd7` trên `SpecialSubjectTTNT`, `b0331a3` trên `SAGE_LITE`)*
+
+### 1. Câu Hỏi Nghiên Cứu Cốt Tử
+$$\text{Adaptive Routing (Định tuyến Thích nghi Mẫu-theo-Mẫu)} \longrightarrow \text{Downstream Segmentation Utility?}$$
+
+Để tách bạch triệt để giữa **chất lượng của tập hợp chuyên gia (Ensemble Quality)** và **lợi ích của chính sách chọn động (Dynamic Routing Utility)**, nghiên cứu can thiệp không xâm lấn thông qua forward hook trên toàn bộ 8 router, so sánh 3 chế độ:
+1. **Adaptive Baseline**: Router gốc, deterministic inference (`eval()` mode, noise OFF).
+2. **Static Top-4**: Cố định 4 expert phổ biến nhất tại mỗi router dựa trên tần suất chọn tích lũy từ checkpoint (`static_expert_policy.json`).
+3. **Random Top-4 (10 seeds: 42..51)**: Mỗi mẫu / mỗi router chọn ngẫu nhiên đồng đều không lặp 4/8 expert.
+*Bất biến trọng số gating*: Trọng số kích hoạt của các expert được chọn luôn được tính từ chính `modulated_logits` của mô hình thông qua $g = \sigma(\operatorname{gather}(\text{modulated\_logits}, \text{selected\_indices}))$, đảm bảo khác biệt chỉ đến từ chính sách chọn tập expert.
+
+### 2. Kết Quả Tổng Thể (Overall Metrics)
+
+| Chế độ | Mean Dice ± Std | Median Dice | Mean IoU | Precision | Recall |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Adaptive Baseline** | **0.7639** ± 0.1640 | 0.8049 | **0.6412** | 0.7298 | 0.8498 |
+| **Static Top-4** | **0.7636** ± 0.1648 | **0.8074** | **0.6409** | 0.7291 | 0.8506 |
+| **Random Top-4 (10 seeds)** | **0.7633** ± 0.0004 | 0.8057 | **0.6404** | 0.7277 | 0.8517 |
+
+### 3. Kiểm Định Thống Kê Theo Cặp (Paired Statistical Tests, N = 348)
+
+| Phép so sánh | Mean $\Delta$ | Median $\Delta$ | 95% Confidence Interval | Paired $t$-test ($p$-value) | Wilcoxon signed-rank ($p$-value) | Win Rate (Wins / Ties / Losses) | Ý nghĩa ($\alpha=0.05$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Adaptive vs. Static** | **+0.00037** | +0.00021 | `[-0.00051, +0.00124]` | $t = 0.8192$ ($p = \mathbf{0.4133}$) | $W = 27942.0$ ($p = \mathbf{0.3053}$) | **54.31%** (189 / 4 / 155) | ❌ **KHÔNG CÓ Ý NGHĨA** |
+| **Adaptive vs. Random** | **+0.00063** | +0.00036 | `[+0.00005, +0.00121]` | $t = 2.1341$ ($p = \mathbf{0.0335}$) | $W = 22814.0$ ($p = \mathbf{0.00011}$) | **59.77%** (208 / 2 / 138) | ✅ **CÓ Ý NGHĨA** (Effect size siêu bé) |
+| **Static vs. Random** | **+0.00026** | +0.00017 | `[-0.00057, +0.00110]` | $t = 0.6179$ ($p = \mathbf{0.5370}$) | $W = 25539.0$ ($p = \mathbf{0.0162}$) | **54.60%** (190 / 2 / 156) | ⚠️ Chỉ có ý nghĩa trên Wilcoxon |
+
+### 4. Phân Tích Phân Vị Độ Mảnh ($Q1..Q4$)
+
+Khóa cứng phân vị độ mảnh ground truth: $Q1 \le 0.083 < Q2 \le 0.124 < Q3 \le 0.176 < Q4$.
+
+| Chế độ | Q1 (Vết nứt thô nhất) | Q2 | Q3 | Q4 (Vết nứt mảnh nhất) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Adaptive Baseline** | 0.8473 | 0.8005 | **0.7443** | **0.6637** |
+| **Static Top-4** | **0.8474** | **0.8006** | 0.7427 | 0.6636 |
+| **Random Top-4 (10 seeds)** | 0.8472 ± 0.0004 | 0.8000 ± 0.0006 | 0.7437 ± 0.0010 | 0.6623 ± 0.0005 |
+| **Chênh lệch (Adaptive - Static)** | *-0.0001* | *-0.0001* | *+0.0016* | *+0.0001* |
+
+### 5. Can Thiệp Theo Tầng Router (Router-wise Depth Ablation)
+
+| Cấu hình | Router bị ngẫu nhiên hóa | Router giữ Adaptive | Mean Dice ± Std | $\Delta$ vs Adaptive | Mean IoU |
+| :--- | :--- | :--- | :---: | :---: | :---: |
+| **All_Random** | Toàn bộ 8 router (S0..B3) | Không có | 0.7634 ± 0.0004 | -0.00051 | 0.6405 |
+| **Shallow_CNN_Only** | S0, S1, S2 (3 tầng CNN nông) | S3, B0, B1, B2, B3 | 0.7632 ± 0.0004 | -0.00070 | 0.6403 |
+| **All_CNN_Only** | S0, S1, S2, S3 (Toàn bộ 4 CNN) | B0, B1, B2, B3 (4 ViT) | 0.7632 ± 0.0005 | -0.00072 | 0.6402 |
+| **Deep_ViT_Only** | B0, B1, B2, B3 (Toàn bộ 4 ViT) | S0, S1, S2, S3 (4 CNN) | **0.7643** ± 0.0001 | **+0.00036** | **0.6417** |
+
+---
+
+### 6. Tổng Kết Khoa Học & Quyết Định Chiến Lược
+
+1. **Thực tế về Adaptive Routing**:
+   - Adaptive routing của SAGE-Lite **hoàn toàn không mang lại lợi thế vượt trội so với một ensemble tĩnh tối ưu (Static Top-4)** trên tập dữ liệu vết nứt Crack500 ($p = 0.4133 > 0.05$, chênh lệch $\Delta = +0.00037$ nằm trọn trong khoảng tin cậy chứa 0).
+   - Lợi ích của mạng chủ yếu đến từ **sự hiện diện của đa dạng chuyên gia (Heterogeneous Expert Pool)** kết hợp với việc **tính toán trọng số cổng liên tục $\sigma(\text{modulated\_logits})$** thay vì cơ chế lựa chọn rời rạc từng mẫu.
+2. **Không có sự chuyên hóa vết nứt mảnh**:
+   - Ở phân vị vết nứt mảnh nhất ($Q4$), Adaptive Dice (0.6637) và Static Dice (0.6636) chỉ lệch nhau đúng 0.0001 (0.01% Dice). Điều này xác nhận kết luận từ nghiên cứu thinness representation trước đó: router hoàn toàn "mù" với độ mảnh và không hề điều hướng chuyên gia để giải cứu các ca nứt mảnh.
+3. **Độ dư thừa ở tầng sâu (Deep ViT Redundancy)**:
+   - Khi chọn ngẫu nhiên expert ở 4 tầng ViT sâu (`Deep_ViT_Only`), Dice đạt **0.7643** (cao hơn cả Adaptive Baseline 0.7639). Các ViT experts ở tầng sâu có tính bù trừ rất lớn cho nhau.
+4. **Hướng đi kiến trúc cho Phase 2**:
+   - Việc chỉ tinh chỉnh router hay hy vọng GAP/Adaptive routing tự phát huy tác dụng trên vết nứt là không khả thi nếu không có cơ chế đưa thông tin hình học cục bộ (Local Geometry / High-frequency edge) trực tiếp vào router hoặc tái cấu trúc router với non-linear projection.
+
+
 
 
 
