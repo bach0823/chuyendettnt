@@ -378,4 +378,53 @@ Tuyệt đối không kiểm tra đơn lẻ số chiều tensor, số channels, 
 - **TUYỆT ĐỐI KHÔNG CODE VÀO THỜI ĐIỂM NÀY**.
 - Báo cáo đầy đủ đề xuất cụ thể cho P3 (module enhancement, target compression, bảo toàn interface SAGE, minimal ablation) để phê duyệt trước khi hiện thực hóa.
 
+---
+
+## Nghiệm Thu Thực Nghiệm & Đính Chính Giả Thuyết: GAP Routing-Signal Bottleneck (Crack500 Val)
+
+*Ngày ghi nhận: 2026-09-28*  
+*Mô hình: Canonical D4 P3-C (ASDW) Standalone Model (8 experts, top-k=4)*  
+*Dữ liệu thực nghiệm: 348 mẫu Validation Crack500*  
+*Tệp kết quả gốc: `results/diagnostics/gap_study/GAP_ROUTING_STUDY_REPORT.md`*
+
+Kết quả này chỉnh lại hai điều: câu chuyện "GAP làm mất tín hiệu" của report trước, và cả nhận định "gần như ensemble tĩnh" mà tôi đã nói.
+
+Trước hết, các con số khớp chéo với những gì tôi đã thấy: 61/348 = 17.53%, `g_s` trung bình của từng router trùng `gs_statistics.csv`, và Δ tính lại từ `g_s` cho ra -0.151 ở S1 và +0.103 ở S2. Tôi không mở được file trên máy bạn nên chưa tự kiểm được phần còn lại.
+
+### Những gì bị bác bỏ hoặc phải rút lại
+
+- **"Vết nứt <1% diện tích":** sai. Trung vị là 4.2%, chỉ 17.5% ảnh dưới 1%, 80% dưới 10%. Vết nứt nhỏ nhưng không nhỏ đến mức GAP xóa sạch.
+- **"Tín hiệu gần như bằng 0 sau GAP":** vector đã pool dự đoán được `gt_area` với R² 0.79 đến 0.85 từ S3 đến B3. Thông tin về diện tích vẫn còn nguyên.
+- **"Routing gần ensemble tĩnh" (của tôi):** con số 35.4% so với 36.0% là trung bình trên cả 8 router, nên các dịch chuyển ngược chiều triệt tiêu nhau. Theo diện tích vết nứt, B3 chuyển từ 57.2% CNN (Q1) xuống 7.2% (Q4), còn B1 chuyển ngược từ 31.0% lên 59.5%. Các router ViT sâu có thích nghi theo đầu vào, chỉ là không theo hướng tôi tưởng.
+- **"SAGE gốc định tuyến theo token":** router gốc dùng cùng `AdaptiveAvgPool2d` và `mean(dim=1)`, cùng vị trí dòng. GAP là thứ kế thừa, không phải sự khác biệt thiết kế.
+
+### Những gì còn đứng vững
+
+- **Router theo dõi diện tích, không theo dõi độ mảnh.** R² của `thinness` chỉ tối đa 0.20 và âm ở B2, B3 (-0.18, -0.16), tức là dự đoán kém hơn dùng giá trị trung bình. Điều này chỉ nói về đọc tuyến tính, nhưng độ mảnh mới là biến liên quan chặt hơn đến ca khó (bảng quartile của bạn cho thấy Dice tụt từ 0.85 xuống 0.66). Diện tích thì cũng liên quan đến độ khó nhưng yếu hơn.
+- **Cổng `g_s` gần như bất động:** độ lệch chuẩn của Δ chỉ 0.004 đến 0.012. Cơ chế điều biến phân cấp không tạo ra khác biệt. Phần thích nghi thực tế đến từ SAR logits.
+- **Chưa biết lựa chọn thích nghi có giúp Dice hay không.** Hoán đổi routing tĩnh khi suy luận vẫn là phép kiểm tra quyết định.
+
+### Hai lưu ý khi đọc bảng
+
+1. Mỗi quartile khoảng 87 ảnh, và JSD giữa hai nhóm nhỏ có sàn nhiễu dương. Các giá trị dưới khoảng 0.02 (S0, S1) có thể chỉ là nhiễu. Nên chạy hoán vị nhãn quartile 200 lần để có ngưỡng. Các giá trị như 0.22 (B1) và 0.38 (B3) thì rõ ràng vượt nhiễu.
+2. Base logits dao động rất ít (độ lệch chuẩn 0.014 đến 0.087), tức các expert gần như hòa nhau. Khi đó một thay đổi nhỏ của đầu vào cũng đảo được top-4, nên việc lựa chọn thay đổi theo diện tích chưa chắc là "định tuyến có nghĩa". Cũng cần nhớ khi huấn luyện router cộng nhiễu khám phá `randn × softplus(noise_projection(x))`. Nếu `noise_projection` giữ gần khởi tạo thì `softplus ≈ 0.69`, lớn hơn nhiều so với tín hiệu 0.05, nghĩa là lúc train việc chọn expert gần như ngẫu nhiên, còn lúc đánh giá thì tất định. Đây là giả thuyết, kiểm tra được trong vài phút bằng cách in giá trị trung bình của `softplus(noise_projection(x))` trên checkpoint.
+
+   *Kết quả kiểm chứng thực nghiệm trực tiếp trên checkpoint D4 Canonical (`results/checkpoints/P3_C_D4_best_model_b2_global.pth`) với toàn bộ 348 mẫu validation:*
+   - **S0** (ConvNeXt Stage 0): `softplus` mean = **0.5423** (std = 0.0622, min = 0.4060, max = 0.8068) — Gần mức khởi tạo, nhiễu lớn.
+   - **S1** (ConvNeXt Stage 1): `softplus` mean = **0.4030** (std = 0.1700, min = 0.1174, max = 0.8836).
+   - **S2** (ConvNeXt Stage 2): `softplus` mean = **0.2907** (std = 0.1514, min = 0.1235, max = 0.7699).
+   - **S3** (ConvNeXt Stage 3): `softplus` mean = **0.0980** (std = 0.0480, min = 0.0332, max = 0.2588) — Bắt đầu triệt tiêu nhiễu mạnh (< 0.10).
+   - **B0** (ViT Block 0): `softplus` mean = **0.0796** (std = 0.0173, min = 0.0440, max = 0.1591).
+   - **B1** (ViT Block 1): `softplus` mean = **0.0441** (std = 0.0104, min = 0.0272, max = 0.0769) — **Nhiễu cực bé (~0.04)**, nhỏ hơn độ biến thiên base logits (0.053).
+   - **B2** (ViT Block 2): `softplus` mean = **0.0550** (std = 0.0171, min = 0.0216, max = 0.1276).
+   - **B3** (ViT Block 3): `softplus` mean = **0.0388** (std = 0.0123, min = 0.0162, max = 0.1024) — **Nhiễu cực bé (~0.038)**, nhỏ hơn độ biến thiên base logits (0.087).
+
+   *Ý nghĩa*: Đúng như giả thuyết, ở các tầng CNN nông (S0–S2), router duy trì nhiễu cao lúc train. Nhưng ở các tầng sâu (S3, B0–B3) — đặc biệt là B1 và B3 nơi có sự chuyển dịch routing mạnh nhất theo diện tích (B1 JSD = 0.22, B3 JSD = 0.38) — mạng đã **tự động học cách ức chế nhiễu khám phá (noise suppression)** xuống chỉ còn ~0.038 – 0.044, nhỏ hơn cả biên độ tín hiệu base logits. Điều này cho thấy sự thích nghi ở các tầng sâu lúc train không hoàn toàn bị nhiễu xóa nhòa.
+
+### Quyết định
+
+Chưa có cơ sở để thay GAP. Bằng chứng nghiêng về việc GAP giữ được thông tin về diện tích, còn độ mảnh thì khó đọc tuyến tính nhưng chưa biết có giúp ích không.
+
+
+
 
