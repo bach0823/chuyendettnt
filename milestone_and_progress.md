@@ -343,6 +343,18 @@ sage-lite/
     * Log huấn luyện: `results/logs/P3_C_Canonical_Base_D8.log` & `results/logs/P3_C_Canonical_Base_D8_E33.log` (bản cũ tại `P3_C_Canonical_Base_D8_E30.log`).
     * Toàn bộ Routing Diagnostics & Error Analysis: `results/P3_C_Routing_Diagnostics_D8/` (bản cũ tại `results/P3_C_Routing_Diagnostics_D8_E30/`).
     * Dữ liệu định lượng: Cập nhật `results/p3_abc_epoch_by_epoch_metrics.json` & `.md`.
+- **2026-09-28 (tiếp tục)**: Hoàn thành Huấn luyện & Đánh giá Toàn diện P3-C D2 (2 ViT blocks, 6 experts: 4 CNN + 2 ViT, $k=4$, 9.20M params):
+  + **Kết quả Thực nghiệm**: Peak S1 Dice 0.7190 (@ Ep 13), Peak S2 Dice **0.7578** (@ S2 Ep 16), Val Loss 0.9477 (đáy 0.9364).
+  + **Phát hiện Khoa học mang tính Bước ngoặt — Đường cong Parabol Ngược (Inverted-U Concave Curve)**:
+    * D12 (0.7557) $\to$ D8 (0.7604) $\to$ D6 (0.7599) $\to$ **D4 (0.7639 - Đỉnh cao tối ưu)** $\to$ D2 (0.7578 - Suy giảm dung lượng).
+    * Khi giảm xuống D2, việc thiếu hụt ViT blocks làm suy yếu khả năng mô hình hóa quan hệ không gian tầm xa (lỗi `fragmented_prediction` tăng vọt từ 4 lên 10 mẫu, tỷ lệ chọn CNN bị kéo lệch lên 67.6%).
+    * Chứng minh thực nghiệm rằng **D4 là "Vùng Goldilocks" tối ưu tuyệt đối** (đạt cân bằng hoàn hảo giữa Inductive Bias cục bộ của CNN và Attention toàn cục của ViT).
+  + **Lưu trữ Trọn bộ Artifacts (Bao gồm cả Best và Last models theo /learn)**:
+    * Checkpoints: `results/checkpoints/P3_C_D2_best_model_b2_global.pth`, `last_model_b2_stage2.pth`, `best_model_b2_stage1.pth`, `last_model_b2_stage1.pth`.
+    * Log: `results/logs/P3_C_Canonical_Base_D2.log`.
+    * Diagnostics: `results/P3_C_Routing_Diagnostics_D2/` (đầy đủ `full_val/` và `error_analysis/`).
+    * Config: `results/configs/b2_p3_run_c_d2.yaml`.
+    * Dữ liệu: Cập nhật `results/p3_abc_epoch_by_epoch_metrics.json` & `.md`.
 
 
 

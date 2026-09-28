@@ -1,0 +1,7 @@
+Expert,Name,Type,Shared,Selection_Count,Selection_Ratio,Expected_Uniform_Ratio,Relative_To_Uniform
+E0,CNN_Stage_0,CNN,Yes,1483,0.177562,0.666667,0.2663
+E1,CNN_Stage_1,CNN,Yes,1369,0.163913,0.666667,0.2459
+E2,CNN_Stage_2,CNN,Yes,1560,0.186782,0.666667,0.2802
+E3,CNN_Stage_3,CNN,Yes,1235,0.147869,0.666667,0.2218
+E4,ViT_Block_0,ViT,No,1149,0.137572,0.666667,0.2064
+E5,ViT_Block_1,ViT,No,1556,0.186303,0.666667,0.2795
