@@ -525,6 +525,75 @@ Nếu muốn investigate tiếp: bước rẻ nhất tiếp theo là **static ro
 
 ---
 
+## Thực Nghiệm Can Thiệp Định Tuyến (Routing Intervention Diagnostic)
+
+*Ngày: 2026-09-28 | Checkpoint: D4 P3-C best_model_b2_global.pth (10.12M params, Epoch 14, Best Val Dice: 0.7639) | N=348 Crack500 Val*  
+*Commits: [63cfbd7](https://github.com/bach0823/chuyendettnt/commit/63cfbd7) (main) · [b0331a3](https://github.com/bach0823/SAGE_LITE/commit/b0331a3) (crack500-audit)*
+
+### Câu hỏi quyết định
+
+Gain của SAGE-Lite so với B1 (+0.0211 Dice) đến từ routing intelligence hay từ ensemble quality?
+
+### Kết quả Tổng thể
+
+| Chế độ | Mean Dice ± Std | Median Dice | Δ vs Adaptive |
+|--------|:---:|:---:|:---:|
+| **Adaptive Baseline** | 0.7639 ± 0.1640 | 0.8049 | — |
+| Static Top-4 | 0.7636 ± 0.1648 | 0.8074 | −0.0003 |
+| Random Top-4 (10 seeds) | 0.7633 ± 0.0004 | 0.8057 | −0.0006 |
+
+### Kiểm định Thống kê Theo Cặp (N=348)
+
+| So sánh | Mean Δ | 95% CI | p-value (t-test) | p-value (Wilcoxon) | Kết luận |
+|---------|:---:|:---:|:---:|:---:|:---:|
+| Adaptive vs Static | +0.00037 | [−0.00051, +0.00124] | p=0.413 | p=0.305 | ❌ Không có ý nghĩa |
+| Adaptive vs Random | +0.00063 | [+0.00005, +0.00121] | p=0.034 | p=0.00011 | ✅ Có ý nghĩa, effect cực nhỏ |
+| Static vs Random | +0.00026 | [−0.00057, +0.00110] | p=0.537 | p=0.016 | ⚠️ Chỉ Wilcoxon |
+
+**CI của Adaptive vs Static bao phủ 0** → không thể phân biệt thống kê. Toàn bộ routing intelligence (SAR, g_s, load-balance) chỉ mang lại Δ=+0.0003 so với chọn cố định top-4 expert thường xuyên nhất.
+
+### Phân Tích Theo Tầng (Depth Contribution)
+
+| Cấu hình | Router ngẫu nhiên hóa | Router giữ Adaptive | Δ vs Adaptive |
+|---------|:---:|:---:|:---:|
+| All_Random | S0–B3 (tất cả) | Không có | −0.00051 |
+| Shallow_CNN_Only | S0, S1, S2 | S3, B0–B3 | −0.00070 |
+| All_CNN_Only | S0–S3 | B0–B3 | −0.00072 |
+| **Deep_ViT_Only** | **B0–B3** | **S0–S3** | **+0.00036** |
+
+**Deep_ViT_Only** (ngẫu nhiên ViT, giữ CNN adaptive) cho Δ dương (+0.00036). Hai cách đọc:
+1. ViT routers đang đưa ra quyết định hơi kém, random bằng hoặc tốt hơn — nhưng Δ nằm trong vùng nhiễu của random (std 0.0001–0.0005). Không nên over-interpret.
+2. CNN routing có signal hơn ViT routing một chút (All_CNN_Only −0.00072 vs Deep_ViT_Only +0.00036).
+
+Trong mọi cách đọc, toàn bộ range là **<0.001 Dice** — không có tầng nào đóng góp routing utility đáng kể.
+
+### Phân Tích Theo Tứ Phân Vị Thinness
+
+| Chế độ | Q1 (thô nhất) | Q2 | Q3 | Q4 (mảnh nhất) |
+|--------|:---:|:---:|:---:|:---:|
+| Adaptive | 0.8473 | 0.8005 | 0.7443 | 0.6637 |
+| Static | 0.8474 | 0.8006 | 0.7427 | 0.6636 |
+| Adaptive − Static | −0.0001 | −0.0001 | **+0.0016** | **+0.0001** |
+
+Ngay cả ở Q4 (crack mảnh nhất, failure case), Adaptive chỉ hơn Static **0.0001 Dice**. Router không có expert chuyên biệt cho crack mảnh để dispatch vào, nên dù routing có "đúng" cũng không giúp được.
+
+### Kết Luận Quyết Định
+
+> **Gain của SAGE-Lite so với B1 (+0.0211 Dice) đến từ ENSEMBLE QUALITY, không phải từ ROUTING INTELLIGENCE.**
+
+Nguồn gain thực sự:
+- Pool expert đa dạng CNN+ViT → feature complementarity
+- SA-Hub adaptation → cross-modal compatibility
+- ASDW decoder → fine-grained boundary refinement
+- **KHÔNG PHẢI** từ tính adaptive của routing decision
+
+Router hoạt động như **soft ensemble gần-tĩnh**: nó chọn xấp xỉ cùng set expert cho mọi ảnh, nhưng ensemble đó tốt hơn backbone đơn. Đây không phải failure — đây là bản chất phù hợp với bài toán binary crack segmentation (ít "cellular heterogeneity" hơn WSI).
+
+**Implication cho các thực nghiệm tiếp theo**: Không cần ưu tiên cải thiện routing mechanism (GAP replacement, nonlinear projection) cho giai đoạn B2. Các improvement nên tập trung vào expert pool quality, decoder, hoặc loss strategy thay vì routing.
+
+
+---
+
 ## Nghiệm Thu Kết Quả P3-C D4 K2 (Top-k = 2 Capacity Screening)
 
 *Ngày: 2026-09-28 | Mô hình: B2 P3-C D4 K2 Standalone (top_k=2, 8 experts pool: 4 CNN + 4 ViT) | Ngân sách: 35 Epochs (17 S1 + 18 S2) | Crack500 Val 348 mẫu, Setting A*  
@@ -608,17 +677,78 @@ Khóa cứng phân vị độ mảnh ground truth: $Q1 \le 0.083 < Q2 \le 0.124 
 
 ---
 
-### 6. Tổng Kết Khoa Học & Quyết Định Chiến Lược
+### 6. Tổng Kết Khoa Học & Đánh Giá Chiến Lược (Information ≠ Utility)
 
-1. **Thực tế về Adaptive Routing**:
-   - Adaptive routing của SAGE-Lite **hoàn toàn không mang lại lợi thế vượt trội so với một ensemble tĩnh tối ưu (Static Top-4)** trên tập dữ liệu vết nứt Crack500 ($p = 0.4133 > 0.05$, chênh lệch $\Delta = +0.00037$ nằm trọn trong khoảng tin cậy chứa 0).
-   - Lợi ích của mạng chủ yếu đến từ **sự hiện diện của đa dạng chuyên gia (Heterogeneous Expert Pool)** kết hợp với việc **tính toán trọng số cổng liên tục $\sigma(\text{modulated\_logits})$** thay vì cơ chế lựa chọn rời rạc từng mẫu.
-2. **Không có sự chuyên hóa vết nứt mảnh**:
-   - Ở phân vị vết nứt mảnh nhất ($Q4$), Adaptive Dice (0.6637) và Static Dice (0.6636) chỉ lệch nhau đúng 0.0001 (0.01% Dice). Điều này xác nhận kết luận từ nghiên cứu thinness representation trước đó: router hoàn toàn "mù" với độ mảnh và không hề điều hướng chuyên gia để giải cứu các ca nứt mảnh.
-3. **Độ dư thừa ở tầng sâu (Deep ViT Redundancy)**:
-   - Khi chọn ngẫu nhiên expert ở 4 tầng ViT sâu (`Deep_ViT_Only`), Dice đạt **0.7643** (cao hơn cả Adaptive Baseline 0.7639). Các ViT experts ở tầng sâu có tính bù trừ rất lớn cho nhau.
-4. **Hướng đi kiến trúc cho Phase 2**:
-   - Việc chỉ tinh chỉnh router hay hy vọng GAP/Adaptive routing tự phát huy tác dụng trên vết nứt là không khả thi nếu không có cơ chế đưa thông tin hình học cục bộ (Local Geometry / High-frequency edge) trực tiếp vào router hoặc tái cấu trúc router với non-linear projection.
+#### A. Sửa đổi thuật ngữ & giới hạn nhận định:
+1. **Frequency-based Static Top-4, KHÔNG PHẢI "Optimal"**: Chính sách static được trích xuất từ 4 expert có **tần suất chọn cao nhất lúc training** (`expert_usage_count`), không phải tập hợp được tối ưu hóa hiệu năng (performance-optimal subset). Việc gọi là "frequency-based static Top-4" phản ánh đúng bản chất toán học.
+2. **Hành vi ở các tầng ViT sâu (`Deep_ViT_Only`)**: Kết quả can thiệp ngẫu nhiên ở B0–B3 đạt Dice $0.7643$ ($\Delta = +0.00036$) cho thấy việc thay adaptive selection bằng random Top-4 không tạo ra sự suy thoái hiệu năng (degradation) đáng kể trên can thiệp suy luận này. Tuy nhiên, **chưa thể quy nguyên nhân duy nhất cho "expert redundancy"**; hiện tượng này có thể đến từ:
+   - Residual scale chỉ là $0.1$.
+   - Trọng số cổng $\sigma(\text{modulated\_logits})$ tự động làm giảm biên độ ảnh hưởng của expert được chọn.
+   - Đường truyền chính (main path) của backbone đã rất mạnh.
+   - Sự kết hợp ngẫu nhiên của các expert vẫn cung cấp đủ dung lượng biểu diễn.
+3. **Bản chất của Inference Intervention**: Thí nghiệm này can thiệp trực tiếp trên checkpoint đã huấn luyện bằng adaptive routing để đo xem: *Mô hình hiện tại thực sự phụ thuộc vào adaptive selection đến mức nào?* Thí nghiệm này chưa trả lời câu hỏi: *Nếu train lại từ đầu hoàn toàn bằng static routing thì mô hình có đạt điểm tương đương hay không?* (Đây là bước sàng lọc suy luận cực kỳ rẻ và hiệu quả trước khi tốn tài nguyên huấn luyện lại).
+
+---
+
+#### B. Đúc kết cốt lõi: Trường hợp kinh điển "Information ≠ Utility"
+
+Nghiên cứu này là một cột mốc đặc biệt quan trọng, định hình lại toàn bộ cách nhìn nhận về router và pooling:
+
+```text
+Trước Routing Intervention:
+Representation Diagnostics → Thinness signal bị hạn chế → Nghi vấn GAP / Linear Query
+
+Sau Routing Intervention:
+Representation Diagnostics → Đúng, có bottleneck tiềm năng ở tầng biểu diễn
+                  NHƯNG
+Routing Intervention       → Thay adaptive bằng static hầu như KHÔNG đổi Dice (Δ = +0.00037, p = 0.413)
+```
+
+1. **Adaptive $\approx$ Static trên chính checkpoint đã train**:
+   - Baseline: $\text{Dice} = 0.7639$; Static: $\text{Dice} = 0.7636$; $\Delta = +0.00037$; $95\%\text{ CI} = [-0.00051, +0.00124]$.
+   - Cả Paired $t$-test ($p = 0.4133$) và Wilcoxon ($p = 0.3053$) đều không có ý nghĩa thống kê.
+   - Với **chính checkpoint đã train bằng adaptive routing**, việc router chọn expert nào cho từng ảnh cụ thể **hầu như không có ảnh hưởng lớn đến kết quả phân đoạn cuối cùng trên 348 ảnh validation**.
+
+2. **Random Top-4: Statistically Detectable $\neq$ Practically Important**:
+   - Random: $0.7633$; Adaptive: $0.7639$; $\Delta = +0.00063$ (tức **0.063 percentage points Dice**).
+   - Có $p$-value nhỏ ($p = 0.0335$, Wilcoxon $p = 0.00011$), chứng minh có sự khác biệt thống kê giữa hai phân phối paired difference.
+   - Nhưng **effect size cực kỳ nhỏ**: Router hiện tại có lợi thế so với việc bốc ngẫu nhiên, nhưng lợi thế này quá bé để có thể coi routing selection là động lực chính tạo ra sức mạnh của mô hình.
+
+3. **Vết nứt mảnh ($Q4$) hoàn toàn không đổi**:
+   - Ở phân vị vết nứt mảnh nhất ($Q4$): $\text{Adaptive} = 0.6637$, $\text{Static} = 0.6636 \implies \Delta = \mathbf{0.0001}$.
+   - Gần như bằng 0 tuyệt đối. Không có bất kỳ bằng chứng nào cho thấy adaptive routing đang giúp giải cứu các vết nứt mảnh.
+   - Dù router có phản ứng động với hình thái/diện tích ở một số tầng sâu, **phản ứng đó chưa chuyển hóa thành ưu thế phân đoạn (segmentation advantage) có ý nghĩa**.
+
+4. **Chuỗi nhân quả lo ngại đã bị đứt gãy ở mắt xích Utility**:
+   ```text
+   Crack thinness
+         ↓
+   GAP / representation limitation   ✅ Có bằng chứng thực nghiệm
+         ↓
+   Router linear decode không hết     ✅ Có bằng chứng thực nghiệm
+         ↓
+   Adaptive expert selection có ích? ❌ Bằng chứng hiện tại rất yếu (Adaptive ≈ Static)
+         ↓
+   Thin-crack Dice được cải thiện?   ❌ Bằng chứng phủ định (Δ = 0.0001 ở Q4)
+   ```
+   **Có một nút thắt ở tầng biểu diễn (representation limitation) KHÔNG đồng nghĩa nút thắt đó là nguyên nhân downstream kìm hãm Dice của SAGE-Lite.**
+
+5. **Độ nhạy phân tầng (CNN vs Deep ViT)**:
+   - Randomize S0–S2: $\Delta \approx -0.00070$
+   - Randomize all CNN: $\Delta \approx -0.00072$
+   - Randomize all routers: $\Delta \approx -0.00051$
+   - Randomize B0–B3: $\Delta \approx +0.00036$
+   - Về mặt định tính, routing ở phía CNN có vẻ nhạy hơn một chút so với ViT, còn deep ViT routing hầu như không tác động đến output (phù hợp với giả thuyết các tầng sâu đã có biểu diễn đủ mạnh từ main path).
+
+---
+
+### Một Câu Duy Nhất Để Ghi Nhớ & Quyết Định Hành Động
+
+> **"SAGE-Lite D4's routing mechanism is not the dominant performance bottleneck on the evaluated validation setting, despite measurable limitations in the router-side representation of thinness."**
+
+*Quyết định*: **TUYỆT ĐỐI CHƯA ĐỤNG VÀO GAP HAY THAY ĐỔI ARCHITECTURE CỦA ROUTER Ở GIAI ĐOẠN NÀY.**  
+Thay vì cố gắng sửa router (vốn chỉ mang lại lợi ích tiềm năng tối đa $\sim 0.03\% - 0.06\%$ Dice), các bước tiếp theo cần tập trung nghiên cứu **chất lượng của expert pool, đóng góp của main path, và cơ chế tích hợp đặc trưng**.
+
 
 
 
