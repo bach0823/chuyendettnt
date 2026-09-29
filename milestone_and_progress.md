@@ -36,13 +36,14 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
      + Chạy Stage 2-only từ checkpoint Candidate B Stage 1 (Ep 13, Dice 0.7333) với `stage2_sage_lr = 2e-4` (giữ nguyên base/shared/p3 LR = 1e-4).
      + Kết quả: Đạt đỉnh **0.7644 Val Dice** (Ep 16), đáy Val Loss **0.9412** (Ep 18), Mean IoU **0.6409**, Median Dice **0.8073**.
      + Đóng gói đầy đủ artifacts tại `results/P3_C_Phase5_1_Extra_Stage2_SAGELR2e-4_Full.zip` và diagnostics tại `results/P3_C_Routing_Diagnostics_D4_K2_H64_Phase5_1_Extra_SAGELR2e-4/`.
+     + **Quyết định chốt**: Khóa chính thức **Candidate B** (`sage_lr = 2e-4` ở Stage 1); **KHÔNG tách riêng SAGE LR ở Stage 2** (SAGE router ở Stage 2 đi chung với `stage2_base_lr = 1e-4` để giữ tối ưu hóa tinh gọn).
 
 State:
 - Phase 1: D4 locked
 - Phase 2: K6 OOM → provisional top_k=2
 - Phase 3: H64 selected under D4+K2, seed42
 - Phase 4: SKIPPED, LB=0.01 inherited baseline
-- Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641, Extra 0.7644)
+- Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641 làm baseline chính thức, Stage 2 không tách riêng)
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
 - Phase 5.3: Ready to deploy (Stage-2 LR ratio r in {0.25, 0.50, 1.00, 2.00})
 
@@ -51,6 +52,7 @@ Cấu hình hiện hành:
 - top_k = 2 (provisional)
 - router_hidden_dim = 64
 - sage_lr = 2e-4 (Stage 1 isolated)
+- stage2_sage_lr: Không tách riêng (đi cùng `stage2_base_lr = 1e-4` trong tier `others`)
 - N_injection = 8 routers
 - batch size = 14
 - epoch budget = 35 (17+18)
