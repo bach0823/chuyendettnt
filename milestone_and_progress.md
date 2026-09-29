@@ -26,24 +26,27 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
    - Đã khảo sát 3 dung lượng router {H32: 0.7587, H64: **0.7618**, H128: 0.7550}. Đường cong chữ U ngược quan sát được: $Dice(H128=0.7550) < Dice(H32=0.7587) < Dice(H64=0.7618)$. Chọn `router_hidden_dim = 64` là best observed configuration dưới D4 + provisional top_k=2 (seed 42).
 4. **Phase 4: Load Balancing Loss Study (HOÀN TẤT & BỎ QUA THEO TIÊU CHUẨN CỔNG ĐIỀU KIỆN — SKIPPED ⏭️):**
    - Thẩm định routing diagnostic trên checkpoint canonical ghi nhận 0/8 dead experts (min utilization 4.94% > 1.0%), không sụp đổ phân phối. Kế thừa `load_balance_factor = 0.01` (inherited baseline, not tuned).
-5. **Phase 5.1: SAGE LR Isolation (CANDIDATE B BEST OBSERVED / CANDIDATE C STAGE-1 READY 🔬):**
-   - Candidate A (5e-5): Peak S1 = 0.7266 (Ep 17), Peak S2 = 0.7597 (Ep 18), Mean IoU = 0.6357.
-   - Baseline (1e-4): Peak S1 = 0.7304 (Ep 13), Peak S2 = 0.7618 (Ep 16), Mean IoU = 0.6386.
-   - Candidate B (2e-4): Peak S1 = 0.7333 (Ep 13), Peak S2 = **0.7641** 🏆 (Ep 14), Mean IoU = **0.6417** (Best observed configuration).
-   - Candidate C (3e-4): Đã chuẩn bị config `b2_p3_run_c_d4_k2_h64_phase5_sagelr3e4.yaml` và cờ `--stage1-only` chạy thăm dò riêng Stage 1 (17 epochs, ~45 phút) để xác nhận đỉnh trước khi vào Phase 5.3.
-   - **Quyết định kiến trúc & tối ưu hóa**: `sage_lr` chỉ áp dụng trong Stage 1 (khi backbone freeze, router + decoder + P3 train). Không tách riêng `stage2_sage_lr` ở Stage 2 hiện tại (giữ router ở Tier 3 với `stage2_base_lr = 1e-4` nhằm giữ biến kiểm soát độc lập 1D cho Phase 5.3 sweep tỉ số $r = LR_{\text{shared}} / LR_{\text{fine}}$, tránh mở rộng search space sang 2D; nếu sau Phase 5.3 router Stage 2 cho thấy bottleneck thì sẽ tách thành Phase 5.4 độc lập).
+5. **Phase 5.1: SAGE LR Isolation (HOÀN TẤT & ĐÃ KHÓA SAGE_LR = 2e-4 ✅):**
+   - Đã sweep đủ 4 mức SAGE LR {5e-5: 0.7597, 1e-4: 0.7618, 2e-4: **0.7641** 🏆, 3e-4: 0.7492}.
+   - Đường cong hiệu năng theo SAGE LR là đường cong chữ U ngược (inverted U-curve):
+     $$Dice(3e\text{-}4=0.7492) < Dice(5e\text{-}5=0.7597) < Dice(1e\text{-}4=0.7618) < Dice(2e\text{-}4=0.7641)$$
+   - Khóa chính thức `sage_lr = 2e-4` là best observed configuration cho SAGE router trong Stage 1 (kết hợp với `base_lr = 1e-4`).
+   - Candidate C (3e-4) vượt quá ngưỡng dung nạp tốc độ học của router, gây bão hòa sớm và suy giảm hiệu năng ở cả Stage 1 (Peak S1 Dice = 0.7278 vs 0.7333 ở 2e-4) lẫn Stage 2 (Peak S2 Dice = 0.7492 vs 0.7641 ở 2e-4), kích hoạt EarlyStopping ở cả 2 stage (Ep 16 và Ep 12).
 
 State:
 - Phase 1: D4 locked
 - Phase 2: K6 OOM → provisional top_k=2
 - Phase 3: H64 selected under D4+K2, seed42
 - Phase 4: SKIPPED, LB=0.01 inherited baseline
-- Phase 5.1: Candidate B (2e-4) best observed (0.7641); Candidate C (3e-4, Stage-1 only) ready to verify
+- Phase 5.1: SAGE LR = 2e-4 locked (0.7641, best observed)
+- Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
+- Phase 5.3: Ready to deploy (Stage-2 LR ratio r in {0.25, 0.50, 1.00, 2.00})
 
 Cấu hình hiện hành:
 - ViT depth = 4
 - top_k = 2 (provisional)
 - router_hidden_dim = 64
+- sage_lr = 2e-4 (Stage 1 isolated)
 - N_injection = 8 routers
 - batch size = 14
 - epoch budget = 35 (17+18)
@@ -107,11 +110,10 @@ Completed:
 
 
 In Progress:
-In Progress:
-- Phase 5.1: Chạy kiểm chứng thăm dò Candidate C (SAGE LR = 3e-4, Stage-1 Only, 17 epochs) trên Google Colab Tesla T4 (`configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr3e4.yaml`, `--two-stage --stage1-only`).
-  + Candidate A (5e-5) & Candidate B (2e-4) đã hoàn tất và lưu trữ artifacts đầy đủ (Peak S2 Val Dice: 0.7597 vs 0.7641).
-  + Nếu Candidate C có Peak S1 Val Dice $> 0.7333$: Mở rộng chạy tiếp Stage 2 qua `--stage2-only` và cập nhật SAGE LR tốt nhất.
-  + Nếu Candidate C có Peak S1 Val Dice $\le 0.7333$: Chốt `sage_lr = 2e-4` là best observed của Phase 5.1 và tiến thẳng sang Phase 5.3 ($r$ sweep).
+- Chuẩn bị triển khai Phase 5.3: Stage-2 Learning Rate Ratio Sweep ($r = LR_{\text{shared}} / LR_{\text{fine}} \in \{0.25, 0.50, 1.00, 2.00\}$) trên Crack500:
+  + Kế thừa Base Configuration đã khóa: D4, `top_k = 2`, `router_hidden_dim = 64`, `load_balance_factor = 0.01`, `sage_lr = 2e-4` (Stage 1), warmup = 3.
+  + Cố định Non-expert parameters (Routers, SA-Hub, Decoder, Bridge) tại $\text{stage2\_base\_lr} = 10^{-4}$ và P3 refinement tại $\text{stage2\_p3\_lr} = 10^{-4}$.
+  + Quét 1 chiều tỷ số $r = \text{stage2\_shared\_lr} / \text{stage2\_fine\_lr}$ trong Stage 2.
 - **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
   + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
   + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**
@@ -141,11 +143,12 @@ Current Issue:
 - Không có issue. Two-Stage Training & Optimizer Preflight đã PASS 100% cho cả 3 cấu hình Run A, Run B và Run C (343/343 tensors khớp tuyệt đối, 0 missing, 0 duplicates, shared experts cô lập chuẩn ở CNN main blocks, Stage 2 LR ratio 1:1 bảo toàn).
 
 Next Step:
-- Chạy Cell 1 trên Google Colab T4 cho Candidate C (`sage_lr = 3e-4 --stage1-only`, 17 epochs).
-- Chạy Cell 2 đối chiếu Peak S1 Val Dice trực tiếp từ `best_model_b2_stage1.pth`:
-  + Nếu Peak S1 Val Dice $> 0.7333$: Chạy tiếp Cell 3 (`--stage2-only`) để hoàn thiện Stage 2 cho Candidate C.
-  + Nếu Peak S1 Val Dice $\le 0.7333$: Giữ nguyên quyết định chọn `sage_lr = 2e-4` là cấu hình tốt nhất của Phase 5.1.
-- Tiến vào Phase 5.3 ($r$ sweep: $r \in \{0.25, 0.50, 1.00, 2.00\}$) với base SAGE LR đã chọn, giữ nguyên router ở Tier 3 (`stage2_base_lr = 1e-4`).
+- Chuẩn bị 4 candidate configs cho Phase 5.3 ($r \in \{0.25, 0.50, 1.00, 2.00\}$) kế thừa base `sage_lr = 2e-4`:
+  + $r = 0.25$: `stage2_shared_lr = 2.5e-5`, `stage2_fine_lr = 1.0e-4`
+  + $r = 0.50$: `stage2_shared_lr = 5.0e-5`, `stage2_fine_lr = 1.0e-4`
+  + $r = 1.00$: `stage2_shared_lr = 1.0e-4`, `stage2_fine_lr = 1.0e-4` (Baseline kế thừa từ Candidate B Phase 5.1, không train lại)
+  + $r = 2.00$: `stage2_shared_lr = 2.0e-4`, `stage2_fine_lr = 1.0e-4`
+- Chuẩn bị driver notebook và các cell Colab T4 cho Phase 5.3.
 
 
 ## Milestones & SKs (Dependency-order)
