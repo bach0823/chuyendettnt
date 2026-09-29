@@ -746,8 +746,134 @@ Routing Intervention       → Thay adaptive bằng static hầu như KHÔNG đ�
 
 > **"SAGE-Lite D4's routing mechanism is not the dominant performance bottleneck on the evaluated validation setting, despite measurable limitations in the router-side representation of thinness."**
 
-*Quyết định*: **TUYỆT ĐỐI CHƯA ĐỤNG VÀO GAP HAY THAY ĐỔI ARCHITECTURE CỦA ROUTER Ở GIAI ĐOẠN NÀY.**  
+*Quyết định*: **TUYỆT ĐỔI CHƯA ĐỤNG VÀO GAP HAY THAY ĐỔI ARCHITECTURE CỦA ROUTER Ở GIAI ĐOẠN NÀY.**  
 Thay vì cố gắng sửa router (vốn chỉ mang lại lợi ích tiềm năng tối đa $\sim 0.03\% - 0.06\%$ Dice), các bước tiếp theo cần tập trung nghiên cứu **chất lượng của expert pool, đóng góp của main path, và cơ chế tích hợp đặc trưng**.
+
+---
+
+## Nghiệm Thu & Đánh Giá Thực Nghiệm Residual/Fusion Sensitivity (Canonical D4-P3-C K4)
+
+*Ngày: 2026-09-29*  
+*Mô hình: Canonical D4-P3-C K4 Checkpoint (`best_model_b2_global.pth`, 10.12M params, Epoch 14, Val Dice: 0.7639)*  
+*Dữ liệu thực nghiệm: 348 mẫu Crack500 Validation, Setting A (eval mode, exploration noise OFF)*  
+*Cơ chế can thiệp: Strict frozen-routing (quyết định `{top_k_indices, gating_weights}` được khóa cố định từ canonical α=0.1, re-run forward cho từng α để đo cascade thực tế nhưng cô lập hoàn toàn khỏi routing selection)*
+
+### 1. Kết Quả Thực Nghiệm Group-wise & Layer-isolated
+
+#### Sweep 1 — ViT Group B0–B3 ($\alpha_{ViT} \in [0, 0.2]$, CNN giữ 0.1)
+| $\alpha_{ViT}$ | Mean Dice | $\Delta$ vs 0.1 | Paired $t$ $p$-value | Ghi chú |
+|---:|:---:|:---:|:---:|:---|
+| 0.000 | 0.7642 | +0.000312 | 0.5185 | Expert-off phía ViT |
+| 0.025 | 0.7643 | +0.000357 | 0.3312 | Vùng phẳng/chưa suy giảm |
+| 0.050 | 0.7643 | +0.000337 | 0.1621 | Vùng phẳng/chưa suy giảm |
+| 0.075 | 0.7642 | +0.000221 | 0.0683 | |
+| **0.100** | **0.7639** | **0** | — | **Canonical Baseline** |
+| 0.150 | 0.7634 | -0.000494 | **0.0248** | Suy giảm có ý nghĩa thống kê |
+| 0.200 | 0.7628 | -0.001149 | **0.0105** | Suy giảm rõ nét ($p=0.0105$) |
+- *Phân vị Q4 (vết nứt mảnh nhất)*: Tại $\alpha_{ViT}=0$, Dice đạt 0.6682 (+0.0045 so với baseline 0.6637); tại $\alpha_{ViT}=0.2$, Dice tụt xuống 0.6575 (-0.0062).
+- *Kết luận*: Tăng residual scale của nhóm ViT vượt quá 0.1 gây suy giảm hiệu năng có ý nghĩa thống kê, đặc biệt rõ rệt trên tập vết nứt mảnh Q4.
+
+#### Sweep 2 — S3 Isolated ($\alpha_{S3} \in [0, 0.3]$, các layer khác giữ 0.1)
+*(Lý do cô lập riêng S3: Tỷ lệ $\|0.1E\|/\|M\|$ ở S3 đạt tới 17.22%, gấp 6–8 lần S0–S2)*
+| $\alpha_{S3}$ | Mean Dice | $\Delta$ vs 0.1 | Paired $t$ $p$-value | Ghi chú |
+|---:|:---:|:---:|:---:|:---|
+| 0.00 | 0.7635 | -0.000450 | **0.0012** | Tắt S3 làm giảm Dice rõ rệt |
+| 0.05 | 0.7637 | -0.000203 | **0.0051** | |
+| **0.10** | **0.7639** | **0** | — | **Canonical Baseline** |
+| 0.20 | 0.7643 | +0.000402 | **0.0024** | Cải thiện có ý nghĩa |
+| 0.30 | 0.7645 | +0.000578 | **0.0107** | Cải thiện tăng dần đơn điệu |
+- *Phân vị Q4*: $\alpha_{S3}=0 \to 0.6624$; $\alpha_{S3}=0.1 \to 0.6637$; $\alpha_{S3}=0.3 \to 0.6654$.
+- *Kết luận*: S3 thể hiện độ nhạy scale dương (positive residual-scale sensitivity) đơn điệu trong phạm vi thử nghiệm [0.1, 0.3].
+
+#### Sweep 3 — Shallow CNN Group S0–S2 ($\alpha_{shallow} \in [0, 0.3]$, S3 & ViT giữ 0.1)
+| $\alpha_{shallow}$ | Mean Dice | $\Delta$ vs 0.1 | Paired $t$ $p$-value | Ghi chú |
+|---:|:---:|:---:|:---:|:---|
+| 0.00 | 0.7638 | -0.000112 | 0.7893 | Gần như không đổi |
+| 0.05 | 0.7640 | +0.000065 | 0.7364 | Biến thiên trong nhiễu |
+| **0.10** | **0.7639** | **0** | — | **Canonical Baseline** |
+| 0.20 | 0.7634 | -0.000550 | 0.2200 | |
+| 0.30 | 0.7623 | -0.001622 | 0.0585 | Bắt đầu suy giảm nhẹ ở scale lớn |
+- *Kết luận*: Nhóm CNN nông (S0–S2) có đóng góp chuẩn độ nhỏ ($\sim 2-3\%$), hầu như bất biến (insensitive) ở dải scale thấp/vừa.
+
+---
+
+### 2. Định Vị Nhận Thức Luận (Epistemological Framework)
+
+Tách bạch rành mạch 4 tầng bằng chứng:
+```text
+Representation Evidence       ✅ ĐÃ ĐÓNG: Thinness phi tuyến ở ViT, tuyến tính ở Area.
+        ≠
+Routing Utility (Decision)     ✅ ĐÃ ĐÓNG: Adaptive ≈ Static (p=0.41), routing utility ≈ 0.
+        ≠
+Expert Utility (Forward scale) ✅ ĐÃ ĐÓNG TẦNG INFERENCE:
+                                  - Tồn tại độ nhạy scale phụ thuộc độ sâu & họ tầng (S3 dương, ViT âm).
+                                  - Tuy nhiên biên độ tuyệt đối rất nhỏ (+0.00058 / -0.00115).
+        ≠
+Segmentation Utility           ❌ CHƯA THỂ KHẲNG ĐỊNH: Bất kỳ winning scale nào trên val348
+                                  đều là post-hoc model selection, cần test split để kiểm chứng.
+```
+
+1. **Chuẩn hóa ngôn ngữ học thuật**:
+   - Tránh dùng các từ quy chụp nhân quả như *"S3 bị under-scaled"* hay *"ViT bị over-scaled"*.
+   - Cách diễn đạt chính xác: *"S3 thể hiện độ nhạy scale dương (positive sensitivity) trong dải [0.1, 0.3], trong khi nhóm ViT thể hiện độ nhạy scale âm (negative sensitivity) khi tăng vượt quá 0.1"*.
+
+2. **Residual/Fusion không phải là nút thắt hiệu năng chính (Primary Bottleneck)**:
+   - Mức tăng tổng thể của SAGE-Lite so với B1 baseline là **+0.0211 Dice**.
+   - Biên độ biến thiên của residual scale chỉ dao động trong khoảng $\sim 0.0005 - 0.0010$ Dice (bậc độ lớn thứ 3 so với gain kiến trúc chính).
+   - Đây là bằng chứng loại trừ (negative evidence) có giá trị: Cơ chế fusion không phải là nơi che giấu một bước nhảy vọt hiệu năng tiềm năng.
+
+---
+
+### 3. Quyết Định Nghiên Cứu & Điều Hướng Roadmap
+
+1. **KHÔNG mở thêm nhánh huấn luyện càn quét Residual Scale (Residual-scale Training Ablation)**:
+   - Inference sweep không đồng nhất với training sweep (mô hình đã co-adapt với scale 0.1 lúc train).
+   - Chi phí huấn luyện lại các nhánh scale chuyên biệt cho từng họ tầng là không tương xứng với biên độ cải thiện tiềm năng (< 0.001 Dice).
+
+2. **KHÔNG thực hiện các hướng sau ở thời điểm hiện tại**:
+   - Không chạy cấu hình K3.
+   - Không thay thế GAP hay viết lại Router phi tuyến.
+   - Không sửa đổi global residual scale hay family-specific residual scale trong mã nguồn lúc này.
+
+3. **Quay lại Lộ Trình Chuẩn (Roadmap Execution)**:
+   - Bước tiếp theo trong kế hoạch là **Stage-2 LR-ratio Ablation**: Điều tra xem việc phân bổ learning rate giữa shared/expert pathways và main path trong giai đoạn fine-tuning (Stage 2) có phải là nút thắt tối ưu hóa (optimization allocation bottleneck) hay không.
+
+---
+
+## Nghiệm Thu Thực Nghiệm Phase 3: Khảo Sát Router Hidden Dim H32 (Canonical D4 K2 H32)
+
+*Ngày: 2026-09-29 | Checkpoint: `P3_C_D4_K2_H32_best_model_b2_global.pth` (10.12M params, Epoch 18, Val Dice: 0.7587) | Ngân sách: 35 Epochs (13 S1 + 22 S2)*  
+*Dữ liệu thực nghiệm: 348 mẫu Crack500 Validation, Setting A | Protocol: BS14, D4, K2, router_hidden_dim = 32*  
+*Tệp lưu trữ: `results/P3_C_Canonical_Base_D4_K2_H32_Full.zip`, Checkpoints: `results/checkpoints/P3_C_D4_K2_H32_*`, Log: `results/logs/P3_C_Canonical_Base_D4_K2_H32.log`, Diagnostics: `results/P3_C_Routing_Diagnostics_D4_K2_H32/`*
+
+### 1. Diễn Biến Huấn Luyện 2 Giai Đoạn
+- **Stage 1 (Frozen Backbone, 13/17 epochs used)**:
+  - Đạt đỉnh tại **Epoch 7** với Val Dice = **0.7307**, Val Loss = `1.4570`.
+  - So với H64 Baseline (Stage 1 peak = 0.7304 ở Ep 13): H32 đạt hiệu năng Stage 1 tương đương (+0.0003).
+- **Stage 2 (Full Fine-tuning, 22/18 epochs used)**:
+  - Đạt đỉnh toàn cục tại **Epoch 18** với Val Dice = **0.7587**, Val Loss = `0.9847`.
+  - Early stopping kích hoạt kết thúc sau 35 epochs tổng cộng.
+
+### 2. Bảng Đối Chiếu So Sánh Sơ Bộ (H32 vs H64 Baseline)
+
+| Chỉ số (Validation Setting A, 348 mẫu) | H64 Baseline (`dim=64`) | Run 7: H32 (`dim=32`) | Chênh lệch ($\Delta$ H32 vs H64) |
+| :--- | :---: | :---: | :---: |
+| **Peak Stage 1 Val Dice** | 0.7304 (Ep 13) | **0.7307** (Ep 7) | +0.0003 |
+| **Peak Stage 2 Val Dice (Global)** | **0.7618** (Ep 16) | 0.7587 (Ep 18) | **-0.0031** (-0.31%) |
+| **Val Loss @ Peak** | **0.9518** | 0.9847 | +0.0329 (Loss cao hơn) |
+| **Mean IoU** | **0.6386** | 0.6354 | **-0.0032** (-0.32%) |
+| **Median Dice** | **0.8058** | 0.8005 | -0.0053 |
+| **Precision** | **0.7291** | 0.7115 | -0.0176 |
+| **Recall** | 0.8506 | **0.8632** | +0.0126 |
+
+### 3. Phân Tích Hành Vi Định Tuyến (Routing Diagnostics)
+- **Tình trạng chuyên gia (Expert Activity)**: 100% chuyên gia hoạt động (0 dead experts). Tỷ lệ chọn dao động từ 6.72% (E5 ViT Block 1) đến 19.22% (E2 CNN Stage 2).
+- **Entropy & Mức độ tập trung**:
+  - Các tầng ViT (B0..B3) duy trì entropy rất cao ($\sim 2.64 - 2.78$ bits / normalized $0.88 - 0.93$), HHI thấp ($0.157 - 0.174$), số chuyên gia hiệu dụng đạt $\sim 6.2 - 6.8$ / 8 experts.
+  - Các tầng CNN nông (S0..S2) có tính chọn lọc cao hơn (entropy $1.28 - 1.63$ bits, normalized $0.43 - 0.54$, HHI $0.35 - 0.45$).
+- **Nhận định sơ bộ**: Giảm router projection dimension từ 64 xuống 32 làm sụt giảm nhẹ -0.31% Dice và -0.32% IoU, cho thấy việc nén không gian chiếu query quá mức làm giảm nhẹ tính năng lực của router, dù entropy tổng thể vẫn bảo toàn tốt. Cần chờ kết quả của H128 (`dim=128`) để hoàn tất Decision Gate của Phase 3.
+
+
 
 
 

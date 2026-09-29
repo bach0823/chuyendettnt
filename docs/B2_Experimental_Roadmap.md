@@ -602,13 +602,16 @@ Khảo sát dung lượng chiếu query của Router qua router hidden dimension
   - Protocol 35 epochs: Stage 1 = 17 epochs, Stage 2 = 18 epochs, `patience: 6`, `two_stage: true`.
   - Canonical LR: `lr = 1e-4`, `p3_lr = 1e-4`, `stage2_base_lr = 1e-4`, `stage2_shared_lr = 1e-4`.
   - SAGE config: `load_balance_factor = 0.01`, `expert_dropout = 0.1`, `fusion_type = "residual"`, `residual_scale = 0.1`, `gating_type = "sigmoid"`.
-* **Phân bổ Thực Nghiệm**:
-  * **Run 7 (H32)**: `router_hidden_dim = 32` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h32.yaml`). ⏳ Cần huấn luyện (train).
-  * **Run 8 (H64)**: `router_hidden_dim = 64` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2.yaml`). ✅ **ĐÃ CÓ CHECKPOINT CANONICAL K2** (`P3_C_D4_K2_best_model_b2_global.pth`, Peak S2 Val Dice = **0.7618**, Loss 0.9518, IoU 0.6386). **Tái sử dụng (Reuse)** trực tiếp làm baseline đối chứng của Phase 3, không cần train lại.
+* **Phân bổ Thực Nghiệm & Tiến Độ**:
+  * **Run 7 (H32)**: `router_hidden_dim = 32` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h32.yaml`). ✅ **HOÀN TẤT**. Peak S1 Dice = **0.7307** (Ep 7); Peak S2 Dice = **0.7587** (Ep 18, Loss 0.9847, IoU 0.6354, Median Dice 0.8005).
+  * **Run 8 (H64)**: `router_hidden_dim = 64` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2.yaml`). ✅ **ĐÃ CÓ CHECKPOINT CANONICAL K2** (`P3_C_D4_K2_best_model_b2_global.pth`, Peak S2 Val Dice = **0.7618**, Loss 0.9518, IoU 0.6386, Median Dice 0.8058). **Tái sử dụng (Reuse)** trực tiếp làm baseline đối chứng của Phase 3.
   * **Run 9 (H128)**: `router_hidden_dim = 128` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h128.yaml`). ⏳ Cần huấn luyện (train).
+* **So Sánh Sơ Bộ (H32 vs H64)**:
+  - Khi giảm router hidden dim từ 64 xuống 32: Val Dice giảm nhẹ **-0.0031** (0.7587 vs 0.7618), IoU giảm **-0.0032** (0.6354 vs 0.6386), Val Loss tăng từ 0.9518 lên 0.9847.
+  - Phân phối định tuyến H32: 0 dead experts (min 6.72% E5, max 19.22% E2), entropy ở các tầng ViT duy trì cao (~2.64–2.78 bits / norm 0.88–0.93).
 * **Quy tắc Quyết định (Decision Gate)**:
-  - So sánh đối chứng: $Dice_{H32}$, $Dice_{H64}$ (0.7618), $Dice_{H128}$ và các chỉ số routing diagnostics tương ứng (entropy, HHI, utilization).
-  - Nếu không có sự khác biệt có ý nghĩa thống kê, ưu tiên giữ `router_hidden_dim = 64` làm baseline hiện tại (đảm bảo tính tinh gọn và kế thừa lịch sử). Tuyệt đối không võ đoán trước khi có kết quả thực nghiệm.
+  - So sánh đối chứng: $Dice_{H32}$ (0.7587), $Dice_{H64}$ (0.7618), $Dice_{H128}$ và các chỉ số routing diagnostics tương ứng (entropy, HHI, utilization).
+  - Nếu H128 không vượt trội hơn H64, ưu tiên giữ `router_hidden_dim = 64` làm baseline hiện tại (đảm bảo tính tinh gọn và kế thừa lịch sử). Tuyệt đối không võ đoán trước khi có kết quả thực nghiệm của H128.
   - Sau khi chọn được `router_hidden_dim` tối ưu sẽ đóng băng chuyển giao sang Phase 4.
 
 ---
