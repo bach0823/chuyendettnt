@@ -663,6 +663,7 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
   * **Baseline (1e-4)**: Peak S1 Val Dice = 0.7304 (Ep 13) | Peak S2 Val Dice = 0.7618 (Ep 16) | Mean IoU = 0.6386
   * **Candidate B (2e-4)**: Peak S1 Val Dice = **0.7333** 🏆 (Ep 13) | Peak S2 Val Dice = **0.7641** 🏆 (Ep 14) | Mean IoU = **0.6417** (Best observed configuration)
   * **Candidate C (3e-4)**: Peak S1 Val Dice = 0.7278 (Ep 10, EarlyStop Ep 16) | Peak S2 Val Dice = 0.7492 (Ep 6, EarlyStop Ep 12) | Mean IoU = 0.6227
+  * **Phase 5.1 Extra (Stage 2 SAGE LR = 2e-4)**: Peak S1 Val Dice = **0.7333** (Inherited) | Peak S2 Val Dice = 🏆 **0.7644** (Ep 16) | Đáy Val Loss = **0.9412** (Ep 18) | Mean IoU = **0.6409** | Median Dice = **0.8073**. Xác nhận: Duy trì SAGE LR = 2e-4 ở Stage 2 hoạt động rất mượt mà và ổn định.
   * *Phán quyết khóa*: Đường cong hiệu năng theo SAGE LR là đường cong chữ U ngược: $Dice(3e\text{-}4=0.7492) < Dice(5e\text{-}5=0.7597) < Dice(1e\text{-}4=0.7618) < Dice(2e\text{-}4=0.7641)$. Khóa chính thức **`sage_lr = 2e-4`** (Stage 1 isolated) làm baseline nền tảng cho Phase 5.3.
   * *Quyết định Phase 5.2*: Quá trình huấn luyện không xuất hiện loss spike, do đó **Phase 5.2 Warmup Sweep được BỎ QUA (SKIPPED)**, kế thừa nguyên vẹn `warmup_epochs = 3`.
 

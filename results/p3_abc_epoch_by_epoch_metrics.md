@@ -215,4 +215,52 @@ Từ kết quả thẩm định chuẩn tắc (`results/P3_C_Routing_Diagnostics
 - **Nguyên lý "Information ≠ Utility"**:
   Nút thắt biểu diễn hình thái ở router (đo được từ linear probe âm) hiện tại **không cấu thành nút thắt hiệu năng phân đoạn downstream**. SAGE-Lite D4 hoạt động như một tập hợp chuyên gia đa dạng mạnh mẽ, việc thay đổi chính sách chọn expert giữa adaptive và static hầu như không ảnh hưởng đến Dice.
 
+---
+
+## 7. Phase 5.1 SAGE LR Isolation: Candidate B (Stage 2 SAGE LR=1e-4) vs Phase 5.1 Extra (Stage 2 SAGE LR=2e-4)
+
+### 7.1. Tổng Quan & So Sánh Hiệu Năng Đỉnh Cao
+
+| Cấu hình | Stage 1 SAGE LR | Stage 2 SAGE LR | Peak S1 Val Dice | Peak S2 Val Dice (Global) | Val Loss @ Peak | Mean IoU | Median Dice | Precision | Recall | Trạng thái Nghiệm thu |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Candidate B (Phase 5.1 Baseline)** | 2e-4 | 1e-4 | **0.7333** (Ep 13) | **0.7641** (Ep 14) | 0.9550 | **0.6417** | 0.8066 | 0.7224 | **0.8642** | Đã khóa SAGE LR Stage 1 = 2e-4 |
+| **Phase 5.1 Extra (Stage 2 High SAGE LR)** | 2e-4 | 2e-4 | **0.7333** (Inherited) | 🏆 **0.7644** (Ep 16) | **0.9526** (đáy 0.9412) | **0.6409** | **0.8073** | 0.7195 | 0.8615 | 35/35 epochs (đạt trần ngân sách) |
+
+### 7.2. Bảng Đối Chiếu Từng Epoch Stage 2 (Epoch 1 – 18)
+
+| Stage 2 Ep | Tổng Ep | Candidate B Val Dice | Extra Val Dice | Extra Train Loss | Extra Val Loss | Extra LR (SAGE / Base) | Extra Gamma (S0 / S1) | Ghi chú Tiến độ Extra |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| 01 | 18 | 0.7188 | 0.7258 | 1.3017 | 1.2713 | 6.73e-5 / 3.40e-5 | 0.0106 / 0.0139 | Khởi động fresh optimizer/scheduler |
+| 02 | 19 | 0.7145 | 0.7140 | 1.3008 | 1.2710 | 1.34e-4 / 6.70e-5 | 0.0108 / 0.0147 | Warmup epoch 2 |
+| 03 | 20 | 0.7289 | 0.7321 | 1.2823 | 1.3873 | 1.87e-4 / 9.34e-5 | 0.0118 / 0.0152 | Warmup epoch 3 (peak LR) |
+| 04 | 21 | 0.7120 | 0.7056 | 1.2466 | 1.2182 | 1.77e-4 / 8.84e-5 | 0.0127 / 0.0157 | |
+| 05 | 22 | 0.7250 | 0.7204 | 1.1950 | 1.1299 | 1.64e-4 / 8.23e-5 | 0.0131 / 0.0162 | |
+| 06 | 23 | 0.7190 | 0.7172 | 1.1546 | 1.0896 | 1.50e-4 / 7.52e-5 | 0.0118 / 0.0165 | |
+| 07 | 24 | 0.7301 | 0.7356 | 1.1115 | 1.1066 | 1.35e-4 / 6.74e-5 | 0.0124 / 0.0172 | 🏆 Vượt baseline Stage 1 (0.7333) |
+| 08 | 25 | 0.7510 | 0.7591 | 1.0803 | 1.0326 | 1.18e-4 / 5.91e-5 | 0.0129 / 0.0170 | 🏆 New Global Best (0.7591) |
+| 09 | 26 | 0.7480 | 0.7450 | 1.0541 | 1.0241 | 1.01e-4 / 5.05e-5 | 0.0136 / 0.0171 | |
+| 10 | 27 | 0.7495 | 0.7434 | 1.0247 | 0.9920 | 8.32e-5 / 4.19e-5 | 0.0139 / 0.0168 | |
+| 11 | 28 | 0.7540 | 0.7403 | 0.9997 | 0.9883 | 6.65e-5 / 3.36e-5 | 0.0133 / 0.0170 | |
+| 12 | 29 | 0.7580 | 0.7424 | 0.9820 | 0.9612 | 5.08e-5 / 2.58e-5 | 0.0129 / 0.0170 | |
+| 13 | 30 | 0.7602 | 0.7491 | 0.9684 | 0.9884 | 3.65e-5 / 1.87e-5 | 0.0130 / 0.0171 | |
+| 14 | 31 | **0.7641** | 0.7632 | 0.9576 | 0.9550 | 2.43e-5 / 1.26e-5 | 0.0129 / 0.0172 | 🏆 New Global Best (0.7632) |
+| 15 | 32 | 0.7610 | 0.7560 | 0.9441 | 0.9582 | 1.43e-5 / 7.63e-6 | 0.0130 / 0.0173 | |
+| 16 | 33 | 0.7625 | 🏆 **0.7644** | 0.9416 | 0.9526 | 7.00e-6 / 3.99e-6 | 0.0131 / 0.0174 | 🏆 **GLOBAL PEAK (0.7644)** |
+| 17 | 34 | 0.7605 | 0.7590 | 0.9359 | 0.9631 | 2.51e-6 / 1.75e-6 | 0.0132 / 0.0173 | |
+| 18 | 35 | 0.7612 | 0.7599 | 0.9358 | **0.9412** | 1.00e-6 / 1.00e-6 | 0.0132 / 0.0173 | Hoàn tất toàn bộ 35 epochs (đáy Val Loss 0.9412) |
+
+### 7.3. Đánh Giá Khoa Học & Kết Luận Về `stage2_sage_lr`
+
+1. **Hiệu Năng & Độ Ổn Định**:
+   - Khi giữ nguyên `stage2_sage_lr = 2e-4` ở Stage 2, mô hình đạt đỉnh **0.7644 Val Dice** (tại Epoch 16), nhỉnh hơn nhẹ so với baseline Candidate B (`0.7641` tại Epoch 14).
+   - Đáy Validation Loss đạt **0.9412** (Epoch 18), thấp hơn mức 0.9550 của Candidate B, cho thấy độ tự tin dự đoán của mô hình sắc nét hơn.
+   - Chênh lệch $\Delta = +0.0003$ Dice giữa $2\times 10^{-4}$ và $1\times 10^{-4}$ là rất nhỏ, khẳng định rằng vùng LR xung quanh $[1\times 10^{-4}, 2\times 10^{-4}]$ cho SAGE Router ở Stage 2 là cực kỳ ổn định, không có hiện tượng divergence hay gradient explosion.
+
+2. **Chẩn Đoán Định Tuyến (Routing Diagnostics trên Checkpoint Đỉnh 0.7644)**:
+   - **Tỷ trọng chuyên gia (CNN vs ViT)**: CNN = **41.38%**, ViT = **58.62%** (tiếp tục bảo toàn tính cân bằng dị thể hoàn hảo).
+   - **Mức độ tập trung HHI**: **0.1793** (tiệm cận mức phân bổ lý tưởng 8 experts: $1/8 = 0.125$).
+   - **Entropy định tuyến chuẩn hóa**: **0.999995** (phân tán lành mạnh, 0 dead experts, 0 router collapse).
+   - **Động lực học Gamma ASDW**: $\gamma_{S0} = 0.0132, \gamma_{S1} = 0.0173$ (tiếp tục phát triển ổn định).
+
+
 

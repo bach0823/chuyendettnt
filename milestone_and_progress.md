@@ -32,13 +32,17 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
      $$Dice(3e\text{-}4=0.7492) < Dice(5e\text{-}5=0.7597) < Dice(1e\text{-}4=0.7618) < Dice(2e\text{-}4=0.7641)$$
    - Khóa chính thức `sage_lr = 2e-4` là best observed configuration cho SAGE router trong Stage 1 (kết hợp với `base_lr = 1e-4`).
    - Candidate C (3e-4) vượt quá ngưỡng dung nạp tốc độ học của router, gây bão hòa sớm và suy giảm hiệu năng ở cả Stage 1 (Peak S1 Dice = 0.7278 vs 0.7333 ở 2e-4) lẫn Stage 2 (Peak S2 Dice = 0.7492 vs 0.7641 ở 2e-4), kích hoạt EarlyStopping ở cả 2 stage (Ep 16 và Ep 12).
+   - **Phase 5.1 Extra (Khảo sát riêng Stage 2 SAGE LR = 2e-4 ✅)**:
+     + Chạy Stage 2-only từ checkpoint Candidate B Stage 1 (Ep 13, Dice 0.7333) với `stage2_sage_lr = 2e-4` (giữ nguyên base/shared/p3 LR = 1e-4).
+     + Kết quả: Đạt đỉnh **0.7644 Val Dice** (Ep 16), đáy Val Loss **0.9412** (Ep 18), Mean IoU **0.6409**, Median Dice **0.8073**.
+     + Đóng gói đầy đủ artifacts tại `results/P3_C_Phase5_1_Extra_Stage2_SAGELR2e-4_Full.zip` và diagnostics tại `results/P3_C_Routing_Diagnostics_D4_K2_H64_Phase5_1_Extra_SAGELR2e-4/`.
 
 State:
 - Phase 1: D4 locked
 - Phase 2: K6 OOM → provisional top_k=2
 - Phase 3: H64 selected under D4+K2, seed42
 - Phase 4: SKIPPED, LB=0.01 inherited baseline
-- Phase 5.1: SAGE LR = 2e-4 locked (0.7641, best observed)
+- Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641, Extra 0.7644)
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
 - Phase 5.3: Ready to deploy (Stage-2 LR ratio r in {0.25, 0.50, 1.00, 2.00})
 

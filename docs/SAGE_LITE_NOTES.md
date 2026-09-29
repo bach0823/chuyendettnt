@@ -1033,6 +1033,123 @@ Segmentation Utility           ❌ CHƯA THỂ KHẲNG ĐỊNH: Bất kỳ winni
   ```
   *Ý nghĩa*: Cơ chế này vừa lọc được nhiễu ngẫu nhiên của Dice score, vừa không bỏ sót các epoch mà mô hình học tự tin hơn (Validation Loss giảm thể hiện độ sắc nét của xác suất dự đoán tăng lên).
 
+---
+
+## 24. Thẩm Định Kế Thừa Trạng Thái Tại Ranh Giới Chuyển Giao Stage 1 → Stage 2 (State Inheritance & Transition Audit) (Ngày 2026-09-30)
+
+> **[Source-Verified Finding]**: Phát hiện được xác minh trực tiếp từ mã nguồn thực tế của SAGE gốc (`SAGE/scripts/train_sage.py`) và SAGE-Lite (`SAGE_LITE/scripts/train_crack.py`). Tài liệu này phân định chính xác cơ chế kế thừa và tính liên tục giữa **Model Weights**, **Optimizer State**, **Scheduler State**, và **RNG State**.
+
+### 1. Phân Tích Thực Tế Trên Mã Nguồn SAGE Gốc (`scripts/train_sage.py`)
+
+Kiểm tra trực tiếp tại `SAGE/scripts/train_sage.py`:
+
+1. **Model Weights (Kế thừa trọng số tốt nhất Stage 1)**:
+   - Ngay sau khi vòng lặp Stage 1 kết thúc, mô hình nạp lại checkpoint lưu trọng số tốt nhất:
+     ```python
+     # SAGE/scripts/train_sage.py L436-L439
+     stage1_best_path = stage1_es.path
+     if os.path.exists(stage1_best_path):
+         model.load_state_dict(torch.load(stage1_best_path, map_location=device))
+         logging.info(f"Loaded best Stage 1 weights from {stage1_best_path}")
+     ```
+   - Do đó, Stage 2 chính thức bắt đầu từ **best Stage-1 model weights**.
+
+2. **Optimizer State (Hoàn toàn KHÔNG kế thừa từ Stage 1)**:
+   - Stage 1 khởi tạo và sử dụng `stage1_optimizer` (`optim.AdamW(model.parameters(), lr=...)`, L376-L380).
+   - Sau khi reload best Stage-1 weights, Stage 2 gọi hàm tạo mới:
+     ```python
+     # SAGE/scripts/train_sage.py L454
+     stage2_optimizer = create_stage2_optimizer(model, config, shared_indices)
+     ```
+   - Không hề có lệnh `stage1_optimizer.load_state_dict(...)` hay truyền optimizer state giữa hai stage.
+   - Vì vậy, **AdamW optimizer state (momentum/variance buffers $m_t, v_t$, step counter, v.v.) hoàn toàn KHÔNG được kế thừa từ Stage 1**. Stage 2 bắt đầu với optimizer hoàn toàn tươi mới (fresh state).
+
+3. **Scheduler State (Hoàn toàn KHÔNG kế thừa)**:
+   - Stage 1 tạo `stage1_scheduler` với ngân sách `stage1_epochs` (L381).
+   - Stage 2 tạo một `stage2_scheduler` mới với ngân sách `stage2_epochs` (L455):
+     ```python
+     # SAGE/scripts/train_sage.py L455
+     stage2_scheduler = create_scheduler(stage2_optimizer, config, config["training"]["stage2_epochs"])
+     ```
+   - Không có bất kỳ sự phục hồi trạng thái scheduler nào từ Stage 1.
+   - Vì vậy, **scheduler state KHÔNG được kế thừa**, Stage 2 bắt đầu chu kỳ annealing/warmup mới hoàn toàn.
+
+4. **RNG State (Đặc thù tính liên tục trong cùng tiến trình — Process-level Continuity)**:
+   - `set_seed(config["training"]["seed"])` chỉ được gọi **duy nhất một lần ở đầu hàm `main()`** (L362).
+   - `train_loader, val_loader = get_dataloaders(config)` được khởi tạo một lần trước Stage 1 (L367).
+   - Tại ranh giới chuyển tiếp Stage 1 $\to$ Stage 2, **hoàn toàn không gọi lại `set_seed()`**, cũng **không có bất kỳ logic phục hồi RNG state nào từ checkpoint**.
+   - Do đó, trong **tiến trình tự động chạy 2 stage liên tục (automatic Stage 1 $\to$ Stage 2 run trong cùng process)**, các dòng sinh số ngẫu nhiên (RNG state/stream) thực tế **tiếp tục tự nhiên từ Stage 1 sang Stage 2**.
+   - Đây là **tính liên tục trạng thái trong cùng tiến trình (runtime state continuity)**, chứ không phải RNG state được nạp từ Stage-1 checkpoint.
+
+---
+
+### 2. Phân Tích Thực Tế Trên Mã Nguồn SAGE-Lite (`scripts/train_crack.py`)
+
+Kiểm tra trực tiếp tại `SAGE_LITE/scripts/train_crack.py`:
+
+1. **Khởi tạo Seed & DataLoader**:
+   - `set_seed(config.get('seed', 42))` được gọi **duy nhất một lần** tại L333 ở đầu hàm `main(args)`.
+   - Đối tượng generator `g = torch.Generator().manual_seed(config.get('seed', 42))` được khởi tạo tại L358-L359.
+   - `train_loader` được xây dựng một lần với `generator=g` và `worker_init_fn=seed_worker` tại L361-L370.
+
+2. **Ranh giới Chuyển tiếp Stage 1 $\to$ Stage 2 thông thường (Automatic Two-Stage Run)**:
+   - **Model weights**: Được nạp trực tiếp từ `best_model_*_stage1.pth` (L740-L744):
+     ```python
+     # scripts/train_crack.py L740-L744
+     stage1_ckpt_path = os.path.join(output_dir, f"best_model_{model_type.lower()}_stage1.pth")
+     if os.path.exists(stage1_ckpt_path):
+         logger.info(f"Loading best Stage 1 checkpoint from {stage1_ckpt_path}")
+         checkpoint = torch.load(stage1_ckpt_path, map_location=device, weights_only=False)
+         model.load_state_dict(checkpoint['model_state_dict'])
+     ```
+   - **Optimizer**: Được khởi tạo tươi mới thông qua `optimizer = create_stage2_optimizer(...)` (L770-L776).
+   - **Scheduler**: Được khởi tạo tươi mới thông qua `scheduler = get_scheduler(...)` (L786).
+   - **Không khôi phục optimizer/scheduler state từ Stage 1**: Biến `has_full_state` chỉ bật khi chạy `--resume-stage2` (L788), do đó ở luồng chuyển tiếp tự nhiên, không có state dict nào của optimizer/scheduler được restore.
+   - **Dòng RNG**: Tương tự như SAGE gốc, do chạy trong cùng 1 tiến trình và không reset seed, các dòng sinh số ngẫu nhiên của PyTorch, CUDA, NumPy, Python và DataLoader generator `g` tiếp tục trôi tự nhiên từ cuối Stage 1 sang đầu Stage 2.
+
+---
+
+### 3. Phân Biệt Rõ Ràng Các Chế Độ Vận Hành
+
+Cần phân định rạch ròi 3 ngữ cảnh vận hành khác nhau để tránh nhầm lẫn:
+
+1. **Normal Stage 2 from best Stage 1 checkpoint (Automatic 2-Stage Run trong cùng process)**:
+   - **Model weights**: Nạp từ checkpoint tốt nhất của Stage 1 (`best_model_*_stage1.pth`).
+   - **Optimizer**: Khởi tạo mới (fresh instance, step = 0, moment buffers rỗng).
+   - **Scheduler**: Khởi tạo mới (fresh instance, phase = 0).
+   - **Optimizer/Scheduler restoration**: KHÔNG restore từ checkpoint Stage 1.
+   - **RNG**: Trôi liên tục tự nhiên từ Stage 1 sang Stage 2 trong cùng process (natural stream continuity).
+
+2. **Tiếp nối Stage 2 bị gián đoạn (`--resume-stage2`)**:
+   - Đây là cơ chế **continuation của riêng Stage 2** (khi một lượt chạy Stage 2 bị ngắt giữa chừng do hết quota runtime hoặc timeout).
+   - Khi có checkpoint đầy đủ trạng thái (`last_model_*_stage2.pth`), toàn bộ trạng thái huấn luyện sẽ được phục hồi đồng bộ: Model weights, AdamW optimizer moments, Scheduler phase, AMP GradScaler, 5 bộ RNG states (PyTorch CPU, CUDA, NumPy, Python) và DataLoader generator permutation state.
+   - **Tuyệt đối không được đánh đồng trường hợp này với ranh giới chuyển tiếp Stage 1 → Stage 2.**
+
+3. **Tiến trình độc lập `--stage2-only` (Separate Process Execution)**:
+   - Một tiến trình riêng biệt được khởi động với `--stage2-only` từ best Stage-1 checkpoint sẽ **không thể tự động kế thừa runtime RNG state từ tiến trình Stage 1 đã kết thúc trước đó**. Nó sẽ tự khởi tạo RNG stream độc lập theo quy trình startup thông thường của nó.
+   - Muốn tái hiện trọn vẹn điểm nối RNG tại thời điểm Stage 1 kết thúc, tiến trình `--stage2-only` bắt buộc phải sử dụng cơ chế nạp RNG chuyên biệt `--rng-checkpoint` (trỏ tới `last_model_*_stage1_rng.pth` hoặc `last_model_*_stage1.pth`), trong khi optimizer và scheduler vẫn duy trì nguyên tắc tươi mới (strictly fresh).
+
+---
+
+### 4. Lưu Ý Cốt Lõi Về Sắc Thái RNG (Important RNG Nuance)
+
+> [!WARNING]
+> **Tuyệt đối KHÔNG viết**:
+> *"RNG state is not inherited."* (Câu này gây hiểu nhầm rằng RNG bị reset về seed ban đầu tại ranh giới Stage 2).
+> 
+> **Định nghĩa chuẩn xác bắt buộc sử dụng**:
+> **"RNG state is not checkpoint-restored at the Stage 1 → Stage 2 boundary, but in the original one-process automatic two-stage training flow, the RNG streams continue naturally from Stage 1 into Stage 2 because the seed is set only once and RNG/DataLoader generator are not reset at the transition."**
+> 
+> Đồng thời ghi nhận:
+> **"A separate `stage2-only` process started from the best Stage-1 checkpoint does not inherit the actual runtime RNG state from the completed Stage-1 process. It initializes its own RNG state according to its startup procedure."**
+
+---
+
+### 5. Kết Luận Đúc Kết Cuối Cùng (Final Concise Conclusion)
+
+> **Verified state transition:** Stage 1 → Stage 2 inherits the selected best model weights, but does not inherit Stage-1 optimizer or scheduler state. In the original one-process SAGE training flow, RNG state is not restored from checkpoint or explicitly reset at the boundary; instead, the RNG streams continue naturally from Stage 1 into Stage 2. Therefore “fresh optimizer/scheduler” must not be interpreted as “fresh RNG state.”
+
+
 
 
 
