@@ -70,9 +70,9 @@ Sau khi đánh giá độc lập điểm nghẽn tính toán của các cuộc g
 ### 1. Phân Định Rõ Ràng Thứ Tự Thực Nghiệm (Experiment Execution Sequence)
 > [!IMPORTANT]
 > **QUY TẮC PHÂN TẦNG THỰC NGHIỆM:**
-> 1. **Phase 1 đến Phase 6 trong Roadmap** (ViT Depth $\to$ `top_k` $\to$ Router Hidden Dim $\to$ Load Balancing $\to$ LR/Warmup $\to$ Regularization) là quá trình **KHÓA CẤU HÌNH NỀN TẢNG (Lock Base SAGE-Lite Configuration)**.
+> 1. **Phase 1 đến Phase 6 trong Roadmap** (ViT Depth $\to$ `top_k` $\to$ Router Hidden Dim $\to$ Load Balancing $\to$ SAGE LR/Warmup $\to$ Stage-2 LR Ratio $\to$ Regularization/Fusion) là quá trình **KHÓA CẤU HÌNH NỀN TẢNG (Lock Base SAGE-Lite Configuration)**.
 > 2. **Nhánh tối ưu nút thắt High-Resolution (P3, P1, P2) TUYỆT ĐỐI KHÔNG ĐƯỢC CHEN VÀO GIỮA các Phase 1–6 này.**
-> 3. Chỉ sau khi các biến nền tảng cốt lõi (Base ViT Depth, Best `top_k`, v.v.) đã được xác lập và khóa vững chắc trên tập Validation, mô hình mới chính thức bước sang giai đoạn tối ưu hóa đường truyền High-Resolution CNN $\to$ ViT.
+> 3. Chỉ sau khi các biến nền tảng cốt lõi (Base ViT Depth, Provisional Best `top_k`, v.v.) đã được xác lập và khóa vững chắc trên tập Validation, mô hình mới chính thức bước sang giai đoạn tối ưu hóa đường truyền High-Resolution CNN $\to$ ViT.
 > 4. Thứ tự ưu tiên `P3 (Primary Baseline) -> P1 SRA (Second) -> P2 Restricted Routing (Third)` là thứ tự ưu tiên nội bộ của **NHÓM TỐI ƯU HÓA (Optimization Group)**, hoàn toàn không thay thế hay làm đảo lộn Phase 1–6.
 > 5. **Triết Lý Lựa Chọn Chỉ Số Đánh Giá (Metric Selection Design Choice)**:
 >    - **Giai đoạn 1 (Base SAGE Lock: Phase 1 đến Phase 6)**: Sử dụng duy nhất **Validation Dice** làm chỉ số chọn lọc cấu hình chính (`sole primary selection metric`). Mục tiêu là khóa kiến trúc tổng thể vững chắc và ổn định nhất.
@@ -542,7 +542,7 @@ flowchart TD
 ---
 
 ### 4. Lộ Trình Thực Nghiệm Tổng Thể (Master Experimental Progression)
-$$\underbrace{\text{Phase 1–6: Khóa Base SAGE-Lite Config}}_{\text{(Depth } \to \text{ top\_k } \to \text{ router hidden } \to \text{ LB } \to \text{ LR } \to \text{ Reg)}} \implies \underbrace{\text{Nhóm Tối Ưu High-Res CNN}\to\text{ViT}}_{\text{(P3: Enhance+Compress } \to \text{ P1: SRA } \to \text{ P2: Restricted)}} \implies \underbrace{\text{Báo Cáo Tập Test Cuối Cùng}}_{\text{(Chỉ đánh giá 1 lần duy nhất)}}$$
+$$\underbrace{\text{Phase 1–6: Khóa Base SAGE-Lite Config}}_{\text{(Depth } \to \text{ top\_k } \to \text{ router hidden } \to \text{ LB } \to \text{ SAGE LR/Warmup } \to \text{ Stage-2 LR Ratio } \to \text{ Reg/Fusion)}} \implies \underbrace{\text{Nhóm Tối Ưu High-Res CNN}\to\text{ViT}}_{\text{(P3: Enhance+Compress } \to \text{ P1: SRA } \to \text{ P2: Restricted)}} \implies \underbrace{\text{Báo Cáo Tập Test Cuối Cùng}}_{\text{(Chỉ đánh giá 1 lần duy nhất)}}$$
 
 > **Giải thích phân kỳ thực nghiệm**:
 > - **Giai đoạn 1 (Phase 1–6)**: Chạy trên baseline chuẩn để xác định và khóa vững chắc các siêu tham số nền tảng của mô hình (ViT depth tối ưu, capacity `top_k`, router hidden dim, load balance loss, learning rate).
@@ -567,7 +567,7 @@ Khảo sát 5 độ sâu ViT (D12, D8, D6, D4, D2) dưới giao thức canonical
 
 ---
 
-## Phase 2 — Khảo sát Routing Capacity (top_k) trên Canonical D4 (ĐANG THỰC HIỆN ⏳)
+## Phase 2 — Khảo sát Routing Capacity (top_k) trên Canonical D4 (TẠM KHÓA PROVISIONAL TOP_K = 2 🔒)
 
 Khảo sát số lượng chuyên gia được kích hoạt tại mỗi router ($top\_k \in \{2, 4, 6\}$) trên nền tảng D4 (pool $M=8$ experts):
 
@@ -575,62 +575,99 @@ Khảo sát số lượng chuyên gia được kích hoạt tại mỗi router (
 * **Tiến độ và Kết quả Thực nghiệm**:
   * **Run 4 ($top\_k = 2$, 25% pool capacity)**: ✅ **HOÀN TẤT**. Peak S1 Dice = **0.7304** (Ep 13); Peak S2 Dice = **0.7618** (Ep 16, Loss 0.9518, IoU 0.6386, Median Dice 0.8058).
   * **Run 5 ($top\_k = 4$, 50% pool capacity)**: ✅ **HOÀN TẤT** (Baseline D4 từ Phase 1). Peak S2 Dice = **0.7639** (Ep 14, Loss 0.9533, IoU 0.6412, Median Dice 0.8066).
-  * **Run 6 ($top\_k = 6$, 75% pool capacity)**: ⏳ Cấu hình sẵn sàng tại `configs/p3_ablation/b2_p3_run_c_d4_k6.yaml`.
+  * **Run 6 ($top\_k = 6$, 75% pool capacity)**: ❌ **OOM trên Tesla T4** (phần cứng/runtime không khả thi dưới giao thức canonical trên T4: `batch_size: 12`, `img_size: 448`, AMP FP16). Đây là giới hạn về mặt phần cứng/runtime infeasibility under the canonical T4 protocol, không phải là kết quả đo lường accuracy/chất lượng mô hình.
 * **So Sánh Sơ Bộ ($top\_k=2$ vs $top\_k=4$)**:
   - Giảm $top\_k$ từ 4 xuống 2 chỉ làm suy giảm nhẹ **-0.21% Dice** (-0.0021) và **-0.26% IoU** (-0.0026), trong khi cắt giảm 50% số expert forward calls trên mỗi router.
 * **Đúc Kết Từ Nghiên Cứu Can Thiệp Định Tuyến (Routing Intervention Diagnostic trên D4)**:
   - Nghiên cứu đối chứng (Adaptive vs Static vs Random trên 348 mẫu Val) chứng minh: $\text{Adaptive} \approx \text{Static}$ ($\Delta = +0.00037, p = 0.4133$).
   - **Nguyên lý Information ≠ Utility**: Việc chọn $top\_k$ thực chất là bài toán cân bằng giữa **dung lượng ensemble** và **chi phí FLOPS/tốc độ tính toán**, chứ không phải vấn đề routing selection động.
+* **Quyết định Phase 2 (Working/Provisional Decision)**:
+  - **Tạm chốt `top_k = 2` (Provisional Working/Base Decision)** làm cấu hình hoạt động để tiếp tục bậc thang thực nghiệm (experimental ladder) cho các Phase 3 trở đi.
+  - **Lý do**: K2 là cấu hình hiện tại được chọn để tiếp tục lộ trình sau khi K6 không khả thi về mặt phần cứng trên Tesla T4; đồng thời K2 giảm đáng kể chi phí tính toán expert (50% forward calls) so với K4 trong khi duy trì hiệu năng gần tương đương (0.7618 vs 0.7639).
+  - **Giới hạn nhận thức**: Quyết định này không tuyên bố rằng K2 đã được chứng minh tối ưu tuyệt đối (not a proven global optimum). Tuyệt đối không tự ý mở thêm K3/K5 hoặc thay đổi batch size, độ phân giải, routing pool, injection points để ép K6 chạy.
+  - **Kế hoạch tương lai**: Nếu cần kiểm tra tính bền vững (robustness confirmation), điều này sẽ được thực hiện trong tương lai bằng huấn luyện đa seed (multi-seed training từ đầu), tuyệt đối không dùng việc đánh giá lại một checkpoint với các seed ngẫu nhiên khác nhau để gọi là multi-seed training.
+  - **Kế thừa ràng buộc**: Toàn bộ các Phase 3+ phía sau **mặc định kế thừa provisional `top_k = 2`**, cho đến khi Phase 2 được chính thức mở lại (re-opened) bằng một quyết định mới.
 
+---
 
 ## Phase 3 — Khảo sát Router Hidden Dim
 
-* Fix: Base depth (P1) + Best top_k (P2).
-* Thử nghiệm:
-  * Run 6: router_hidden_dim = 32
-  * Run 7: router_hidden_dim = 64 (từ P1)
-  * Run 8: router_hidden_dim = 128
-* Decision: Chọn hidden_dim.
+* **Kế thừa**: Base depth = 4 (P1) + Provisional best `top_k = 2` (từ P2).
+* **Thử nghiệm**:
+  * Run 7: router_hidden_dim = 32
+  * Run 8: router_hidden_dim = 64 (từ P1 baseline)
+  * Run 9: router_hidden_dim = 128
+* **Decision Gate**: Chọn `router_hidden_dim` tối ưu duy nhất dựa trên Validation Dice.
+
+---
 
 ## Phase 4 — Cân bằng tải (Load Balancing)
 
 Chỉ mở phase này nếu log cho thấy expert bị "dead" hoặc mất cân bằng nghiêm trọng. Chú ý: LB loss scale theo số lượng routers, nên Depth 12 vs Depth 6 sẽ có total LB loss khác nhau. Phải soi trung bình LB/router.
 
-* Fix: Base config từ P3.
-* Thử nghiệm (LB weight):
-  * Run 9: LB = 0.005
-  * Run 10: LB = 0.01 (từ P1)
-  * Run 11: LB = 0.03
+* **Kế thừa**: Base config từ P3 (Base depth D4, Provisional `top_k = 2`, Best router hidden dim).
+* **Thử nghiệm (LB weight)**:
+  * Run 10: LB = 0.005
+  * Run 11: LB = 0.01 (từ baseline)
+  * Run 12: LB = 0.03
 * **Quy định trạng thái khóa (Locked State Definition)**:
   - **Trường hợp Phase 4 ĐƯỢC CHẠY (RUN)**: Khi log chẩn đoán routing từ Phase 1–3 phát hiện có chuyên gia bị "dead" (utilization < 1%) hoặc phân phối quá lệch $\implies$ Chạy quét LB $\in \{0.005, 0.01, 0.03\}$, chọn `load_balance_factor` tối ưu dựa trên Validation Dice và Routing Entropy.
   - **Trường hợp Phase 4 BỊ BỎ QUA (SKIPPED)**: Khi 100% chuyên gia hoạt động đều đặn (như kết quả Phase 0 preflight: 4.7% – 7.2%, 0 dead experts) $\implies$ Khóa `load_balance_factor = 0.01` (giá trị baseline mặc định), ghi nhận tường minh trong báo cáo: *"inherited baseline (0.01), not tuned"*.
 
-## Phase 5 — Optimization Stability (SAGE LR & Warmup)
+---
 
-Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbone.
-Mặc định hiện tại: Backbone=1e-5, Decoder=1e-4.
+## Phase 5 — Optimization Stability (SAGE LR, Warmup & Stage-2 LR Allocation)
+
+Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbone. Mặc định baseline hiện tại: Backbone=1e-5, Decoder=1e-4.
 
 * **5.1 Khảo sát SAGE LR**:
-  * Run 12: SAGE LR = 5e-5
-  * Run 13: SAGE LR = 1e-4
-  * Run 14: SAGE LR = 2e-4
+  * Run 13: SAGE LR = 5e-5
+  * Run 14: SAGE LR = 1e-4
+  * Run 15: SAGE LR = 2e-4
   * *Quy tắc khóa*: Chọn SAGE LR có Val Dice cao nhất và hội tụ ổn định nhất.
+
 * **5.2 Khảo sát Warmup Epochs (Có điều kiện)**:
-  * Run 15: Warmup = 2
-  * Run 16: Warmup = 3
-  * Run 17: Warmup = 5
-* **Quy định trạng thái khóa Warmup (Locked State Definition)**:
-  - **Trường hợp Warmup ĐƯỢC CHẠY (RUN)**: Nếu quá trình training ở 5.1 xuất hiện hiện tượng mất ổn định (loss spike đột ngột ở đầu epoch hoặc gradient norm bùng nổ) $\implies$ Kích hoạt quét Warmup epochs $\in \{2, 3, 5\}$, chọn giá trị giúp triệt tiêu spike tốt nhất trên tập Validation.
-  - **Trường hợp Warmup BỊ BỎ QUA (SKIPPED)**: Nếu loss giảm mượt mà không có bất kỳ spike nào $\implies$ Khóa `warmup = 0` (giữ nguyên baseline không warmup), ghi nhận tường minh trong báo cáo: *"Phase 5 warmup skipped, inherited baseline (no warmup)"*.
+  * Run 16: Warmup = 2
+  * Run 17: Warmup = 3
+  * Run 18: Warmup = 5
+  * *Quy định trạng thái khóa Warmup (Locked State Definition)*:
+    - **Trường hợp Warmup ĐƯỢC CHẠY (RUN)**: Nếu quá trình training ở 5.1 xuất hiện hiện tượng mất ổn định (loss spike đột ngột ở đầu epoch hoặc gradient norm bùng nổ) $\implies$ Kích hoạt quét Warmup epochs $\in \{2, 3, 5\}$, chọn giá trị giúp triệt tiêu spike tốt nhất trên tập Validation.
+    - **Trường hợp Warmup BỊ BỎ QUA (SKIPPED)**: Nếu loss giảm mượt mà không có bất kỳ spike nào $\implies$ Khóa `warmup = 0` (giữ nguyên baseline không warmup), ghi nhận tường minh trong báo cáo: *"Phase 5 warmup skipped, inherited baseline (no warmup)"*.
+
+* **5.3 Khảo sát Stage-2 LR Ratio (Optimization Allocation)**:
+  * **Mục tiêu**: Điều tra xem việc phân bổ learning rate giữa các shared backbone experts và các parameter groups còn lại ở Stage 2 có phải là nút thắt tối ưu hóa (optimization allocation) hay không.
+  * **Định nghĩa tham số**:
+    $$r = \frac{LR_{\text{shared}}}{LR_{\text{others}}}$$
+    Trong đó:
+    - $LR_{\text{others}} = \text{stage2\_base\_lr}$ (áp dụng cho decoder, router, adapters, v.v.)
+    - $LR_{\text{shared}} = \text{stage2\_shared\_lr}$ (áp dụng cho unfreezed shared backbone stages/blocks)
+    - Mối liên hệ: $LR_{\text{shared}} = r \cdot LR_{\text{others}}$
+  * **Quy tắc thực nghiệm bắt buộc**:
+    1. Bắt buộc **khóa absolute SAGE/base LR trước** (từ mục 5.1 và 5.2) trước khi khảo sát ratio $r$.
+    2. Tuyệt đối không thay đổi depth, `top_k`, router hidden dim, load balance loss, dropout, fusion hoặc architecture trong Phase 5.3.
+    3. Chỉ thay đổi phân bổ LR giữa shared backbone experts và các parameter group còn lại ở Stage 2.
+    4. Dùng Validation Dice làm primary selection metric như toàn bộ Phase 1–6. Tuyệt đối không dùng Test set.
+    5. Không mô tả Stage-2 LR ratio như một "bản vá" (fix) cho residual-scale hay cho riêng ViT; đây là một **optimization-allocation ablation** độc lập về mặt động lực học huấn luyện.
+  * **Grid khảo sát dự kiến (được đóng băng trước khi chạy)**:
+    - $r \in \{0.25, 0.50, 1.00, 2.00\}$ (với $r=1.00$ là baseline hiện tại `stage2_base_lr = stage2_shared_lr`).
+  * *Quy tắc khóa*: Chọn tỉ lệ $r$ đạt Validation Dice cao nhất để chuyển giao sang Phase 6.
+
+---
 
 ## Phase 6 — Regularization & Fusion Mechanics (Khóa Cấu Hình Nền Tảng Cuối Cùng)
 
 Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢNG (Lock Base SAGE-Lite)**, khảo sát cơ chế điều hòa và hợp nhất đặc trưng của nhánh expert trước khi bước sang nhóm tối ưu High-Resolution (P3 $\to$ P1 $\to$ P2).
 
-* **Cố định dùng chung**: Base ViT Depth (từ P1), Best `top_k` (từ P2), Best Router Hidden (từ P3), Locked LB (từ P4: Best LB nếu RUN, hoặc inherited 0.01 nếu SKIPPED), Locked SAGE LR & Warmup (từ P5: Best SAGE LR; Best Warmup nếu RUN, hoặc inherited baseline no-warmup nếu SKIPPED).
+* **Kế thừa toàn bộ thông số đã khóa**:
+  - Locked Base ViT Depth = 4 (từ Phase 1).
+  - Provisional Best `top_k = 2` (từ Phase 2).
+  - Best Router Hidden Dim (từ Phase 3).
+  - Locked Load Balancing (từ Phase 4: Best LB nếu RUN, hoặc inherited 0.01 nếu SKIPPED).
+  - Locked SAGE LR (từ Phase 5.1).
+  - Locked Warmup (từ Phase 5.2: Best Warmup nếu RUN, hoặc inherited 0 nếu SKIPPED).
+  - **Locked Stage-2 LR Ratio** (từ Phase 5.3).
 * **6.1 Khảo sát Adapter Dropout**:
   - `expert_dropout = {0.0, 0.1, 0.2}`
-
 * **6.2 Khảo sát Residual Scale**:
   - `fusion_type = "residual"`
   - Thử nghiệm:
@@ -649,13 +686,15 @@ Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢ
 ### ĐÓNG BĂNG CẤU HÌNH NỀN TẢNG (LOCKED BASE SAGE-LITE CONFIGURATION)
 > [!IMPORTANT]
 > **KẾT THÚC GIAI ĐOẠN 1 (BASE SAGE LOCK):**
-> Sau khi Phase 6 hoàn tất, toàn bộ các siêu tham số nền tảng của SAGE-Lite được **ĐÓNG BĂNG HOÀN TOÀN**:
-> - `vit_depth`: Đã khóa từ Phase 1.
-> - `top_k`: Đã khóa từ Phase 2.
+> Sau khi Phase 6 hoàn tất, cấu hình nền tảng của SAGE-Lite được đóng băng để chuyển giao sang Giai đoạn 2:
+> - `vit_depth`: Đã khóa từ Phase 1 (Base Depth = 4).
+> - `top_k`: **Provisional Base Configuration: `top_k = 2`**, pending any explicitly approved Phase-2 robustness/reopen decision.
 > - `router_hidden_dim`: Đã khóa từ Phase 3.
 > - `load_balance_factor`: Đã khóa từ Phase 4 (Best LB nếu RUN, hoặc inherited baseline 0.01 nếu SKIPPED).
-> - `sage_lr` & `warmup`: Đã khóa từ Phase 5 (Best SAGE LR; Best Warmup nếu RUN, hoặc inherited baseline no-warmup nếu SKIPPED).
+> - `sage_lr` & `warmup`: Đã khóa từ Phase 5.1 & 5.2 (Best SAGE LR; Best Warmup nếu RUN, hoặc inherited baseline no-warmup nếu SKIPPED).
+> - `stage2_lr_ratio`: Đã khóa từ Phase 5.3.
 > - `dropout`, `residual_scale` & `fusion_type`: Đã khóa từ Phase 6.
 > 
 > **CHUYỂN GIAO SANG GIAI ĐOẠN 2:**
 > Mô hình nền tảng đã khóa sẽ được đưa vào làm chuẩn so sánh cho **Nhóm Tối Ưu High-Resolution CNN $\to$ ViT (Optimization Group)** bắt đầu với **Proposal 3 (P3: ASDW-Concat + Spatial Compression 28×28)** theo đúng 9 Phase tuần tự đã lập ở Mục 2.
+
