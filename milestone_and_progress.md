@@ -110,10 +110,11 @@ Completed:
 
 
 In Progress:
-- Chuẩn bị triển khai Phase 5.3: Stage-2 Learning Rate Ratio Sweep ($r = LR_{\text{shared}} / LR_{\text{fine}} \in \{0.25, 0.50, 1.00, 2.00\}$) trên Crack500:
+- Chuẩn bị triển khai Phase 5.3: Stage-2 Learning Rate Ratio Sweep ($r = LR_{\text{shared}} / LR_{\text{base}} \in \{0.25, 0.50, 1.00, 2.00\}$) trên Crack500:
   + Kế thừa Base Configuration đã khóa: D4, `top_k = 2`, `router_hidden_dim = 64`, `load_balance_factor = 0.01`, `sage_lr = 2e-4` (Stage 1), warmup = 3.
-  + Cố định Non-expert parameters (Routers, SA-Hub, Decoder, Bridge) tại $\text{stage2\_base\_lr} = 10^{-4}$ và P3 refinement tại $\text{stage2\_p3\_lr} = 10^{-4}$.
-  + Quét 1 chiều tỷ số $r = \text{stage2\_shared\_lr} / \text{stage2\_fine\_lr}$ trong Stage 2.
+  + Gộp `fine_lr` và `base_lr` thành một tầng thống nhất (`stage2_base_lr = 10^{-4}`): ViT expert blocks, Routers, SA-Hub, Decoder, Bridge.
+  + P3 refinement cố định tại $\text{stage2\_p3\_lr} = 10^{-4}$.
+  + Quét 1 chiều tỷ số $r = \text{stage2\_shared\_lr} / \text{stage2\_base\_lr}$ trong Stage 2.
 - **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
   + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
   + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**
@@ -144,10 +145,10 @@ Current Issue:
 
 Next Step:
 - Chuẩn bị 4 candidate configs cho Phase 5.3 ($r \in \{0.25, 0.50, 1.00, 2.00\}$) kế thừa base `sage_lr = 2e-4`:
-  + $r = 0.25$: `stage2_shared_lr = 2.5e-5`, `stage2_fine_lr = 1.0e-4`
-  + $r = 0.50$: `stage2_shared_lr = 5.0e-5`, `stage2_fine_lr = 1.0e-4`
-  + $r = 1.00$: `stage2_shared_lr = 1.0e-4`, `stage2_fine_lr = 1.0e-4` (Baseline kế thừa từ Candidate B Phase 5.1, không train lại)
-  + $r = 2.00$: `stage2_shared_lr = 2.0e-4`, `stage2_fine_lr = 1.0e-4`
+  + $r = 0.25$: `stage2_shared_lr = 2.5e-5`, `stage2_base_lr = 1.0e-4`
+  + $r = 0.50$: `stage2_shared_lr = 5.0e-5`, `stage2_base_lr = 1.0e-4`
+  + $r = 1.00$: `stage2_shared_lr = 1.0e-4`, `stage2_base_lr = 1.0e-4` (Baseline kế thừa từ Candidate B Phase 5.1, không train lại)
+  + $r = 2.00$: `stage2_shared_lr = 2.0e-4`, `stage2_base_lr = 1.0e-4`
 - Chuẩn bị driver notebook và các cell Colab T4 cho Phase 5.3.
 
 
@@ -285,7 +286,7 @@ sage-lite/
 | **load_balance_factor** | Training | 0.01 | Inherited baseline, Phase 4 skipped |
 | **expert_dropout** | Training | 0.1 | Hạn chế overfitting SA-Hub |
 | **freeze_encoder/transformer** | Training | False/False | Fine-tune cả mạng |
-| **Stage2 LR ratio** | Training | Khảo sát Phase 5.3 ($r=1.0$ baseline) | $r = LR_{\text{shared experts}} / LR_{\text{fine-grained experts}}$ |
+| **Stage2 LR ratio** | Training | Khảo sát Phase 5.3 ($r=1.0$ baseline) | $r = LR_{\text{shared experts}} / LR_{\text{base}}$ |
 | **AMP dtype** | Training | FP16 | Tối ưu trên GPU Tesla T4 |
 | **Warmup** | Training | 3 epochs | CosineAnnealingLR sau warmup |
 | **EarlyStopping patience** | Training | 6 | Dừng sớm nếu Val Dice không tăng |
