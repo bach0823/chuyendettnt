@@ -217,14 +217,15 @@ Từ kết quả thẩm định chuẩn tắc (`results/P3_C_Routing_Diagnostics
 
 ---
 
-## 7. Phase 5.1 SAGE LR Isolation: Candidate B (Stage 2 SAGE LR=1e-4) vs Phase 5.1 Extra (Stage 2 SAGE LR=2e-4)
+## 7. Phase 5.1 SAGE LR Isolation: Candidate B (SAGE LR = 2e-4) vs Phase 5.1 Extra (Stage 2 SAGE LR = 2e-4)
 
 ### 7.1. Tổng Quan & So Sánh Hiệu Năng Đỉnh Cao
 
 | Cấu hình | Stage 1 SAGE LR | Stage 2 SAGE LR | Peak S1 Val Dice | Peak S2 Val Dice (Global) | Val Loss @ Peak | Mean IoU | Median Dice | Precision | Recall | Trạng thái Nghiệm thu |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Candidate B (Phase 5.1 Baseline)** | 2e-4 | 1e-4 | **0.7333** (Ep 13) | **0.7641** (Ep 14) | 0.9550 | **0.6417** | 0.8066 | 0.7224 | **0.8642** | Đã khóa SAGE LR Stage 1 = 2e-4 |
-| **Phase 5.1 Extra (Stage 2 High SAGE LR)** | 2e-4 | 2e-4 | **0.7333** (Inherited) | 🏆 **0.7644** (Ep 16) | **0.9526** (đáy 0.9412) | **0.6409** | **0.8073** | 0.7195 | 0.8615 | 35/35 epochs (đạt trần ngân sách) |
+| **Phase 5.1 Baseline** | 1e-4 | 1e-4 | 0.7304 (Ep 13) | 0.7618 (Ep 16) | **0.9518** | 0.6386 | 0.8058 | 0.7195 | 0.8576 | Baseline gốc Phase 5.1 (`sage_lr = 1e-4`) |
+| **Candidate B** | **2e-4** | 1e-4 (base) | **0.7333** (Ep 13) | **0.7641** (Ep 14) | 0.9550 | **0.6417** | 0.8066 | **0.7224** | **0.8642** | 🏆 Thắng giải Phase 5.1 (`sage_lr = 2e-4`) |
+| **Phase 5.1 Extra** | **2e-4** | **2e-4** (cô lập) | **0.7333** (Inherited) | 🏆 **0.7644** (Ep 16) | 0.9526 (đáy **0.9412**) | 0.6409 | **0.8073** | 0.7195 | 0.8615 | 🏆 Kỷ lục Val Dice dự án (giữ SAGE LR = 2e-4 cả Stage 2) |
 
 ### 7.2. Bảng Đối Chiếu Từng Epoch Stage 2 (Epoch 1 – 18)
 
@@ -252,7 +253,7 @@ Từ kết quả thẩm định chuẩn tắc (`results/P3_C_Routing_Diagnostics
 ### 7.3. Đánh Giá Khoa Học & Kết Luận Về `stage2_sage_lr`
 
 1. **Hiệu Năng & Độ Ổn Định**:
-   - Khi giữ nguyên `stage2_sage_lr = 2e-4` ở Stage 2, mô hình đạt đỉnh **0.7644 Val Dice** (tại Epoch 16), nhỉnh hơn nhẹ so với baseline Candidate B (`0.7641` tại Epoch 14).
+   - Khi giữ nguyên `stage2_sage_lr = 2e-4` ở Stage 2, mô hình đạt đỉnh **0.7644 Val Dice** (tại Epoch 16), nhỉnh hơn nhẹ so với Candidate B gốc (`0.7641` tại Epoch 14).
    - Đáy Validation Loss đạt **0.9412** (Epoch 18), thấp hơn mức 0.9550 của Candidate B, cho thấy độ tự tin dự đoán của mô hình sắc nét hơn.
    - Chênh lệch $\Delta = +0.0003$ Dice giữa $2\times 10^{-4}$ và $1\times 10^{-4}$ là rất nhỏ, khẳng định rằng vùng LR xung quanh $[1\times 10^{-4}, 2\times 10^{-4}]$ cho SAGE Router ở Stage 2 là cực kỳ ổn định, không có hiện tượng divergence hay gradient explosion.
 
