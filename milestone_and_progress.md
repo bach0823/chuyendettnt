@@ -26,15 +26,19 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
    - Đã khảo sát 3 dung lượng router {H32: 0.7587, H64: **0.7618**, H128: 0.7550}. Đường cong chữ U ngược quan sát được: $Dice(H128=0.7550) < Dice(H32=0.7587) < Dice(H64=0.7618)$. Chọn `router_hidden_dim = 64` là best observed configuration dưới D4 + provisional top_k=2 (seed 42).
 4. **Phase 4: Load Balancing Loss Study (HOÀN TẤT & BỎ QUA THEO TIÊU CHUẨN CỔNG ĐIỀU KIỆN — SKIPPED ⏭️):**
    - Thẩm định routing diagnostic trên checkpoint canonical ghi nhận 0/8 dead experts (min utilization 4.94% > 1.0%), không sụp đổ phân phối. Kế thừa `load_balance_factor = 0.01` (inherited baseline, not tuned).
-5. **Phase 5.1: SAGE LR Isolation (SẴN SÀNG TRIỂN KHAI / CANDIDATES READY 🚀):**
-   - Baseline 1e-4 kế thừa từ checkpoint canonical H64 K2 (Peak Val Dice 0.7618). Đã chuẩn bị sẵn sàng 2 candidate configs (`5e-5` và `2e-4`) cùng driver notebook để chạy song song trên 2 T4 Colabs.
+5. **Phase 5.1: SAGE LR Isolation (CANDIDATE B BEST OBSERVED / CANDIDATE C STAGE-1 READY 🔬):**
+   - Candidate A (5e-5): Peak S1 = 0.7266 (Ep 17), Peak S2 = 0.7597 (Ep 18), Mean IoU = 0.6357.
+   - Baseline (1e-4): Peak S1 = 0.7304 (Ep 13), Peak S2 = 0.7618 (Ep 16), Mean IoU = 0.6386.
+   - Candidate B (2e-4): Peak S1 = 0.7333 (Ep 13), Peak S2 = **0.7641** 🏆 (Ep 14), Mean IoU = **0.6417** (Best observed configuration).
+   - Candidate C (3e-4): Đã chuẩn bị config `b2_p3_run_c_d4_k2_h64_phase5_sagelr3e4.yaml` và cờ `--stage1-only` chạy thăm dò riêng Stage 1 (17 epochs, ~45 phút) để xác nhận đỉnh trước khi vào Phase 5.3.
+   - **Quyết định kiến trúc & tối ưu hóa**: `sage_lr` chỉ áp dụng trong Stage 1 (khi backbone freeze, router + decoder + P3 train). Không tách riêng `stage2_sage_lr` ở Stage 2 hiện tại (giữ router ở Tier 3 với `stage2_base_lr = 1e-4` nhằm giữ biến kiểm soát độc lập 1D cho Phase 5.3 sweep tỉ số $r = LR_{\text{shared}} / LR_{\text{fine}}$, tránh mở rộng search space sang 2D; nếu sau Phase 5.3 router Stage 2 cho thấy bottleneck thì sẽ tách thành Phase 5.4 độc lập).
 
 State:
 - Phase 1: D4 locked
 - Phase 2: K6 OOM → provisional top_k=2
 - Phase 3: H64 selected under D4+K2, seed42
 - Phase 4: SKIPPED, LB=0.01 inherited baseline
-- Phase 5.1: SAGE LR candidates 5e-5 and 2e-4 ready/running
+- Phase 5.1: Candidate B (2e-4) best observed (0.7641); Candidate C (3e-4, Stage-1 only) ready to verify
 
 Cấu hình hiện hành:
 - ViT depth = 4
@@ -103,11 +107,11 @@ Completed:
 
 
 In Progress:
-- Phase 5.1: SAGE LR Isolation Suite trên Crack500 (Google Colab T4, `batch_size: 14`, `num_workers: 2`, `--two-stage`):
-  + Candidate A (SAGE LR = 5e-5): `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr5e5.yaml`
-  + Candidate B (SAGE LR = 2e-4): `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml`
-  + Baseline tham chiếu (SAGE LR = 1e-4): Checkpoint canonical H64 K2 (`best_model_b2_global.pth`, Peak Val Dice = **0.7618**, không train lại).
-  + Đánh giá và chọn SAGE LR tốt nhất dựa DUY NHẤT trên Validation Dice (không dùng test-set).
+In Progress:
+- Phase 5.1: Chạy kiểm chứng thăm dò Candidate C (SAGE LR = 3e-4, Stage-1 Only, 17 epochs) trên Google Colab Tesla T4 (`configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr3e4.yaml`, `--two-stage --stage1-only`).
+  + Candidate A (5e-5) & Candidate B (2e-4) đã hoàn tất và lưu trữ artifacts đầy đủ (Peak S2 Val Dice: 0.7597 vs 0.7641).
+  + Nếu Candidate C có Peak S1 Val Dice $> 0.7333$: Mở rộng chạy tiếp Stage 2 qua `--stage2-only` và cập nhật SAGE LR tốt nhất.
+  + Nếu Candidate C có Peak S1 Val Dice $\le 0.7333$: Chốt `sage_lr = 2e-4` là best observed của Phase 5.1 và tiến thẳng sang Phase 5.3 ($r$ sweep).
 - **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
   + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
   + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**
@@ -137,9 +141,11 @@ Current Issue:
 - Không có issue. Two-Stage Training & Optimizer Preflight đã PASS 100% cho cả 3 cấu hình Run A, Run B và Run C (343/343 tensors khớp tuyệt đối, 0 missing, 0 duplicates, shared experts cô lập chuẩn ở CNN main blocks, Stage 2 LR ratio 1:1 bảo toàn).
 
 Next Step:
-- Chạy huấn luyện song song Candidate A (`5e-5`) và Candidate B (`2e-4`) trên 2 Colab Tesla T4 theo notebook `notebooks/Phase5_1_SAGE_LR_Colab_T4.ipynb`.
-- Thu thập metrics Validation Dice và loss curve để xác định xem có xuất hiện loss spike hay không (phục vụ Decision Gate cho Phase 5.2 Warmup).
-- Lựa chọn SAGE LR tối ưu nhất để chuyển giao sang Phase 5.3 (Stage-2 LR Ratio Isolation).
+- Chạy Cell 1 trên Google Colab T4 cho Candidate C (`sage_lr = 3e-4 --stage1-only`, 17 epochs).
+- Chạy Cell 2 đối chiếu Peak S1 Val Dice trực tiếp từ `best_model_b2_stage1.pth`:
+  + Nếu Peak S1 Val Dice $> 0.7333$: Chạy tiếp Cell 3 (`--stage2-only`) để hoàn thiện Stage 2 cho Candidate C.
+  + Nếu Peak S1 Val Dice $\le 0.7333$: Giữ nguyên quyết định chọn `sage_lr = 2e-4` là cấu hình tốt nhất của Phase 5.1.
+- Tiến vào Phase 5.3 ($r$ sweep: $r \in \{0.25, 0.50, 1.00, 2.00\}$) với base SAGE LR đã chọn, giữ nguyên router ở Tier 3 (`stage2_base_lr = 1e-4`).
 
 
 ## Milestones & SKs (Dependency-order)

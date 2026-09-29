@@ -659,10 +659,20 @@ Phase 4 được thiết kế dưới dạng **Cổng Điều Kiện (Conditiona
 Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbone. Mặc định baseline hiện tại: Backbone=1e-5, Decoder=1e-4.
 
 * **5.1 SAGE LR Isolation**:
-  * **Baseline 1e-4**: existing canonical H64/K2 checkpoint (Peak S2 Val Dice = 0.7618, Run 14 baseline, không train lại)
-  * **Candidate 5e-5**: pending training (`configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr5e5.yaml`)
-  * **Candidate 2e-4**: pending training (`configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml`)
-  * *Quy tắc khóa*: Chọn SAGE LR có Val Dice cao nhất và hội tụ ổn định nhất.
+  * **Mục tiêu**: Phân lập tác động của tốc độ học router/adapters trong Stage 1 (khi backbone đóng băng, chỉ tối ưu router + decoder + P3).
+  * **Kết quả quan sát thực tế (Validation 348 samples)**:
+    - **Candidate A (5e-5)**: Peak S1 Val Dice = 0.7266 (Ep 17) | Peak S2 Val Dice = 0.7597 (Ep 18) | Mean IoU = 0.6357
+    - **Baseline (1e-4)**: Peak S1 Val Dice = 0.7304 (Ep 13) | Peak S2 Val Dice = 0.7618 (Ep 16) | Mean IoU = 0.6386
+    - **Candidate B (2e-4)**: Peak S1 Val Dice = 0.7333 (Ep 13) | Peak S2 Val Dice = **0.7641** 🏆 (Ep 14) | Mean IoU = **0.6417** (Best observed configuration)
+  * **Candidate C (3e-4) — Stage-1 Exploration**:
+    - Chuẩn bị config `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr3e4.yaml` và cờ `--stage1-only` (17 epochs) để kiểm tra xem Stage 1 Dice có tiếp tục tăng hay chạm ngưỡng bão hòa.
+    - Tiêu chí: nếu Peak S1 Dice $> 0.7333 \implies$ chạy tiếp Stage 2 qua `--stage2-only`; nếu $\le 0.7333 \implies$ chốt chính thức `sage_lr = 2e-4`.
+  * **Ghi chú quyết định kiến trúc (Stage 2 Router LR)**:
+    - `sage_lr` chỉ áp dụng trong Stage 1. Trong Stage 2, các router thuộc Tier 3 cùng với Decoder và Bridge layers, nhận `stage2_base_lr = 1e-4`.
+    - **Không tách riêng `stage2_sage_lr` ở thời điểm hiện tại** vì:
+      1. Bảo toàn tính độc lập của biến kiểm soát cho Phase 5.3 (chỉ quét tỉ số $r = LR_{\text{shared}} / LR_{\text{fine}}$ trong không gian 1 chiều, tránh bùng nổ 2D search space).
+      2. Trong Stage 2, toàn bộ backbone unfreeze nên router phải thích nghi đồng thời với feature representations đang biến động (entangled với cả CNN và ViT experts).
+      3. Nếu sau Phase 5.3 routing diagnostics cho thấy router Stage 2 là điểm nghẽn, sẽ tách thành Phase 5.4 độc lập.
 
 * **5.2 Khảo sát Warmup Epochs (Có điều kiện)**:
   * Run 16: Warmup = 2
