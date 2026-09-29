@@ -871,7 +871,57 @@ Segmentation Utility           ❌ CHƯA THỂ KHẲNG ĐỊNH: Bất kỳ winni
 - **Entropy & Mức độ tập trung**:
   - Các tầng ViT (B0..B3) duy trì entropy rất cao ($\sim 2.64 - 2.78$ bits / normalized $0.88 - 0.93$), HHI thấp ($0.157 - 0.174$), số chuyên gia hiệu dụng đạt $\sim 6.2 - 6.8$ / 8 experts.
   - Các tầng CNN nông (S0..S2) có tính chọn lọc cao hơn (entropy $1.28 - 1.63$ bits, normalized $0.43 - 0.54$, HHI $0.35 - 0.45$).
-- **Nhận định sơ bộ**: Giảm router projection dimension từ 64 xuống 32 làm sụt giảm nhẹ -0.31% Dice và -0.32% IoU, cho thấy việc nén không gian chiếu query quá mức làm giảm nhẹ tính năng lực của router, dù entropy tổng thể vẫn bảo toàn tốt. Cần chờ kết quả của H128 (`dim=128`) để hoàn tất Decision Gate của Phase 3.
+- **Nhận định sơ bộ**: Giảm router projection dimension từ 64 xuống 32 làm sụt giảm nhẹ -0.31% Dice và -0.32% IoU, cho thấy việc nén không gian chiếu query quá mức làm giảm nhẹ tính năng lực của router, dù entropy tổng thể vẫn bảo toàn tốt.
+
+---
+
+## Nghiệm Thu Thực Nghiệm Phase 3: Khảo Sát Router Hidden Dim H128 & Tổng Kết Phase 3 (Canonical D4 K2 H128)
+
+*Ngày: 2026-09-29 | Checkpoint: `P3_C_D4_K2_H128_best_model_b2_global.pth` (10.12M params, Epoch 15, Val Dice: 0.7550) | Ngân sách: 35 Epochs (17 S1 + 18 S2)*  
+*Dữ liệu thực nghiệm: 348 mẫu Crack500 Validation, Setting A | Protocol: BS14, D4, K2, router_hidden_dim = 128*  
+*Tệp lưu trữ: `results/P3_C_Canonical_Base_D4_K2_H128_Full.zip`, Checkpoints: `results/checkpoints/P3_C_D4_K2_H128_*`, Log: `results/logs/P3_C_Canonical_Base_D4_K2_H128.log`, Diagnostics: `results/P3_C_Routing_Diagnostics_D4_K2_H128/`*
+
+### 1. Diễn Biến Huấn Luyện 2 Giai Đoạn H128
+- **Stage 1 (Frozen Backbone, 17/17 epochs used)**:
+  - Đạt đỉnh tại **Epoch 11** với Val Dice = **0.7280**, Val Loss = `1.3101`.
+  - Hiệu năng Stage 1 thấp hơn H64 (0.7304) và H32 (0.7307).
+- **Stage 2 (Full Fine-tuning, 18/18 epochs used)**:
+  - Đạt đỉnh toàn cục tại **Epoch 15** với Val Dice = **0.7550**, Val Loss = `0.9671`.
+  - Cả 35 epochs đều được hoàn thành trọn vẹn.
+
+---
+
+### 2. Bảng Tổng Hợp So Sánh Toàn Diện Phase 3 (H32 vs H64 vs H128)
+
+| Chỉ số (Validation Setting A, 348 mẫu) | Run 7: H32 (`dim=32`) | Run 8: H64 Baseline (`dim=64`) | Run 9: H128 (`dim=128`) | Nhận xét xu hướng |
+| :--- | :---: | :---: | :---: | :--- |
+| **Peak Stage 1 Val Dice** | **0.7307** (Ep 7) | 0.7304 (Ep 13) | 0.7280 (Ep 11) | H32 $\approx$ H64 > H128 |
+| **Peak Stage 2 Val Dice (Global)** | 0.7587 (Ep 18) | 🏆 **0.7618** (Ep 16) | 0.7550 (Ep 15) | **H64 cao nhất** ($\Delta_{\text{H32}} = -0.31\%$, $\Delta_{\text{H128}} = -0.68\%$) |
+| **Val Loss @ Peak** | 0.9847 | 🏆 **0.9518** | 0.9671 | **H64 thấp nhất** |
+| **Mean IoU** | 0.6354 | 🏆 **0.6386** | 0.6292 | **H64 cao nhất** ($\Delta_{\text{H128}} = -0.94\%$) |
+| **Median Dice** | 0.8005 | 🏆 **0.8058** | 0.7974 | H64 duy trì độ đồng đều cao nhất |
+| **Precision** | 0.7115 | 🏆 **0.7291** | 0.6927 | H64 cân bằng P-R tốt nhất |
+| **Recall** | 0.8632 | 0.8506 | **0.8790** | H128 trade-off precision lấy recall |
+| **Tình trạng Dead Experts** | 0 dead experts | 0 dead experts | 0 dead experts | Cả 3 đều an toàn |
+| **ViT Mean Entropy (bits)** | $\sim 2.73$ bits | $\sim 2.75$ bits | $\sim 2.58$ bits | H128 bắt đầu có dấu hiệu co cụm |
+| **CNN S2 Effective Experts** | 2.43 | 2.65 | 2.00 | H128 bị co cụm cứng vào 2 experts |
+
+---
+
+### 3. Phán Quyết Khoa Học & Quyết Định Khóa Phase 3 (Decision Gate Verdict)
+
+1. **Xác lập Đường cong Chữ U Ngược (Inverted U-Curve)**:
+   - Thực nghiệm 3 điểm $H32 \to H64 \to H128$ xác lập một đường cong tối ưu rõ ràng:
+     $$Dice(H32 = 0.7587) < Dice(H128 = 0.7550) < Dice(H64 = 0.7618)$$
+   - `dim = 32`: Quá hẹp, không đủ dung lượng để router phân tách không gian đa phương thức dị thể CNN vs ViT.
+   - `dim = 128`: Quá rộng, gây over-parameterization cục bộ cho query projection, dẫn đến co cụm định tuyến sớm (CNN Stage 2 bị khóa cứng vào 2 experts, entropy giảm, precision tụt xuống 0.6927).
+   - `dim = 64`: Điểm cân bằng tối ưu tuyệt đối (Sweet Spot) về cả Val Dice (0.7618), Val IoU (0.6386), Val Loss (0.9518) và phân phối entropy ổn định nhất.
+
+2. **Quyết Định Khóa Chính Thức (Locked Base Parameter)**:
+   > **KHÓA CHÍNH THỨC: `router_hidden_dim = 64`**
+   - Đóng hoàn tất Phase 3.
+   - **Chuyển giao sang Phase 4 (Load Balancing)** với bộ thông số nền tảng kế thừa: Base ViT Depth = 4, Provisional `top_k = 2`, Locked `router_hidden_dim = 64`.
+
 
 
 

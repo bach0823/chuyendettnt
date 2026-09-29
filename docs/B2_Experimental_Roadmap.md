@@ -590,9 +590,9 @@ Khảo sát số lượng chuyên gia được kích hoạt tại mỗi router (
 
 ---
 
-## Phase 3 — Khảo sát Router Hidden Dim (ĐANG THỰC HIỆN ⏳)
+## Phase 3 — Khảo sát Router Hidden Dim (HOÀN TẤT & ĐÃ KHÓA HIDDEN_DIM = 64 ✅)
 
-Khảo sát dung lượng chiếu query của Router qua router hidden dimension ($router\_hidden\_dim \in \{32, 64, 128\}$) trên nền tảng D4 K2.
+Khảo sát dung lượng chiếu query của Router qua router hidden dimension ($router\_hidden\_dim \in \{32, 64, 128\}$) trên nền tảng D4 K2 đã hoàn tất 100%:
 
 * **Kế thừa & Giữ nguyên toàn bộ giao thức K2**:
   - Base depth = 4 (`num_transformer_layers: 4`, 8 routers, 8 experts pool: 4 CNN + 4 ViT).
@@ -602,17 +602,23 @@ Khảo sát dung lượng chiếu query của Router qua router hidden dimension
   - Protocol 35 epochs: Stage 1 = 17 epochs, Stage 2 = 18 epochs, `patience: 6`, `two_stage: true`.
   - Canonical LR: `lr = 1e-4`, `p3_lr = 1e-4`, `stage2_base_lr = 1e-4`, `stage2_shared_lr = 1e-4`.
   - SAGE config: `load_balance_factor = 0.01`, `expert_dropout = 0.1`, `fusion_type = "residual"`, `residual_scale = 0.1`, `gating_type = "sigmoid"`.
-* **Phân bổ Thực Nghiệm & Tiến Độ**:
-  * **Run 7 (H32)**: `router_hidden_dim = 32` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h32.yaml`). ✅ **HOÀN TẤT**. Peak S1 Dice = **0.7307** (Ep 7); Peak S2 Dice = **0.7587** (Ep 18, Loss 0.9847, IoU 0.6354, Median Dice 0.8005).
-  * **Run 8 (H64)**: `router_hidden_dim = 64` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2.yaml`). ✅ **ĐÃ CÓ CHECKPOINT CANONICAL K2** (`P3_C_D4_K2_best_model_b2_global.pth`, Peak S2 Val Dice = **0.7618**, Loss 0.9518, IoU 0.6386, Median Dice 0.8058). **Tái sử dụng (Reuse)** trực tiếp làm baseline đối chứng của Phase 3.
-  * **Run 9 (H128)**: `router_hidden_dim = 128` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h128.yaml`). ⏳ Cần huấn luyện (train).
-* **So Sánh Sơ Bộ (H32 vs H64)**:
-  - Khi giảm router hidden dim từ 64 xuống 32: Val Dice giảm nhẹ **-0.0031** (0.7587 vs 0.7618), IoU giảm **-0.0032** (0.6354 vs 0.6386), Val Loss tăng từ 0.9518 lên 0.9847.
-  - Phân phối định tuyến H32: 0 dead experts (min 6.72% E5, max 19.22% E2), entropy ở các tầng ViT duy trì cao (~2.64–2.78 bits / norm 0.88–0.93).
-* **Quy tắc Quyết định (Decision Gate)**:
-  - So sánh đối chứng: $Dice_{H32}$ (0.7587), $Dice_{H64}$ (0.7618), $Dice_{H128}$ và các chỉ số routing diagnostics tương ứng (entropy, HHI, utilization).
-  - Nếu H128 không vượt trội hơn H64, ưu tiên giữ `router_hidden_dim = 64` làm baseline hiện tại (đảm bảo tính tinh gọn và kế thừa lịch sử). Tuyệt đối không võ đoán trước khi có kết quả thực nghiệm của H128.
-  - Sau khi chọn được `router_hidden_dim` tối ưu sẽ đóng băng chuyển giao sang Phase 4.
+* **Kết Quả Thực Nghiệm Đối Chứng (Validation 348 Mẫu, Setting A)**:
+
+| Cấu hình | Router Hidden Dim | Peak S1 Dice | Peak S2 Dice (Global) | Val Loss @ Peak | Mean IoU | Median Dice | Trạng thái |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Run 7 (H32)** | 32 | **0.7307** (Ep 7) | 0.7587 (Ep 18) | 0.9847 | 0.6354 | 0.8005 | ✅ Hoàn tất |
+| **Run 8 (H64)** | **64** | 0.7304 (Ep 13) | 🏆 **0.7618** (Ep 16) | 🏆 **0.9518** | 🏆 **0.6386** | 🏆 **0.8058** | 🏆 **TỐI ƯU TOÀN CỤC** |
+| **Run 9 (H128)** | 128 | 0.7280 (Ep 11) | 0.7550 (Ep 15) | 0.9671 | 0.6292 | 0.7974 | ✅ Hoàn tất |
+
+* **Phân Tích Khoa Học & Động Lực Học Định Tuyến**:
+  - **Đường cong hiệu năng chữ U ngược (Inverted U-curve)**:
+    $$Dice(H32 = 0.7587) < Dice(H128 = 0.7550) < Dice(H64 = 0.7618)$$
+    - Thu hẹp `hidden_dim` xuống 32 làm giảm **-0.0031 Dice** (-0.31%) và **-0.0032 IoU**, do không gian chiếu query quá hạn chế để phân tách các đặc trưng dị thể CNN vs ViT.
+    - Mở rộng `hidden_dim` lên 128 làm giảm mạnh hơn: **-0.0068 Dice** (-0.68%) và **-0.0094 IoU**, do dung lượng chiếu query dư thừa dẫn đến over-parameterization và hiện tượng bão hòa tập trung định tuyến (HHI ở CNN S0/S2 tăng vọt lên 0.47–0.50, effective experts ở S2 rớt về 2.0).
+  - **Sự ổn định của `hidden_dim = 64`**: Đạt điểm cân bằng lý tưởng (sweet spot) giữa năng lực biểu diễn không gian con query và tính tổng quát hóa trên tập Validation.
+* **Quyết định Khóa (Locked Decision)**:
+  - **Khóa `router_hidden_dim = 64`** làm cấu hình nền tảng chính thức cho toàn bộ các Phase tiếp theo.
+  - Chuyển giao sang **Phase 4 (Load Balancing)** với cấu hình kế thừa: Base depth = 4, Provisional `top_k = 2`, Locked `router_hidden_dim = 64`.
 
 ---
 
@@ -620,7 +626,7 @@ Khảo sát dung lượng chiếu query của Router qua router hidden dimension
 
 Chỉ mở phase này nếu log cho thấy expert bị "dead" hoặc mất cân bằng nghiêm trọng. Chú ý: LB loss scale theo số lượng routers, nên Depth 12 vs Depth 6 sẽ có total LB loss khác nhau. Phải soi trung bình LB/router.
 
-* **Kế thừa**: Base config từ P3 (Base depth D4, Provisional `top_k = 2`, Best router hidden dim).
+* **Kế thừa**: Base config từ P3 (Base depth D4, Provisional `top_k = 2`, Locked `router_hidden_dim = 64`).
 * **Thử nghiệm (LB weight)**:
   * Run 10: LB = 0.005
   * Run 11: LB = 0.01 (từ baseline)
@@ -704,7 +710,7 @@ Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢ
 > Sau khi Phase 6 hoàn tất, cấu hình nền tảng của SAGE-Lite được đóng băng để chuyển giao sang Giai đoạn 2:
 > - `vit_depth`: Đã khóa từ Phase 1 (Base Depth = 4).
 > - `top_k`: **Provisional Base Configuration: `top_k = 2`**, pending any explicitly approved Phase-2 robustness/reopen decision.
-> - `router_hidden_dim`: Đã khóa từ Phase 3.
+> - `router_hidden_dim`: Đã khóa từ Phase 3 (`router_hidden_dim = 64`).
 > - `load_balance_factor`: Đã khóa từ Phase 4 (Best LB nếu RUN, hoặc inherited baseline 0.01 nếu SKIPPED).
 > - `sage_lr` & `warmup`: Đã khóa từ Phase 5.1 & 5.2 (Best SAGE LR; Best Warmup nếu RUN, hoặc inherited baseline no-warmup nếu SKIPPED).
 > - `stage2_lr_ratio`: Đã khóa từ Phase 5.3.
