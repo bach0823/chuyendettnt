@@ -607,33 +607,50 @@ Khảo sát dung lượng chiếu query của Router qua router hidden dimension
 | Cấu hình | Router Hidden Dim | Peak S1 Dice | Peak S2 Dice (Global) | Val Loss @ Peak | Mean IoU | Median Dice | Trạng thái |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Run 7 (H32)** | 32 | **0.7307** (Ep 7) | 0.7587 (Ep 18) | 0.9847 | 0.6354 | 0.8005 | ✅ Hoàn tất |
-| **Run 8 (H64)** | **64** | 0.7304 (Ep 13) | 🏆 **0.7618** (Ep 16) | 🏆 **0.9518** | 🏆 **0.6386** | 🏆 **0.8058** | 🏆 **TỐI ƯU TOÀN CỤC** |
+| **Run 8 (H64)** | **64** | 0.7304 (Ep 13) | 🏆 **0.7618** (Ep 16) | 🏆 **0.9518** | 🏆 **0.6386** | 🏆 **0.8058** | 🏆 **Cấu hình tốt nhất quan sát được** |
 | **Run 9 (H128)** | 128 | 0.7280 (Ep 11) | 0.7550 (Ep 15) | 0.9671 | 0.6292 | 0.7974 | ✅ Hoàn tất |
 
 * **Phân Tích Khoa Học & Động Lực Học Định Tuyến**:
-  - **Đường cong hiệu năng chữ U ngược (Inverted U-curve)**:
-    $$Dice(H32 = 0.7587) < Dice(H128 = 0.7550) < Dice(H64 = 0.7618)$$
-    - Thu hẹp `hidden_dim` xuống 32 làm giảm **-0.0031 Dice** (-0.31%) và **-0.0032 IoU**, do không gian chiếu query quá hạn chế để phân tách các đặc trưng dị thể CNN vs ViT.
-    - Mở rộng `hidden_dim` lên 128 làm giảm mạnh hơn: **-0.0068 Dice** (-0.68%) và **-0.0094 IoU**, do dung lượng chiếu query dư thừa dẫn đến over-parameterization và hiện tượng bão hòa tập trung định tuyến (HHI ở CNN S0/S2 tăng vọt lên 0.47–0.50, effective experts ở S2 rớt về 2.0).
-  - **Sự ổn định của `hidden_dim = 64`**: Đạt điểm cân bằng lý tưởng (sweet spot) giữa năng lực biểu diễn không gian con query và tính tổng quát hóa trên tập Validation.
-* **Quyết định Khóa (Locked Decision)**:
-  - **Khóa `router_hidden_dim = 64`** làm cấu hình nền tảng chính thức cho toàn bộ các Phase tiếp theo.
-  - Chuyển giao sang **Phase 4 (Load Balancing)** với cấu hình kế thừa: Base depth = 4, Provisional `top_k = 2`, Locked `router_hidden_dim = 64`.
+  - **Đường cong hiệu năng chữ U ngược quan sát được (Observed Inverted U-curve)**:
+    $$Dice(H128 = 0.7550) < Dice(H32 = 0.7587) < Dice(H64 = 0.7618)$$
+    - **Quan sát định lượng (Quantitative Observations)**:
+      + Cấu hình $H32$ đạt Peak Val Dice $0.7587$ (thấp hơn $H64$ là $-0.0031$ Dice, $-0.0032$ IoU).
+      + Cấu hình $H128$ đạt Peak Val Dice $0.7550$ (thấp hơn $H64$ là $-0.0068$ Dice, $-0.0094$ IoU; thấp hơn cả $H32$).
+      + Về mặt định tuyến: Ở $H128$, HHI tập trung định tuyến tại CNN Stage 0 và Stage 2 tăng lên mức $0.47$–$0.50$ (so với $0.48$ ở $H64$), số lượng effective experts tại S2 đạt xấp xỉ $2.0$.
+    - **Diễn giải cơ chế (Mechanistic Hypotheses — Cần audit can thiệp độc lập để xác thực)**:
+      + *Giả thuyết H32 (Under-parameterized query representation hypothesis)*: Việc thu hẹp `hidden_dim` xuống 32 có thể khiến không gian chiếu query quá hạn chế để router phân tách hiệu quả các đặc trưng dị thể giữa CNN và ViT, tuy nhiên đây là suy luận dựa trên quan sát hiệu năng đơn hạt giống (single-seed validation sweep).
+      + *Giả thuyết H128 (Over-parameterization & routing saturation hypothesis)*: Việc mở rộng `hidden_dim` lên 128 có thể gây dư thừa dung lượng chiếu router, tiềm ẩn nguy cơ over-parameterization hoặc thúc đẩy router bão hòa/co cụm sớm vào một số chuyên gia quen thuộc; giả thuyết này cần các thí nghiệm can thiệp định tuyến chuyên sâu độc lập để khẳng định chắc chắn mối quan hệ nhân quả.
+    - **Kết luận thực nghiệm trên tập Validation**: `hidden_dim = 64` thể hiện sự cân bằng tốt nhất giữa năng lực biểu diễn router và chất lượng tổng quát hóa trên tập Validation (348 mẫu Crack500, Setting A).
+* **Quyết định Lựa chọn (Working Selection Decision)**:
+  - **`router_hidden_dim = 64` selected as the best observed configuration under the D4 + provisional top_k=2 protocol, seed=42 (single-seed validation selection)**.
+  - Tuyệt đối không tuyên bố H64 là “tối ưu toàn cục / global optimum” do thí nghiệm được thực hiện trên một seed duy nhất (seed=42).
+  - Chuyển giao sang **Phase 4 (Load Balancing)** với cấu hình kế thừa: Base depth = 4, Provisional `top_k = 2`, Best observed `router_hidden_dim = 64`.
 
 ---
 
-## Phase 4 — Cân bằng tải (Load Balancing)
+## Phase 4 — Cân bằng tải (Load Balancing) (HOÀN TẤT & ĐÃ BỎ QUA THEO TIÊU CHUẨN CỔNG ĐIỀU KIỆN — SKIPPED ⏭️)
 
-Chỉ mở phase này nếu log cho thấy expert bị "dead" hoặc mất cân bằng nghiêm trọng. Chú ý: LB loss scale theo số lượng routers, nên Depth 12 vs Depth 6 sẽ có total LB loss khác nhau. Phải soi trung bình LB/router.
+Phase 4 được thiết kế dưới dạng **Cổng Điều Kiện (Conditional Gate)**: chỉ mở quét lưới siêu tham số nếu log chẩn đoán routing của cấu hình làm việc K2 baseline phát hiện chuyên gia bị "dead" (<1% selection) hoặc phân phối sụp đổ (collapse, top-1 share > 80%).
 
-* **Kế thừa**: Base config từ P3 (Base depth D4, Provisional `top_k = 2`, Locked `router_hidden_dim = 64`).
-* **Thử nghiệm (LB weight)**:
-  * Run 10: LB = 0.005
-  * Run 11: LB = 0.01 (từ baseline)
-  * Run 12: LB = 0.03
-* **Quy định trạng thái khóa (Locked State Definition)**:
-  - **Trường hợp Phase 4 ĐƯỢC CHẠY (RUN)**: Khi log chẩn đoán routing từ Phase 1–3 phát hiện có chuyên gia bị "dead" (utilization < 1%) hoặc phân phối quá lệch $\implies$ Chạy quét LB $\in \{0.005, 0.01, 0.03\}$, chọn `load_balance_factor` tối ưu dựa trên Validation Dice và Routing Entropy.
-  - **Trường hợp Phase 4 BỊ BỎ QUA (SKIPPED)**: Khi 100% chuyên gia hoạt động đều đặn (như kết quả Phase 0 preflight: 4.7% – 7.2%, 0 dead experts) $\implies$ Khóa `load_balance_factor = 0.01` (giá trị baseline mặc định), ghi nhận tường minh trong báo cáo: *"inherited baseline (0.01), not tuned"*.
+* **Kế thừa**: Base config từ Phase 3 (Base depth D4, Provisional `top_k = 2`, Best observed `router_hidden_dim = 64`, seed = 42).
+* **Tiêu chí Kích hoạt Cổng Điều kiện (Conditional Activation Gate)**:
+  - **KÍCH HOẠT QUÉT LB (RUN)**: Khi và chỉ khi routing diagnostic trên checkpoint canonical phát hiện $\ge 1$ chuyên gia bị "dead" ($\text{utilization} < 1.0\%$) hoặc phân phối router bị sụp đổ cục bộ ($\text{top-1 expert share} > 80\%$). Khi đó quét $LB \in \{0.005, 0.01, 0.03\}$ (Run 10, 11, 12).
+  - **BỎ QUA KHÔNG CHẠY (SKIPPED)**: Khi 100% chuyên gia hoạt động lành mạnh ($\text{utilization} \ge 1.0\%$, không dead experts) và entropy phân phối đạt mức phân tán tự nhiên $\implies$ **BỎ QUA Phase 4 (SKIPPED)**, kế thừa `load_balance_factor = 0.01` (baseline mặc định, không tinh chỉnh). Không tự ý đặt ra các ngưỡng mất cân bằng tùy tiện ngoài tiêu chuẩn đã đăng ký trước.
+* **Kết Quả Thẩm Định Routing Diagnostic Thực Tế (Checkpoint `P3_C_Canonical_Base_D4_K2`, 348 Mẫu Validation Crack500, Setting A)**:
+  - **Số chuyên gia "dead" (<1% utilization)**: **0 / 8 experts** (Không có chuyên gia nào bị bỏ rơi).
+  - **Tỷ lệ sử dụng chuyên gia (Expert Utilization)**:
+    + Min utilization: **4.94%** (Chuyên gia CNN Stage 3, E3 — cao gấp 4.9x so với ngưỡng dead 1.0%).
+    + Max utilization: **26.08%** (Chuyên gia ViT Block 2, E6 — so với mức kỳ vọng phân bố đều $2/8 = 25.0\%$).
+    + Toàn bộ 8/8 chuyên gia đều nằm trong dải kích hoạt tự nhiên từ $4.94\%$ đến $26.08\%$.
+  - **Phân tán Entropy & Mức độ tập trung (Entropy & Concentration)**:
+    + Các router tầng ViT (Blocks 0..3): Normalized entropy đạt **0.902 – 0.962** (gần mức phân tán lý tưởng 1.0), số lượng chuyên gia hiệu dụng đạt **6.53 – 7.39 / 8 experts**, chỉ số tập trung HHI thấp **0.140 – 0.173** (tiệm cận mức đều $1/8 = 0.125$).
+    + Các router tầng CNN (Stages 0..3): Thể hiện tính chuyên biệt hóa cấu trúc rõ rệt (Stage 0/1/2 tập trung vào các chuyên gia ViT E4/E6 với HHI 0.48–0.50, Stage 3 phân tán rộng với 5.73 effective experts, HHI 0.199).
+  - **Hiện tượng sụp đổ (Collapse)**: **KHÔNG**. Không có bất kỳ router nào vượt ngưỡng sụp đổ top-1 > 80%.
+  - **Độ nhất quán chẩn đoán (Consistency Check)**: 100% khớp tuyệt đối qua toàn bộ $348 \times 8 \times 2 = 5,568$ lượt lựa chọn chuyên gia.
+* **Phán Quyết Chính Thức Cho Phase 4 (Official Phase 4 Verdict)**:
+  - **Trạng thái**: **SKIPPED (BỎ QUA — Đạt tiêu chuẩn không dead experts theo đăng ký trước)**.
+  - **Khóa tham số**: **`load_balance_factor = 0.01` (inherited baseline, not tuned)**.
+  - **Chuyển giao sang Phase 5**: Kế thừa nguyên vẹn `load_balance_factor = 0.01` làm baseline nền tảng, không tốn thêm ngân sách GPU cho các run LB không cần thiết.
 
 ---
 
@@ -706,15 +723,15 @@ Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢ
 
 ### ĐÓNG BĂNG CẤU HÌNH NỀN TẢNG (LOCKED BASE SAGE-LITE CONFIGURATION)
 > [!IMPORTANT]
-> **KẾT THÚC GIAI ĐOẠN 1 (BASE SAGE LOCK):**
-> Sau khi Phase 6 hoàn tất, cấu hình nền tảng của SAGE-Lite được đóng băng để chuyển giao sang Giai đoạn 2:
-> - `vit_depth`: Đã khóa từ Phase 1 (Base Depth = 4).
-> - `top_k`: **Provisional Base Configuration: `top_k = 2`**, pending any explicitly approved Phase-2 robustness/reopen decision.
-> - `router_hidden_dim`: Đã khóa từ Phase 3 (`router_hidden_dim = 64`).
-> - `load_balance_factor`: Đã khóa từ Phase 4 (Best LB nếu RUN, hoặc inherited baseline 0.01 nếu SKIPPED).
-> - `sage_lr` & `warmup`: Đã khóa từ Phase 5.1 & 5.2 (Best SAGE LR; Best Warmup nếu RUN, hoặc inherited baseline no-warmup nếu SKIPPED).
-> - `stage2_lr_ratio`: Đã khóa từ Phase 5.3.
-> - `dropout`, `residual_scale` & `fusion_type`: Đã khóa từ Phase 6.
+> **TIẾN TRÌNH KHÓA CẤU HÌNH NỀN TẢNG (BASE SAGE LOCK STATUS):**
+> Sau khi Phase 4 được bỏ qua theo conditional gate, cấu hình nền tảng kế thừa bước vào Phase 5 như sau:
+> - `vit_depth`: **4** (Đã khóa từ Phase 1).
+> - `top_k`: **2 (Provisional Working Base)** (Tạm chốt từ Phase 2, pending any explicitly approved Phase-2 robustness/reopen decision).
+> - `router_hidden_dim`: **64 (Best Observed Configuration)** (Chọn lọc từ Phase 3, seed=42).
+> - `load_balance_factor`: **0.01 (Inherited Baseline, Not Tuned)** (Phase 4 SKIPPED do 0 dead experts, min utilization 4.94% > 1.0%).
+> - `sage_lr` & `warmup`: Đang chuẩn bị khảo sát tại Phase 5.1 & 5.2 (với tier `sage_lr` đã được cô lập trong code).
+> - `stage2_lr_ratio`: Khảo sát tại Phase 5.3 ($r = LR_{\text{shared}} / LR_{\text{others}}$).
+> - `dropout`, `residual_scale` & `fusion_type`: Khảo sát tại Phase 6.
 > 
 > **CHUYỂN GIAO SANG GIAI ĐOẠN 2:**
 > Mô hình nền tảng đã khóa sẽ được đưa vào làm chuẩn so sánh cho **Nhóm Tối Ưu High-Resolution CNN $\to$ ViT (Optimization Group)** bắt đầu với **Proposal 3 (P3: ASDW-Concat + Spatial Compression 28×28)** theo đúng 9 Phase tuần tự đã lập ở Mục 2.
