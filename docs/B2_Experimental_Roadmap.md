@@ -658,10 +658,10 @@ Phase 4 được thiết kế dưới dạng **Cổng Điều Kiện (Conditiona
 
 Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbone. Mặc định baseline hiện tại: Backbone=1e-5, Decoder=1e-4.
 
-* **5.1 Khảo sát SAGE LR**:
-  * Run 13: SAGE LR = 5e-5
-  * Run 14: SAGE LR = 1e-4
-  * Run 15: SAGE LR = 2e-4
+* **5.1 SAGE LR Isolation**:
+  * **Baseline 1e-4**: existing canonical H64/K2 checkpoint (Peak S2 Val Dice = 0.7618, Run 14 baseline, không train lại)
+  * **Candidate 5e-5**: pending training (`configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr5e5.yaml`)
+  * **Candidate 2e-4**: pending training (`configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml`)
   * *Quy tắc khóa*: Chọn SAGE LR có Val Dice cao nhất và hội tụ ổn định nhất.
 
 * **5.2 Khảo sát Warmup Epochs (Có điều kiện)**:

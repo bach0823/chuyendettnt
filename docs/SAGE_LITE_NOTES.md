@@ -922,6 +922,118 @@ Segmentation Utility           ❌ CHƯA THỂ KHẲNG ĐỊNH: Bất kỳ winni
    - Đóng hoàn tất Phase 3.
    - **Chuyển giao sang Phase 4 (Load Balancing)** với bộ thông số nền tảng kế thừa: Base ViT Depth = 4, Provisional `top_k = 2`, Locked `router_hidden_dim = 64`.
 
+---
+
+## 23. Thẩm Định Tính Hợp Lệ Của Cấu Hình Optimizer & Hyperparameters: SAGE Gốc vs SAGE-Lite (Ngày 2026-09-29)
+
+*Mục tiêu: Đánh giá chi tiết, đối chiếu mã nguồn và thẩm định tính hợp thức khoa học (Legitimacy Check) đối với các thay đổi về Optimizer, Learning Rates, Weight Decay và Lịch trình huấn luyện giữa SAGE gốc (`SAGE/`) và SAGE-Lite (`sage_lite/`).*
+
+### 1. Bảng Đối Chiếu Tổng Quan (SAGE Gốc vs SAGE-Lite)
+
+| Thành phần | SAGE Gốc (`SAGE/configs/experiments/sage_glas.yaml`) | SAGE-Lite (`sage_lite/scripts/train_crack.py`) | Bản chất thay đổi & Đánh giá |
+| :--- | :--- | :--- | :--- |
+| **Thời lượng học** | 400 epochs (Stage 1: 100, Stage 2: 300) | 30 – 35 epochs (Stage 1: 15–17, Stage 2: 15–18) | Rút gọn ~12x; chuyển sang cơ chế *Maximum Epoch Budget* có EarlyStopping |
+| **Stage 1 LR** | Cào bằng duy nhất `1e-4` cho toàn bộ mô hình | 4 Tiers: Backbone `1e-5`, Decoder `1e-4`, SAGE `1e-4`, P3 `1e-4` | Differential LR: Giảm 10x cho Pretrained Backbone |
+| **Stage 2 Base LR** | `stage2_base_lr = 1e-4` | `stage2_base_lr = 1e-4` | Kế thừa tương đương |
+| **Stage 2 Shared LR & Ratio** | `stage2_shared_lr = 5e-5` ($r=0.5$ ở GlaS/EBHI; $r=5.0$ ở Colon) | Baseline trung lập `1:1` (`shared_lr = 1e-4`), mở ablation $r \in \{0.25, 0.5, 1.0, 2.0\}$ | Khử mâu thuẫn paper vs code gốc; chuyển thành biến thực nghiệm |
+| **Weight Decay** | `0.0001` (1e-4) cào bằng mọi tham số | `0.05` cho weights; **`0.0`** cho LayerNorm, bias, gamma | Tăng mạnh điều hòa cho dataset crack nhỏ; tách biệt No-Decay chuẩn |
+| **Optimizer Params** | Khai báo `AdamW` kèm `momentum: 0.9` (dư thừa) | `AdamW` chuẩn (không truyền momentum của SGD) | Dọn dẹp config sạch sẽ |
+| **Scheduler & Warmup** | `CosineAnnealingLR` với `warmup_epochs: 5` | `CosineAnnealingLR` với `warmup_epochs: 2 - 3` | Tương thích tỷ lệ với ngân sách 30-35 epochs |
+| **Early Stopping** | `patience: 15`, `delta: 0.0001` (theo dõi mIoU) | `patience: 6`, cơ chế kép: $\Delta \ge 10^{-4}$ + Tie-break bằng Val Loss | Lọc nhiễu Dice, chống ngắt sớm ở đuôi Cosine Annealing |
+
+---
+
+### 2. Thẩm Định Chi Tiết Tính Hợp Lệ (Legitimacy Check)
+
+#### ① Lý do Backbone của SAGE-Lite giảm 10x (`1e-5`) so với gốc có Legit không?
+- **Bằng chứng code** (`train_crack.py` L421):
+  ```python
+  lr_backbone = base_lr * 0.1   # Cố định giảm 10x
+  lr_decoder = base_lr
+  ```
+- **Phán quyết: ✅ LEGIT**.
+- **Cơ sở khoa học**:
+  1. Kỹ thuật này là **Discriminative Fine-Tuning / Layer-wise LR Decay**, một chuẩn mực khi chuyển giao mô hình thị giác tiền huấn luyện trên ImageNet sang domain chuyên biệt ngoài phân phối (out-of-distribution như vết nứt bê tông).
+  2. Backbone ConvNeXtV2-Femto đã có sẵn các bộ lọc cạnh, góc và texture sơ cấp từ ImageNet. Nếu cập nhật với LR quá cao (`1e-4`), mô hình sẽ mắc lỗi **Catastrophic Forgetting** (phá hủy biểu diễn tổng quát đã học).
+  3. Ngược lại, UNet Decoder và SAGE Routers là các tầng **khởi tạo ngẫu nhiên từ đầu** (scratch), bắt buộc cần LR lớn hơn (`1e-4`) để học cấu trúc và liên kết không gian nhanh chóng.
+  4. Hệ số 10x (`0.1`) là convention phổ biến đã được kiểm chứng rộng rãi trong các nghiên cứu fine-tune kiến trúc ConvNeXt/ViT/DeiT/MAE.
+
+#### ② `base_lr = 1e-4` có phù hợp với SAGE-Lite và bài toán Crack Segmentation không?
+- **Phán quyết: ✅ LEGIT**.
+- **Bằng chứng thực nghiệm thực tế** (đã ghi nhận tại `milestone_and_progress.md` L280):
+  - Baseline B0 (Pure CNN): Val Dice đạt **0.7318**.
+  - Baseline B1 (ViT Depth 4/6): Val Dice đạt **0.7428** / **0.7420**.
+  - B2 P3-C (ASDW Refinement D12): Val Dice đạt **0.7557**; D4 H64 đạt **0.7618**.
+- Đường cong huấn luyện trên Tesla T4 hoàn toàn mượt mà, không gặp hiện tượng bùng nổ gradient hay loss spike, chứng minh `1e-4` là mức LR nền tảng rất ổn định cho bài toán phân vùng nhị phân vết nứt.
+
+#### ③ `stage2_shared_lr` và tỷ lệ Stage 2 LR Ratio có Legit không?
+- **Phán quyết: ✅ LEGIT (Thiết kế thực nghiệm khách quan)**.
+- **Bằng chứng code & config**:
+  - Tất cả các cấu hình B2 đang chạy thực tế (`b2_p3_run_c.yaml`, `b2_p3_run_c_d4_k2_phase5_base.yaml`) đều thiết lập:
+    ```yaml
+    stage2_base_lr: 1e-4
+    stage2_shared_lr: 1e-4
+    ```
+- **Cơ sở khoa học**:
+  1. Trong SAGE gốc, có sự mâu thuẫn lớn: bài báo công bố tỷ lệ `shared_lr : base_lr` là **5 : 1** (1e-5 vs 5e-5), nhưng trong file cấu hình thực tế cho tập EBHI/GlaS lại đặt ngược lại là **1 : 2** (5e-5 vs 1e-4).
+  2. SAGE-Lite chọn khởi đầu với baseline trung lập **`1:1`** (`stage2_base_lr = stage2_shared_lr = 1e-4`) để không thiên vị bất kỳ giả định cảm tính nào.
+  3. Tỷ lệ phân bổ LR $r = \frac{LR_{\text{shared}}}{LR_{\text{others}}}$ được quy hoạch thành một nghiên cứu cắt bỏ độc lập (**Phase 5.3 Optimization Allocation Ablation** trong `B2_Experimental_Roadmap.md`) với dải quét $r \in \{0.25, 0.50, 1.00, 2.00\}$.
+
+#### ④ SAGE-Lite có thật là không cần `momentum: 0.9` không?
+- **Phán quyết: ✅ LEGIT (Làm sạch thông số dư thừa)**.
+- **Bằng chứng code** (`train_crack.py` L439-L440):
+  ```python
+  optimizer = optim.AdamW(param_groups)
+  ```
+- **Cơ sở toán học & triển khai PyTorch**:
+  1. Thuật toán `AdamW` (và `Adam`) **đã tích hợp sẵn momentum thích nghi nội tại** thông qua ước lượng moment bậc 1 ($m_t$, với hệ số mặc định $\beta_1 = 0.9$) và moment bậc 2 ($v_t$, với $\beta_2 = 0.999$).
+  2. Lớp `torch.optim.AdamW` trong PyTorch **hoàn toàn không có tham số nào tên là `momentum`**. Tham số `momentum` là thuộc tính riêng của thuật toán `torch.optim.SGD`.
+  3. Trong code của SAGE gốc (`train_sage.py` L329-L332), trường `momentum: 0.9` chỉ được truyền khi `optimizer == "SGD"`. Khi chạy `AdamW`, trường này trong YAML bị bỏ qua hoàn toàn. Việc SAGE-Lite loại bỏ nó khỏi cấu hình giúp loại trừ hoàn toàn các tham số gây nhiễu và hiểu nhầm.
+
+#### ⑤ Tại sao Weight Decay của SAGE-Lite lớn hơn (`0.05` vs `0.0001`) và lại tách riêng `0.0`?
+- **Phán quyết: ✅ LEGIT (Chuẩn mực tối ưu hóa hiện đại)**.
+- **Cơ sở khoa học**:
+  - **Tại sao nâng lên `0.05`?**: SAGE gốc áp dụng trên tập WSI y tế quy mô lớn, nơi dữ liệu tự thân đã đóng vai trò điều hòa tự nhiên. Ngược lại, tập dữ liệu vết nứt (Crack500 với ~1,500 mẫu) nhỏ hơn rất nhiều, rất dễ bị overfit nếu thiếu điều hòa trọng số mạnh. Giá trị `0.05` là chuẩn mực mặc định được chứng minh hiệu quả trong các kiến trúc ConvNeXt và Vision Transformer.
+  - **Tại sao bắt buộc tách nhóm `0.0` (No-Decay)?** (`train_crack.py` L112, L178):
+    ```python
+    is_no_decay = 'layernorm' in name.lower() or 'norm' in name.lower() or name.endswith('.bias') or 'gamma' in name.lower()
+    # Nhóm này bắt buộc nhận weight_decay = 0.0
+    ```
+    1. **LayerNorm / Norm**: Trọng số scale ($\gamma$) và shift ($\beta$) của LayerNorm có nhiệm vụ bảo toàn phương sai và trung bình phân phối. Nếu áp dụng weight decay, optimizer sẽ kéo các giá trị này về 0, làm suy giảm năng lực chuẩn hóa và gây sụp đổ lan truyền gradient.
+    2. **Biases**: Theo nguyên lý tối ưu của Loshchilov & Hutter (bài báo gốc đề xuất AdamW), hệ số bias không đại diện cho độ phức tạp của không gian hàm nên không được chịu phạt L2 penalty.
+    3. **Hệ số Gamma ($\gamma$) trong nhánh Residual P3**: Các hệ số này được khởi tạo cực nhỏ (`0.01`). Nếu chịu weight decay `0.05`, chúng sẽ bị dập tắt về 0 ngay từ những epoch đầu, triệt tiêu hoàn toàn khả năng đóng góp của module ASDW Refinement.
+
+#### ⑥ Tham số Early Stopping Delta (`delta: 0.0` vs `0.0001`) và cơ chế Tie-Breaking Loss có ý nghĩa gì?
+- **Phán quyết: ✅ LEGIT (Cải tiến vượt trội so với cơ chế dừng sớm gốc)**.
+- **Bản chất của tham số Delta**:
+  - `delta` (hay `min_delta`) là ngưỡng cải thiện tối thiểu để một epoch mới được công nhận là có tiến bộ so với kỷ lục cũ:
+    $$\text{metric}_{\text{current}} > \text{metric}_{\text{best}} + \delta$$
+  - Khi $\delta = 0.0$: Bất kỳ mức tăng nào ($\text{metric}_{\text{current}} > \text{metric}_{\text{best}}$, dù chỉ $+10^{-6}$) cũng được tính là tiến bộ và reset bộ đếm `epochs_no_improve = 0`.
+- **Cơ sở khoa học khi cân nhắc `delta = 0.0`**:
+  1. **Chống ngắt sớm oan uổng (Over-aggressive stopping)**: Khi dùng `CosineAnnealingLR`, ở các epoch cuối, learning rate co về sàn $10^{-6}$. Mô hình học rất chậm và tinh chỉnh từng chi tiết cực nhỏ (vết nứt biên 1-2 pixel), Dice chỉ nhích từng chút một ($+0.00003$). Nếu ép `delta = 0.0001`, mô hình sẽ bị ngắt ngang khi chưa chạm đáy hội tụ toàn cục.
+  2. **Đặc thù metric $[0, 1]$**: Khi Dice đã cao ($> 0.75$), biên độ cải thiện bị thu hẹp tự nhiên; việc bắt buộc nhảy vọt $\ge 0.01\%$ mỗi epoch là quá khắt khe.
+- **Bằng chứng code triển khai thực tế của SAGE-Lite (`train_crack.py` L900-L909)**:
+  SAGE-Lite không dùng `delta = 0.0` một cách mù quáng (dễ bị nhiễu ngẫu nhiên stochastic đánh lừa), mà triển khai **cơ chế 2 tầng thông minh kết hợp Tie-break bằng Validation Loss**:
+  ```python
+  is_best_stage = False
+  # Tầng 1: Đòi hỏi Dice tăng vượt trội hơn ngưỡng delta = 1e-4
+  if val_dice > best_stage_dice + 1e-4:
+      is_best_stage = True
+  # Tầng 2: Nếu Dice đi ngang trong dải nhiễu (<= 1e-4), Tie-break bằng Validation Loss
+  elif abs(val_dice - best_stage_dice) <= 1e-4:
+      if val_loss < best_stage_loss:
+          is_best_stage = True
+
+  if is_best_stage:
+      best_stage_dice = val_dice
+      best_stage_loss = val_loss
+      epochs_no_improve = 0   # Reset patience
+  else:
+      epochs_no_improve += 1
+  ```
+  *Ý nghĩa*: Cơ chế này vừa lọc được nhiễu ngẫu nhiên của Dice score, vừa không bỏ sót các epoch mà mô hình học tự tin hơn (Validation Loss giảm thể hiện độ sắc nét của xác suất dự đoán tăng lên).
+
+
 
 
 
