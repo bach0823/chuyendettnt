@@ -45,7 +45,7 @@ State:
 - Phase 4: SKIPPED, LB=0.01 inherited baseline
 - Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641 làm baseline chính thức, Stage 2 không tách riêng)
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
-- Phase 5.3: Ready to deploy (Stage-2 LR ratio r in {0.25, 0.50, 1.00, 2.00})
+- Phase 5.3: Ready to deploy (Stage-2 LR ratio r in {0.25, 0.50, 1.00, 2.00}, optional {4.00, 5.00})
 
 Cấu hình hiện hành:
 - ViT depth = 4
@@ -116,11 +116,18 @@ Completed:
 
 
 In Progress:
-- Chuẩn bị triển khai Phase 5.3: Stage-2 Learning Rate Ratio Sweep ($r = LR_{\text{shared}} / LR_{\text{base}} \in \{0.25, 0.50, 1.00, 2.00\}$) trên Crack500:
-  + Kế thừa Base Configuration đã khóa: D4, `top_k = 2`, `router_hidden_dim = 64`, `load_balance_factor = 0.01`, `sage_lr = 2e-4` (Stage 1), warmup = 3.
-  + Gộp `fine_lr` và `base_lr` thành một tầng thống nhất (`stage2_base_lr = 10^{-4}`): ViT expert blocks, Routers, SA-Hub, Decoder, Bridge.
-  + P3 refinement cố định tại $\text{stage2\_p3\_lr} = 10^{-4}$.
-  + Quét 1 chiều tỷ số $r = \text{stage2\_shared\_lr} / \text{stage2\_base\_lr}$ trong Stage 2.
+- Chuẩn bị triển khai Phase 5.3: Stage-2 Learning Rate Ratio Sweep ($r = LR_{\text{shared}} / LR_{\text{base}} = \text{stage2\_shared\_lr} / \text{stage2\_base\_lr}$):
+  + **Điểm neo Baseline**: $r = 1.00$ (`stage2_shared_lr = 1.0e-4, stage2_base_lr = 1.0e-4`) đã hoàn tất ở Candidate B Phase 5.1 (Peak Val Dice = 0.7641), kế thừa nguyên vẹn, không train lại.
+  + **3 cấu hình chính (Primary Execution Grid — Chạy trước)**:
+    1. $r = 0.25$: `stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4` (soft freeze shared CNN experts).
+    2. $r = 0.50$: `stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4` (tỷ lệ chuẩn SAGE gốc trên GlaS và EBHI-SEG).
+    3. $r = 2.00$: `stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4` (tăng tốc học cho shared CNN experts).
+  + **2 cấu hình mở rộng có điều kiện (Optional Extension — Chỉ xét sau khi có kết quả 3 cấu hình trên)**:
+    4. $r = 4.00$: `stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4` (optional).
+    5. $r = 5.00$: `stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4` (optional — cấu hình SAGE gốc trên Colon Cancer).
+    * Tiêu chí cổng điều kiện: Chỉ xét chạy $r \in \{4.00, 5.00\}$ nếu $r = 2.00$ tăng trưởng mạnh và chưa đạt đỉnh bão hòa ($Dice(r=2.00) > Dice(r=1.00)$). Ngược lại nếu đỉnh rơi vào $r \le 1.00$ hoặc $r=2.00$ suy giảm, bỏ qua cả hai.
+  + **Quy chuẩn thực thi**: Chạy `--stage2-only` kế thừa checkpoint Stage 1 xuất sắc của Candidate B (`best_model_b2_stage1.pth`, Val Dice = 0.7333), tiết kiệm 50% thời gian GPU (18 epochs/run).
+  + P3 refinement cố định tại $\text{stage2\_p3\_lr} = 10^{-4}$. Router/SA-Hub/Decoder đi cùng `stage2_base_lr = 10^{-4}`.
 - **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
   + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
   + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**

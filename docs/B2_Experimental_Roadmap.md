@@ -690,8 +690,16 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
     3. Chỉ thay đổi phân bổ LR tương đối giữa shared CNN experts và base modules ở Stage 2; P3 refinement không bị ảnh hưởng.
     4. Dùng Validation Dice làm primary selection metric như toàn bộ Phase 1–6. Tuyệt đối không dùng Test set.
     5. Không mô tả Stage-2 LR ratio như một "bản vá" (fix) cho residual-scale hay cho riêng ViT; đây là một **optimization-allocation ablation** độc lập về mặt động lực học huấn luyện.
-  * **Grid khảo sát dự kiến (được đóng băng trước khi chạy)**:
-    - $r \in \{0.25, 0.50, 1.00, 2.00\}$ (với $r=1.00$ là baseline hiện tại `stage2_shared_lr = stage2_base_lr = 1e-4`, kế thừa trực tiếp từ Candidate B Phase 5.1, không train lại).
+  * **Grid khảo sát Phase 5.3 (Stage-2 LR Ratio $r = \frac{LR_{\text{shared}}}{LR_{\text{base}}}$)**:
+    - **Điểm neo (Anchor Baseline)**: $r = 1.00$ (`stage2_shared_lr = 1.0e-4, stage2_base_lr = 1.0e-4`) — **Đã hoàn tất ở Candidate B Phase 5.1 (Peak Dice = 0.7641), kế thừa nguyên vẹn, không chạy lại**.
+    - **3 cấu hình chính (Primary Execution Grid — Chạy trước)**:
+      1. **$r = 0.25$** (`stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4`): Khảo sát hướng soft freeze shared CNN experts.
+      2. **$r = 0.50$** (`stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4`): Cấu hình chuẩn của SAGE gốc trên GlaS và EBHI-SEG.
+      3. **$r = 2.00$** (`stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát hướng tăng tốc độ học cho shared CNN experts.
+    - **2 cấu hình mở rộng có điều kiện (Optional Extension — Chỉ xét sau khi chạy xong 3 cấu hình trên)**:
+      4. **$r = 4.00$** (`stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4`) (Optional).
+      5. **$r = 5.00$** (`stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4`) (Optional — cấu hình của SAGE gốc trên Colon Cancer).
+      - **Tiêu chí cổng điều kiện (Conditional Gate)**: Chỉ kích hoạt chạy $r \in \{4.00, 5.00\}$ nếu kết quả từ 3 cấu hình chính cho thấy xu hướng tăng trưởng hiệu năng rõ rệt theo chiều $r > 1$ ($Dice(r=2.00) > Dice(r=1.00)$ và chưa có dấu hiệu bão hòa/suy giảm). Nếu $r \le 1.00$ là đỉnh hoặc $r=2.00$ đã bão hòa/suy giảm, **BỎ QUA (SKIP) cả $r=4.00$ và $r=5.00$** để tiết kiệm tài nguyên GPU.
   * *Quy tắc khóa*: Chọn tỉ lệ $r$ đạt Validation Dice cao nhất để chuyển giao sang Phase 6.
 
 ---
