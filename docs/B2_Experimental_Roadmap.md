@@ -590,14 +590,26 @@ Khảo sát số lượng chuyên gia được kích hoạt tại mỗi router (
 
 ---
 
-## Phase 3 — Khảo sát Router Hidden Dim
+## Phase 3 — Khảo sát Router Hidden Dim (ĐANG THỰC HIỆN ⏳)
 
-* **Kế thừa**: Base depth = 4 (P1) + Provisional best `top_k = 2` (từ P2).
-* **Thử nghiệm**:
-  * Run 7: router_hidden_dim = 32
-  * Run 8: router_hidden_dim = 64 (từ P1 baseline)
-  * Run 9: router_hidden_dim = 128
-* **Decision Gate**: Chọn `router_hidden_dim` tối ưu duy nhất dựa trên Validation Dice.
+Khảo sát dung lượng chiếu query của Router qua router hidden dimension ($router\_hidden\_dim \in \{32, 64, 128\}$) trên nền tảng D4 K2.
+
+* **Kế thừa & Giữ nguyên toàn bộ giao thức K2**:
+  - Base depth = 4 (`num_transformer_layers: 4`, 8 routers, 8 experts pool: 4 CNN + 4 ViT).
+  - Provisional best `top_k = 2` (25% pool capacity).
+  - P3-C ASDW refinement.
+  - Seed: 42, `img_size: 448`, `batch_size: 14`, `num_workers: 2`.
+  - Protocol 35 epochs: Stage 1 = 17 epochs, Stage 2 = 18 epochs, `patience: 6`, `two_stage: true`.
+  - Canonical LR: `lr = 1e-4`, `p3_lr = 1e-4`, `stage2_base_lr = 1e-4`, `stage2_shared_lr = 1e-4`.
+  - SAGE config: `load_balance_factor = 0.01`, `expert_dropout = 0.1`, `fusion_type = "residual"`, `residual_scale = 0.1`, `gating_type = "sigmoid"`.
+* **Phân bổ Thực Nghiệm**:
+  * **Run 7 (H32)**: `router_hidden_dim = 32` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h32.yaml`). ⏳ Cần huấn luyện (train).
+  * **Run 8 (H64)**: `router_hidden_dim = 64` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2.yaml`). ✅ **ĐÃ CÓ CHECKPOINT CANONICAL K2** (`P3_C_D4_K2_best_model_b2_global.pth`, Peak S2 Val Dice = **0.7618**, Loss 0.9518, IoU 0.6386). **Tái sử dụng (Reuse)** trực tiếp làm baseline đối chứng của Phase 3, không cần train lại.
+  * **Run 9 (H128)**: `router_hidden_dim = 128` (config: `configs/p3_ablation/b2_p3_run_c_d4_k2_h128.yaml`). ⏳ Cần huấn luyện (train).
+* **Quy tắc Quyết định (Decision Gate)**:
+  - So sánh đối chứng: $Dice_{H32}$, $Dice_{H64}$ (0.7618), $Dice_{H128}$ và các chỉ số routing diagnostics tương ứng (entropy, HHI, utilization).
+  - Nếu không có sự khác biệt có ý nghĩa thống kê, ưu tiên giữ `router_hidden_dim = 64` làm baseline hiện tại (đảm bảo tính tinh gọn và kế thừa lịch sử). Tuyệt đối không võ đoán trước khi có kết quả thực nghiệm.
+  - Sau khi chọn được `router_hidden_dim` tối ưu sẽ đóng băng chuyển giao sang Phase 4.
 
 ---
 
