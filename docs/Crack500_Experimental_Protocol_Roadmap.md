@@ -1,5 +1,11 @@
 # Crack500 Experimental Protocol & Evidence-Based Execution Roadmap
 
+> [!WARNING]
+> **TÀI LIỆU LỊCH SỬ / LEGACY PROTOCOL NOTICE:**  
+> Tài liệu này ghi nhận giao thức sàng lọc thực nghiệm lịch sử của Proposal 3 (P3 screening protocol).  
+> **Lộ trình thực nghiệm chính thức hiện hành của B2 (Authoritative Current B2 Roadmap)** là [`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md).  
+> Mọi quyết định về trạng thái các Phase (Phase 1 D4 locked, Phase 2 K2 provisional, Phase 3 H64 selected, Phase 4 Skipped, Phase 5 Optimization Stability) đều tuân thủ và được cập nhật chính thức tại `docs/B2_Experimental_Roadmap.md`. File này được lưu trữ để phục vụ đối chiếu và kiểm tra nguồn gốc lịch sử, **KHÔNG ĐƯỢC XÓA**.
+
 *Date: 2026-09-26*  
 *Hardware Target: Tesla T4 (Google Colab, 14.56 GB usable VRAM)*  
 *Canonical Reference Checkpoint: `P3_C_Routing_Diagnostics/checkpoints/best_model_b2_global.pth`*  

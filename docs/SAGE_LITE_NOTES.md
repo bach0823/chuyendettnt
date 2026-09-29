@@ -69,7 +69,7 @@
 
 ## 9. Chiến lược Tiền xử lý & Augmentation (Ngày 2026-09-18)
 - **Hàm Loss Chốt:** `1.0 * BCE + 1.5 * Soft Dice + 1.0 * L_balance` (Bỏ hẳn pos_weight, dựa vào 1.5x Soft Dice để chống imbalance. Sẽ review lại sau 3-5 epoch nếu mô hình predict all-zero).
-- **Augmentation Chốt:** ĐÃ LOẠI BỎ HOÀN TOÀN ElasticTransform, GridDistortion (vì làm đứt gãy vết nứt) và CLAHE (khuếch đại nhiễu bê tông/False Positive). Chỉ giữ lại các phép biến đổi an toàn: Flip, Rotate90, ShiftScaleRotate, RandomBrightnessContrast, HueSaturationValue, và GaussianBlur.
+- **Augmentation Chốt:** ĐÃ LOẠI BỎ HOÀN TOÀN `ElasticTransform`, `GridDistortion` (vì làm đứt gãy vết nứt), `CLAHE` (khuếch đại nhiễu bê tông/False Positive), `ShiftScaleRotate` và `HueSaturationValue`. Chỉ giữ lại 5 phép biến đổi an toàn chuẩn tắc (canonical dataloader): `HorizontalFlip`, `VerticalFlip`, `RandomRotate90`, `RandomBrightnessContrast`, và `GaussianBlur` (kết hợp `Resize` 448x448 cho DeepCrack / `RandomCrop` 448x448 kèm smart filter `fg_pixels >= 20` cho Crack500).
 - **Xử lý Tập DeepCrack:** Dùng **Pad + Resize về 448x448**. Giữ nguyên tỷ lệ khung hình (aspect ratio) để đảm bảo hình thái vết nứt không bị kéo giãn biến dạng.
 - **Xử lý Tập Crack500 (Ảnh siêu lớn):**
   - **Lúc Train:** Không Resize, dùng `RandomCrop(448, 448)`.

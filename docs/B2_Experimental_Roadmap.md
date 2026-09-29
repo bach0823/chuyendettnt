@@ -673,21 +673,23 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
     - **Trường hợp Warmup BỊ BỎ QUA (SKIPPED)**: Nếu loss giảm mượt mà không có bất kỳ spike nào $\implies$ Khóa `warmup = 0` (giữ nguyên baseline không warmup), ghi nhận tường minh trong báo cáo: *"Phase 5 warmup skipped, inherited baseline (no warmup)"*.
 
 * **5.3 Khảo sát Stage-2 LR Ratio (Optimization Allocation)**:
-  * **Mục tiêu**: Điều tra xem việc phân bổ learning rate giữa các shared backbone experts và các parameter groups còn lại ở Stage 2 có phải là nút thắt tối ưu hóa (optimization allocation) hay không.
+  * **Mục tiêu**: Điều tra xem việc phân bổ learning rate giữa các chuyên gia dùng chung (shared CNN experts) và các chuyên gia chi tiết hóa (fine-grained ViT experts) ở Stage 2 có phải là nút thắt tối ưu hóa (optimization allocation) hay không.
   * **Định nghĩa tham số**:
-    $$r = \frac{LR_{\text{shared}}}{LR_{\text{others}}}$$
+    $$r = \frac{LR_{\text{shared experts}}}{LR_{\text{fine-grained experts}}}$$
     Trong đó:
-    - $LR_{\text{others}} = \text{stage2\_base\_lr}$ (áp dụng cho decoder, router, adapters, v.v.)
-    - $LR_{\text{shared}} = \text{stage2\_shared\_lr}$ (áp dụng cho unfreezed shared backbone stages/blocks)
-    - Mối liên hệ: $LR_{\text{shared}} = r \cdot LR_{\text{others}}$
+    - $LR_{\text{shared experts}} = \text{stage2\_shared\_lr}$ (áp dụng riêng cho 4 khối CNN main blocks: `backbone.convnext.stages.0..3.main_block`).
+    - $LR_{\text{fine-grained experts}} = \text{stage2\_fine\_lr}$ (áp dụng riêng cho các khối ViT transformer expert blocks: `backbone.transformer_blocks.0..N.main_block`).
+    - $LR_{\text{shared}}$ thay đổi theo tỷ lệ với $LR_{\text{fine}}$ theo tỉ số $r$.
+    - **Các module Non-expert (Routers, SA-Hub, Decoder, Bridge/interface layers)**: Giữ cố định tuyệt đối tại $\text{stage2\_base\_lr} = 10^{-4}$.
+    - **P3 Refinement (ASDW weights + $\gamma$)**: Giữ cố định tuyệt đối tại $\text{stage2\_p3\_lr} = 10^{-4}$.
   * **Quy tắc thực nghiệm bắt buộc**:
     1. Bắt buộc **khóa absolute SAGE/base LR trước** (từ mục 5.1 và 5.2) trước khi khảo sát ratio $r$.
     2. Tuyệt đối không thay đổi depth, `top_k`, router hidden dim, load balance loss, dropout, fusion hoặc architecture trong Phase 5.3.
-    3. Chỉ thay đổi phân bổ LR giữa shared backbone experts và các parameter group còn lại ở Stage 2.
+    3. Chỉ thay đổi phân bổ LR tương đối giữa shared CNN experts và fine-grained ViT experts ở Stage 2; các module non-expert và P3 refinement không bị ảnh hưởng.
     4. Dùng Validation Dice làm primary selection metric như toàn bộ Phase 1–6. Tuyệt đối không dùng Test set.
     5. Không mô tả Stage-2 LR ratio như một "bản vá" (fix) cho residual-scale hay cho riêng ViT; đây là một **optimization-allocation ablation** độc lập về mặt động lực học huấn luyện.
   * **Grid khảo sát dự kiến (được đóng băng trước khi chạy)**:
-    - $r \in \{0.25, 0.50, 1.00, 2.00\}$ (với $r=1.00$ là baseline hiện tại `stage2_base_lr = stage2_shared_lr`).
+    - $r \in \{0.25, 0.50, 1.00, 2.00\}$ (với $r=1.00$ là baseline hiện tại `stage2_shared_lr = stage2_fine_lr = stage2_base_lr = 1e-4`).
   * *Quy tắc khóa*: Chọn tỉ lệ $r$ đạt Validation Dice cao nhất để chuyển giao sang Phase 6.
 
 ---
@@ -730,7 +732,7 @@ Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢ
 > - `router_hidden_dim`: **64 (Best Observed Configuration)** (Chọn lọc từ Phase 3, seed=42).
 > - `load_balance_factor`: **0.01 (Inherited Baseline, Not Tuned)** (Phase 4 SKIPPED do 0 dead experts, min utilization 4.94% > 1.0%).
 > - `sage_lr` & `warmup`: Đang chuẩn bị khảo sát tại Phase 5.1 & 5.2 (với tier `sage_lr` đã được cô lập trong code).
-> - `stage2_lr_ratio`: Khảo sát tại Phase 5.3 ($r = LR_{\text{shared}} / LR_{\text{others}}$).
+> - `stage2_lr_ratio`: Khảo sát tại Phase 5.3 ($r = LR_{\text{shared experts}} / LR_{\text{fine-grained experts}}$).
 > - `dropout`, `residual_scale` & `fusion_type`: Khảo sát tại Phase 6.
 > 
 > **CHUYỂN GIAO SANG GIAI ĐOẠN 2:**

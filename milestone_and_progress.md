@@ -17,27 +17,32 @@ Current Milestone:
 Milestone 2: SAGE Core Mechanism & B2 (Full SAGE-Lite)
 
 Current SK:
-Nghiệm thu hoàn tất Khảo sát Chiều sâu (5-Depth Scaling), Dung lượng Định tuyến (D4 K2 Screening) và Nghiên cứu Can thiệp Định tuyến (Routing Intervention Diagnostic):
-1. **Nghiệm thu Đầy Đủ 5 Độ Sâu ViT (Phase 1 Depth Scaling Complete):**
-   - **Bảng tổng kết 5 độ sâu:** {D4: **0.7639** (Peak S2 Ep 14, Loss 0.9533) > D8: **0.7604** (S2 Ep 17) > D6: **0.7599** (S2 Ep 16) > D2: **0.7578** (S2 Ep 16) > D12: **0.7557** (S2 Ep 9)}.
-   - **Khóa Base Depth chính thức**: **ViT Depth = 4 (D4)** đạt đỉnh phân đoạn cao nhất toàn cục trên Crack500 với dung lượng tối ưu 10.12M params (8 experts pool: 4 CNN + 4 ViT đối xứng 1:1). Toàn bộ checkpoints và log của cả 5 độ sâu đã được lưu trữ chuẩn tắc tại `results/checkpoints/` và `results/logs/`.
-2. **Nghiệm thu Thử Nghiệm Dung Lượng Định Tuyến D4 K2 (Phase 2 top_k Screening):**
-   - Huấn luyện chuẩn tắc 35 epochs với $top\_k = 2$ (25% pool capacity): Peak Stage 1 Val Dice = **0.7304** (Ep 13); Peak Stage 2 Val Dice = **0.7618** (Ep 16, Loss 0.9518, IoU 0.6386, Median Dice 0.8058).
-   - So với Baseline D4 K4 (0.7639): Bóp hẹp 50% số expert kích hoạt mỗi router chỉ làm giảm **0.21% Dice** (-0.0021) và **0.26% IoU** (-0.0026) với điểm hội tụ loss tương đương (0.9518 vs 0.9533).
-   - Lưu trữ toàn diện từ `P3_C_Canonical_Base_D4_K2_Full.zip` vào `results/P3_C_Routing_Diagnostics_D4_K2/`, `results/checkpoints/P3_C_D4_K2_*`, và `results/logs/P3_C_Canonical_Base_D4_K2.log`.
-3. **Chuỗi Thực Nghiệm Chẩn Đoán GAP & Đại Diện Hình Thái (Representation Diagnostics):**
-   - *GAP Routing Bottleneck Study*: Bác bỏ giả thuyết crack area < 1% (median thực tế 4.2%), chứng minh GAP giữ được tín hiệu diện tích ($R^2 = 0.79 - 0.85$), nhưng cổng $g_s$ bị tê liệt biên độ điều biến ($\Delta_{\text{family}} \le 0.04$).
-   - *Thinness Representation Study*: Chứng minh GAP làm mất local geometry ở tầng nông S0/S1 ($R^2 < 0$, phục hồi bởi spatial std lên $+0.23$), trong khi ở tầng sâu B1-B3 thông tin thinness tồn tại phi tuyến ($R^2_{linear} < 0$, phục hồi bởi MLP probe lên $+0.24 \to +0.30$).
-4. **Nghiên Cứu Can Thiệp Định Tuyến (Routing Intervention Diagnostic trên Canonical D4 Checkpoint, 348 mẫu Val):**
-   - **Câu hỏi cốt tử**: $\text{Adaptive Routing} \longrightarrow \text{Downstream Segmentation Utility?}$
-   - **Adaptive vs Frequency-based Static Top-4**: Dice **0.7639** vs **0.7636** ($\Delta = +0.00037$, 95% CI `[-0.00051, +0.00124]`, Paired $t$-test $p = \mathbf{0.4133}$, Wilcoxon $p = \mathbf{0.3053}$). Khẳng định: **Không có sự khác biệt có ý nghĩa thống kê** giữa adaptive routing và static routing trên checkpoint này.
-   - **Adaptive vs Random Top-4 (10 seeds)**: Dice **0.7639** vs **0.7633** ($\Delta = +0.00063$, 0.063 percentage points Dice, $p = 0.0335$, win rate 59.8%). Khẳng định: Statistically detectable $\neq$ practically important.
-   - **Phân vị vết nứt mảnh ($Q4$)**: Adaptive $0.6637$ vs Static $0.6636$ ($\Delta = \mathbf{0.0001}$). Zero evidence về việc adaptive routing đang giải cứu vết nứt mảnh.
-   - **Đúc kết "Information ≠ Utility"**: Nút thắt biểu diễn đo được ở tầng router hiện tại **chưa phải là nút thắt hiệu năng phân đoạn downstream của SAGE-Lite D4**.
-   - **Quyết định chiến lược**: **Tuyệt đối chưa đụng vào GAP hay sửa architecture router**. Tập trung phân tích expert pool quality và main path.
+Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack500 (Master Experimental Progression):
+1. **Phase 1: ViT Depth Scaling Study (HOÀN TẤT & ĐÃ KHÓA BASE DEPTH = D4 ✅):**
+   - Đã sweep đủ 5 độ sâu ViT {D4: **0.7639** > D8: **0.7604** > D6: **0.7599** > D2: **0.7578** > D12: **0.7557**}. Khóa chính thức ViT Depth = 4 (D4, 10.12M params, 8 experts đối xứng 1:1, 8 routers).
+2. **Phase 2: Routing Capacity top_k Screening (TẠM KHÓA PROVISIONAL TOP_K = 2 🔒):**
+   - K2 (0.7618) đạt xấp xỉ K4 baseline (0.7639) với độ suy giảm tối thiểu (-0.21% Dice), cắt giảm 50% expert calls. K6 bị OOM trên phần cứng Tesla T4 (hardware infeasibility under canonical T4 protocol). Tạm chốt provisional top_k=2 để tiếp tục lộ trình.
+3. **Phase 3: Router Hidden Dim Study (HOÀN TẤT & ĐÃ KHÓA HIDDEN_DIM = 64 ✅):**
+   - Đã khảo sát 3 dung lượng router {H32: 0.7587, H64: **0.7618**, H128: 0.7550}. Đường cong chữ U ngược quan sát được: $Dice(H128=0.7550) < Dice(H32=0.7587) < Dice(H64=0.7618)$. Chọn `router_hidden_dim = 64` là best observed configuration dưới D4 + provisional top_k=2 (seed 42).
+4. **Phase 4: Load Balancing Loss Study (HOÀN TẤT & BỎ QUA THEO TIÊU CHUẨN CỔNG ĐIỀU KIỆN — SKIPPED ⏭️):**
+   - Thẩm định routing diagnostic trên checkpoint canonical ghi nhận 0/8 dead experts (min utilization 4.94% > 1.0%), không sụp đổ phân phối. Kế thừa `load_balance_factor = 0.01` (inherited baseline, not tuned).
+5. **Phase 5.1: SAGE LR Isolation (SẴN SÀNG TRIỂN KHAI / CANDIDATES READY 🚀):**
+   - Baseline 1e-4 kế thừa từ checkpoint canonical H64 K2 (Peak Val Dice 0.7618). Đã chuẩn bị sẵn sàng 2 candidate configs (`5e-5` và `2e-4`) cùng driver notebook để chạy song song trên 2 T4 Colabs.
 
 State:
-Đã hoàn thành trọn vẹn Phase 1 (Depth Scaling Study) với việc khóa chính thức ViT Depth = 4 (D4, Peak Val Dice = 0.7639). Đã hoàn thành 1/2 Phase 2 (top_k=2 screening đạt 0.7618). Chuỗi chẩn đoán Routing Intervention đã giải quyết dứt điểm nghi vấn về GAP và tính hữu dụng của adaptive routing trên checkpoint hiện tại. Sẵn sàng thực hiện run top_k=6 hoặc chuyển tiếp sang Phase 3 (Router Hidden Dim) theo lộ trình.
+- Phase 1: D4 locked
+- Phase 2: K6 OOM → provisional top_k=2
+- Phase 3: H64 selected under D4+K2, seed42
+- Phase 4: SKIPPED, LB=0.01 inherited baseline
+- Phase 5.1: SAGE LR candidates 5e-5 and 2e-4 ready/running
+
+Cấu hình hiện hành:
+- ViT depth = 4
+- top_k = 2 (provisional)
+- router_hidden_dim = 64
+- N_injection = 8 routers
+- batch size = 14
+- epoch budget = 35 (17+18)
 
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
@@ -98,11 +103,11 @@ Completed:
 
 
 In Progress:
-- Phase 1: ViT-depth ablation suite trên Crack500 (Google Colab T4, `batch_size: 12`, `num_workers: 2`, `--two-stage`):
-  + Run 1: B2 Depth 12 (`configs/b2_crack500_depth12.yaml`)
-  + Run 2: B2 Depth 6 (`configs/b2_crack500_depth6.yaml`)
-  + Run 3: B2 Depth 4 (`configs/b2_crack500_depth4.yaml`)
-  + Đánh giá và chọn depth tốt nhất dựa DUY NHẤT trên Validation Dice (không dùng test-set).
+- Phase 5.1: SAGE LR Isolation Suite trên Crack500 (Google Colab T4, `batch_size: 14`, `num_workers: 2`, `--two-stage`):
+  + Candidate A (SAGE LR = 5e-5): `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr5e5.yaml`
+  + Candidate B (SAGE LR = 2e-4): `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml`
+  + Baseline tham chiếu (SAGE LR = 1e-4): Checkpoint canonical H64 K2 (`best_model_b2_global.pth`, Peak Val Dice = **0.7618**, không train lại).
+  + Đánh giá và chọn SAGE LR tốt nhất dựa DUY NHẤT trên Validation Dice (không dùng test-set).
 - **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
   + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
   + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**
@@ -132,8 +137,9 @@ Current Issue:
 - Không có issue. Two-Stage Training & Optimizer Preflight đã PASS 100% cho cả 3 cấu hình Run A, Run B và Run C (343/343 tensors khớp tuyệt đối, 0 missing, 0 duplicates, shared experts cô lập chuẩn ở CNN main blocks, Stage 2 LR ratio 1:1 bảo toàn).
 
 Next Step:
-- Tiến hành thực thi P3-PHASE-7: Huấn luyện chính thức 3 cấu hình Run A (`b2_p3_run_a.yaml`), Run B (`b2_p3_run_b.yaml`), Run C (`b2_p3_run_c.yaml`) trên Google Colab T4 theo giao thức Two-Stage Training đã khóa.
-- Thu thập metrics trên Validation set để phục vụ P3-PHASE-8 Decision Gate (tuyệt đối không truy cập tập Test).
+- Chạy huấn luyện song song Candidate A (`5e-5`) và Candidate B (`2e-4`) trên 2 Colab Tesla T4 theo notebook `notebooks/Phase5_1_SAGE_LR_Colab_T4.ipynb`.
+- Thu thập metrics Validation Dice và loss curve để xác định xem có xuất hiện loss spike hay không (phục vụ Decision Gate cho Phase 5.2 Warmup).
+- Lựa chọn SAGE LR tối ưu nhất để chuyển giao sang Phase 5.3 (Stage-2 LR Ratio Isolation).
 
 
 ## Milestones & SKs (Dependency-order)
@@ -183,31 +189,31 @@ Next Step:
 ## Bảng chốt biến thực nghiệm (Configuration Map)
 
 ### Nhóm 1: Khóa CỨNG (đổi = phải sửa code/logic, không đổi tùy tiện)
-- **ViT blocks**: 6
+- **ViT blocks**: 4 (Đã khóa từ Phase 1 Depth Scaling)
 - **num_shared_experts**: 4 (auto = 4 CNN stages)
-- **router_hidden_dim**: 64
-- **top_k**: 4
-- **N_injection**: Full (10 routers ở baseline 6 blocks)
+- **router_hidden_dim**: 64 (Best observed configuration từ Phase 3)
+- **top_k**: 2 (Tạm chốt provisional từ Phase 2)
+- **N_injection**: Full (8 routers ở baseline 4 ViT blocks: 4 CNN + 4 ViT)
 - **Decoder conv**: Standard 3x3 (DWSC chỉ là flag tắt)
-- **Fusion**: Residual (main + adapter), không alpha
+- **Fusion**: Residual (main + adapter, scale 0.1), không alpha
 - **SA-Hub**: O(D²) eager pairwise, giữ nguyên gốc
 - **Gating**: sigmoid, khóa cứng, không ablation
 - **Loss**: 1.0*BCE + 1.5*SoftDice + 1.0*L_balance, không pos_weight
-- **load_balance_factor**: 0.01
+- **load_balance_factor**: 0.01 (Inherited baseline, Phase 4 skipped)
 - **expert_dropout**: 0.1
 - **freeze_encoder/transformer**: False/False
-- **Stage2 LR ratio**: 1:1 (chỉ nghiêng khi thấy collapse)
-- **AMP dtype**: FP16 (không BF16 vì dùng T4)
-- **Warmup**: 2-3 epoch
-- **EarlyStopping patience**: 5-7
-- **Weight decay**: 0.05, param groups tách LN/bias
+- **Stage2 LR ratio**: Khảo sát tại Phase 5.3 ($r = LR_{\text{shared experts}} / LR_{\text{fine-grained experts}}$, baseline $r=1.0$)
+- **AMP dtype**: FP16 (tối ưu Tesla T4)
+- **Warmup**: 3 epochs
+- **EarlyStopping patience**: 6
+- **Weight decay**: 0.05, param groups tách LN/bias (WD=0.0)
 - **Seed**: 42 cố định
 - **Exploration Noise**: Giữ nguyên baseline = ON (giống code gốc). Ablation bật/tắt để riêng ra SK sau, không phải quyết định kiến trúc mặc định.
 
 #### Nhóm 2: Cấu hình Thực nghiệm Đã Chốt
-- **Batch size**: **B0 = 20** (đã benchmark T4), **B1 = 16** (config chính thức an toàn; bài học kinh nghiệm: các architecture khác nhau không được tự động dùng chung batch size nếu chưa benchmark riêng).
-- **Base LR**: **1e-4** (Backbone LR: **1e-5**, Decoder LR: **1e-4**).
-- **Training Budget**: **Epoch budget = 30** (ngân sách tối đa, không phải con số cố định bắt buộc chạy đủ), **EarlyStopping patience = 6**.
+- **Batch size**: **14** (chuẩn hóa trên Tesla T4 sau preflight và Phase 1-3).
+- **Base LR**: **1e-4** (Backbone LR: **1e-5**, Decoder LR: **1e-4**, SAGE LR đang khảo sát Phase 5.1 `{5e-5, 2e-4}`).
+- **Training Budget**: **Epoch budget = 35** (Two-stage: Stage 1 = 17 epochs, Stage 2 = 18 epochs; `patience: 6`).
 - **Crack500 smart filter**: **fg_pixels >= 20** (max 20 crop attempts × 10 source resamples).
 
 ## Migration Map
@@ -253,32 +259,32 @@ sage-lite/
 
 ## Bảng Tổng hợp Hyperparameter & Baseline
 
-| Hyperparameter | Phân loại | Giá trị Baseline | Ghi chú |
+| Hyperparameter | Phân loại | Giá trị Hiện hành | Ghi chú |
 |---|---|---|---|
-| **ViT blocks** | Kiến trúc | 6 | Nửa đầu của ViT-Tiny (12 blocks) |
-| **num_shared_experts** | Kiến trúc | 4 | Bằng đúng 4 CNN stages |
-| **router_hidden_dim** | Kiến trúc | 64 | Bộ định tuyến gọn nhẹ |
-| **top_k** | Kiến trúc | 4 | Baseline |
-| **N_injection** | Kiến trúc | Full (10 routers) | Ở baseline 6 ViT blocks (4 CNN + 6 ViT) |
+| **ViT blocks** | Kiến trúc | 4 | Đã khóa từ Phase 1 Depth Scaling |
+| **num_shared_experts** | Kiến trúc | 4 | Bằng đúng 4 CNN stages (0..3) |
+| **router_hidden_dim** | Kiến trúc | 64 | Best observed configuration từ Phase 3 |
+| **top_k** | Kiến trúc | 2 | Tạm chốt provisional từ Phase 2 |
+| **N_injection** | Kiến trúc | Full (8 routers) | Ở baseline 4 ViT blocks (4 CNN + 4 ViT) |
 | **Decoder conv** | Kiến trúc | Standard 3x3 | DWSC chỉ là flag tắt |
-| **Fusion** | Kiến trúc | Residual | main + adapter, không alpha |
+| **Fusion** | Kiến trúc | Residual | main + 0.1 * adapter, không alpha |
 | **SA-Hub** | Kiến trúc | O(D²) eager pairwise | Giữ nguyên thuật toán gốc |
 | **Gating** | Kiến trúc | Sigmoid | Khóa cứng (không ablation) |
-| **Exploration Noise** | Kiến trúc | ON | Đưa vào danh sách ablation sau |
+| **Exploration Noise** | Kiến trúc | ON | Giữ nguyên baseline |
 | **Patch size** | Kiến trúc | 14x14 | 196 tokens tại bottleneck |
 | **Loss Weights** | Training | 1.0*BCE, 1.5*SoftDice, 1.0*L_balance | Không dùng pos_weight |
-| **load_balance_factor** | Training | 0.01 | Scale nội bộ Router |
+| **load_balance_factor** | Training | 0.01 | Inherited baseline, Phase 4 skipped |
 | **expert_dropout** | Training | 0.1 | Hạn chế overfitting SA-Hub |
 | **freeze_encoder/transformer** | Training | False/False | Fine-tune cả mạng |
-| **Stage2 LR ratio** | Training | 1:1 | Khởi đầu trung lập |
+| **Stage2 LR ratio** | Training | Khảo sát Phase 5.3 ($r=1.0$ baseline) | $r = LR_{\text{shared experts}} / LR_{\text{fine-grained experts}}$ |
 | **AMP dtype** | Training | FP16 | Tối ưu trên GPU Tesla T4 |
 | **Warmup** | Training | 3 epochs | CosineAnnealingLR sau warmup |
 | **EarlyStopping patience** | Training | 6 | Dừng sớm nếu Val Dice không tăng |
 | **Weight decay** | Training | 0.05 | Param groups tách LN/bias (WD=0.0) |
 | **Seed** | Training | 42 | Cố định toàn pipeline |
-| **Batch size** | Thực nghiệm | B0 = 20, B1 = 16 | B0 đã benchmark T4; B1 dùng BS=16 an toàn trong config chính thức |
+| **Batch size** | Thực nghiệm | 14 | Chuẩn hóa trên Tesla T4 sau preflight & Phase 1-3 |
 | **Base LR** | Thực nghiệm | 1e-4 | Backbone LR: 1e-5, Decoder LR: 1e-4 |
-| **Training Budget** | Thực nghiệm | Epoch budget = 30 | Ngân sách tối đa; EarlyStopping patience = 6 |
+| **Training Budget** | Thực nghiệm | Epoch budget = 35 | Two-stage: 17 S1 + 18 S2; EarlyStopping patience = 6 |
 | **min_pixels Crack500** | Data | fg_pixels >= 20 | Ngưỡng lọc patch có vết nứt (Canonical) |
 
 
