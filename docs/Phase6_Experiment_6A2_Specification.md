@@ -149,7 +149,7 @@ Huấn luyện trọn vẹn hai giai đoạn (Full Stage 1 $\to$ Stage 2) tuân 
 
 !python scripts/train_crack.py \
   --config configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_pure_plu.yaml \
-  --data-root /content/dataset/Crack500
+  --two-stage
 ```
 
 ### Cell 3: Post-Training Diagnostics, Packaging & Auto-Download
