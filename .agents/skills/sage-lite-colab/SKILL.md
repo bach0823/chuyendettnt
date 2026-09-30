@@ -23,6 +23,15 @@ Skill này định nghĩa các nguyên tắc bất biến (invariants) và best 
   - Tuyệt đối **KHÔNG** yêu cầu hoặc ép buộc người dùng mount Google Drive (`drive.mount('/content/drive')`), trừ khi người dùng chủ động yêu cầu.
   - Hiểu rõ cơ chế hệ thống tệp: `os.makedirs('/content/drive/MyDrive/...', exist_ok=True)` trong mã nguồn Python hoàn toàn tạo được cây thư mục trên ổ đĩa ảo cục bộ `/content/` mà không cần Google Drive FUSE mount. Checkpoint lưu vào đây đọc/ghi hoàn toàn bình thường; không được suy diễn rằng thiếu mount Drive sẽ gây crash.
   - Tuyệt đối **KHÔNG** tự ý chèn các lệnh `!pip install ...` hàng loạt vào đoạn code của người dùng nếu người dùng đang dùng notebook/script chuẩn đã chạy thành công trước đó (tôn trọng môi trường có sẵn).
+- **Ultra-Minimal Driver Cell Invariant (Zero-Boilerplate Standard):**
+  - **Notebook là Driver thuần túy, KHÔNG phải Test Suite hay Script Runner**:
+    - **Quy tắc vàng**: Code python kiểm tra tồn tại / tính toàn vẹn (file existence, assertions, metadata check) nếu đã test ở máy local rồi thì lên Colab **TUYỆT ĐỐI KHÔNG CẦN GHI THÊM**.
+    - Tuyệt đối **KHÔNG** viết hàng chục dòng Python inline để assert file tồn tại (`assert os.path.isfile`), tính toán checksum SHA-256 (`hashlib.sha256`), in các banner ASCII phân cách (`print("=" * 80)`), hay đọc/parse JSON thủ công trong cell.
+    - Mọi logic kiểm tra, fail-fast và xác thực tính toàn vẹn PHẢI nằm gọn trong Repository scripts/tools (`scripts/train_crack.py`, `tools/analyze_routing.py`, etc.).
+  - **Chuẩn hóa 3 Cells tối giản mẫu (Chỉ chạy lệnh, không thừa một dòng):**
+    1. **Cell 1 (Setup, Data & Ancestor Checkpoint):** Thuần các lệnh shell trực tiếp (`!nvidia-smi`, `!rm -rf ...`, `!git clone ...`, `%cd ...`, `!python prepare_data/...`, `!mkdir -p ...`, `!wget ...`).
+    2. **Cell 2 (Huấn luyện Stage):** Chỉ gồm `%cd /content/SAGE_LITE` và duy nhất 1 lệnh CLI gọi `!python scripts/train_crack.py --config ... [flags]`.
+    3. **Cell 3 (Chẩn đoán, Nén & Tải về):** Chỉ gồm các lệnh CLI chẩn đoán (`!python tools/analyze_routing.py ...`, `!python tools/run_p3_c_error_analysis.py ...`), nén zip (`shutil.make_archive(...)`) và kích hoạt tải về (`files.download(...)`).
 
 ## 2. Environment Setup & Preflight (Tập trung & Tái lập)
 - **All-in-One Preflight Verification Cell Invariant:** Luôn chuẩn bị sẵn **MỘT CELL DUY NHẤT** tích hợp toàn bộ các bước tiền kiểm (Preflight) để User chỉ cần copy-paste bấm chạy 1 lần duy nhất trước khi chạy tác vụ chính:
@@ -190,106 +199,68 @@ Nhằm tối ưu hóa tốc độ I/O, loại bỏ xung đột xác thực Googl
 4. **Tự động tải về máy cục bộ bằng `google.colab.files.download`:**
    - Kèm theo tính năng kiểm tra dung lượng file (in kích thước theo MB) trước khi kích hoạt download trình duyệt.
 
-**Template Cell Colab xuất xưởng chuẩn (Copy-paste ready):**
+**Bộ 3 Cells Colab Chuẩn Mực Tối Giản (Copy-paste ready, Không rườm rà):**
+
 ```python
-import os
-import shutil
-import glob
-from google.colab import files
+# ==============================================================================
+# Cell 1: Environment Setup, Repo Clone, Dataset & Ancestor Checkpoint Download
+# ==============================================================================
+!nvidia-smi
 
-RUN_DIR = "/content/P3_C_Canonical_Base_D8_E33"
-BUNDLE_DIR = "/content/P3_C_Canonical_Base_D8_Full"
-ZIP_OUTPUT = f"{BUNDLE_DIR}.zip"
+!rm -rf /content/SAGE_LITE
+!git clone -b crack500-audit https://github.com/bach0823/SAGE_LITE.git /content/SAGE_LITE
+%cd /content/SAGE_LITE
 
-os.makedirs(BUNDLE_DIR, exist_ok=True)
+!python prepare_data/prepare_crack500.py
 
-# 1. Gom TẤT CẢ Checkpoints (.pth) — Đảm bảo có cả best_model và last_model
-pth_files = glob.glob(os.path.join(RUN_DIR, "*.pth"))
-print("=" * 80)
-print(f"BẮT ĐẦU ĐÓNG GÓI ARTIFACT: {RUN_DIR}")
-print(f"Checkpoints tìm thấy ({len(pth_files)}):")
-for pth in pth_files:
-    print(f"  - {os.path.basename(pth)}")
-    shutil.copy2(pth, os.path.join(BUNDLE_DIR, os.path.basename(pth)))
-
-# 2. Gom Train Log & Config
-if os.path.exists(os.path.join(RUN_DIR, "train.log")):
-    shutil.copy2(os.path.join(RUN_DIR, "train.log"), os.path.join(BUNDLE_DIR, "train.log"))
-
-# 3. Gom Diagnostics (nếu có)
-diag_dirs = [
-    "/content/P3_C_Routing_Diagnostics_D8",
-    os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics"),
-]
-found_diag = next((d for d in diag_dirs if os.path.exists(d)), None)
-if found_diag:
-    dest_diag = os.path.join(BUNDLE_DIR, os.path.basename(found_diag))
-    if os.path.exists(dest_diag):
-        shutil.rmtree(dest_diag)
-    shutil.copytree(found_diag, dest_diag)
-    print(f"Routing Diagnostics: Đã gom từ {found_diag}")
-else:
-    print("Routing Diagnostics: Không tìm thấy")
-
-print("=" * 80)
-
-# 4. Nén và Kích hoạt Tải về
-shutil.make_archive(base_name=BUNDLE_DIR, format="zip", root_dir=BUNDLE_DIR)
-zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
-print(f"ĐÃ NÉN THÀNH CÔNG: {ZIP_OUTPUT} ({zip_size_mb:.2f} MB)")
-print("Đang kích hoạt tải file về máy...")
-files.download(ZIP_OUTPUT)
+!mkdir -p /content/checkpoints
+!wget -q -O /content/checkpoints/best_model_b2_stage1.pth \
+  "https://raw.githubusercontent.com/bach0823/chuyendettnt/main/results/checkpoints/P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_stage1.pth"
+!wget -q -O /content/checkpoints/last_model_b2_stage1_rng.pth \
+  "https://raw.githubusercontent.com/bach0823/chuyendettnt/main/results/checkpoints/P3_C_D4_K2_H64_Phase5_SAGELR2e-4_last_model_b2_stage1_rng.pth"
 ```
 
-**Template Cell Colab All-in-One (Diagnose + Error Analysis + Zip + Download - 1 Cell duy nhất):**
 ```python
 # ==============================================================================
-# ALL-IN-ONE CELL: DIAGNOSE + ZIP + DOWNLOAD (1 CELL DUY NHẤT)
+# Cell 2: Training Execution (Driver thuần túy - 1 lệnh thực thi duy nhất)
 # ==============================================================================
 %cd /content/SAGE_LITE
-import os
-from google.colab import files
 
-RUN_DIR = "/content/drive/MyDrive/crack_seg/<RUN_FOLDER_NAME>"
-CONFIG_PATH = "configs/p3_ablation/<CONFIG_NAME>.yaml"
-FOLDER_NAME = "<RUN_FOLDER_NAME>"
-ZIP_NAME = "<RUN_FOLDER_NAME>_Full.zip"
-
-# Tự động nhận diện checkpoint tối ưu (ưu tiên best_global -> best_stage2 -> last_stage2)
-ckpt_path = os.path.join(RUN_DIR, "best_model_b2_global.pth")
-if not os.path.exists(ckpt_path):
-    ckpt_path = os.path.join(RUN_DIR, "best_model_b2_stage2.pth")
-if not os.path.exists(ckpt_path):
-    ckpt_path = os.path.join(RUN_DIR, "last_model_b2_stage2.pth")
-
-diag_val = os.path.join(RUN_DIR, "diagnostics", "full_val")
-diag_err = os.path.join(RUN_DIR, "diagnostics", "error_analysis")
-
-print(f"[*] Checkpoint thẩm định: {ckpt_path}\n")
-
-# 1. Routing Diagnostics (Full Val Split)
-!python tools/analyze_routing.py \
-  --config {CONFIG_PATH} \
-  --checkpoint {ckpt_path} \
-  --output_dir {diag_val} \
-  --data_root /content/dataset/Crack500 \
-  --split val
-
-# 2. Error Analysis & Morphology (Setting A Official Protocol)
-!python tools/run_p3_c_error_analysis.py \
-  --config {CONFIG_PATH} \
-  --checkpoint {ckpt_path} \
-  --routing-json {diag_val}/routing_statistics.json \
-  --output-dir {diag_err} \
+!python scripts/train_crack.py \
+  --config configs/p3_ablation/<CONFIG_NAME>.yaml \
+  --stage2-only \
+  --checkpoint /content/checkpoints/best_model_b2_stage1.pth \
+  --rng-checkpoint /content/checkpoints/last_model_b2_stage1_rng.pth \
   --data-root /content/dataset/Crack500
+```
 
-# 3. Nén toàn bộ thư mục thực nghiệm (bảo đảm cả Best & Last checkpoints)
-%cd /content/drive/MyDrive/crack_seg
-!zip -r {ZIP_NAME} {FOLDER_NAME}
+```python
+# ==============================================================================
+# Cell 3: Post-Training Diagnostics, Zip & Browser Download
+# ==============================================================================
+%cd /content/SAGE_LITE
+from google.colab import files
+import shutil
 
-# 4. Kích hoạt tự động tải về máy
-files.download(f"/content/drive/MyDrive/crack_seg/{ZIP_NAME}")
-print(f"\n✓ Hoàn tất! File đã được lưu an toàn tại Drive và đang tải về máy: {ZIP_NAME}")
+# 1. Routing Diagnostics (Full Val)
+!python tools/analyze_routing.py \
+    --config configs/p3_ablation/<CONFIG_NAME>.yaml \
+    --checkpoint /content/runs/<RUN_FOLDER_NAME>/best_model_b2_global.pth \
+    --output_dir /content/runs/<RUN_FOLDER_NAME>/P3_C_Routing_Diagnostics/full_val \
+    --split val \
+    --data_root /content/dataset/Crack500
+
+# 2. Error Analysis (Setting A Tiling)
+!python tools/run_p3_c_error_analysis.py \
+    --config configs/p3_ablation/<CONFIG_NAME>.yaml \
+    --checkpoint /content/runs/<RUN_FOLDER_NAME>/best_model_b2_global.pth \
+    --routing-json /content/runs/<RUN_FOLDER_NAME>/P3_C_Routing_Diagnostics/full_val/routing_statistics.json \
+    --output-dir /content/runs/<RUN_FOLDER_NAME>/P3_C_Routing_Diagnostics/error_analysis \
+    --data-root /content/dataset/Crack500
+
+# 3. Zip & Download
+shutil.make_archive("/content/<RUN_FOLDER_NAME>_Full", "zip", "/content/runs", "<RUN_FOLDER_NAME>")
+files.download("/content/<RUN_FOLDER_NAME>_Full.zip")
 ```
 
 

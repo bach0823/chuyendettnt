@@ -1286,6 +1286,22 @@ Dữ liệu được trích xuất trực tiếp từ các file chẩn đoán [`
 ### 3. Phán Quyết Theo Ma Trận Quyết Định Pre-registered
 Kết quả rơi vào **Pattern 2 (Dual Chain Recovery / Strong Thin Recovery)**: Tín hiệu gradient boundary với $\lambda=0.50, d=2$ đã cung cấp áp lực học tập hữu ích, đặc biệt giải quyết hiệu quả lỗi phình to ở vết nứt mảnh mà không cần tăng thêm bất kỳ tham số mạng nào.
 
+---
+
+## 28. Bài học Kinh nghiệm: Chuẩn mực Colab Cell Tối Giản — Ultra-Minimal Driver Pattern (2026-09-30)
+
+### 1. Nguyên Tắc Cốt Lõi: Đã Test Local Thì Không Ghi Thừa Lên Colab
+- **Quy tắc vàng:** Code python kiểm tra tồn tại / tính toàn vẹn (file existence, assertions, metadata check) nếu đã test ở máy local rồi thì lên Colab **TUYỆT ĐỐI KHÔNG CẦN GHI THÊM**.
+- **Không over-engineering trên Notebook:** Không viết hàng chục dòng Python inline để `assert os.path.isfile(...)`, tính toán checksum SHA-256 (`hashlib.sha256`), in các banner ASCII phân cách (`print("=" * 80)`), hay đọc/parse JSON thủ công trong cell. Người dùng cần giao diện Colab sạch sẽ, trực quan, chỉ bấm là chạy.
+
+### 2. Phân Định Rạch Ròi Trách Nhiệm (Separation of Concerns)
+- **Repository Scripts (`scripts/`, `tools/`):** Chịu trách nhiệm toàn bộ về validation, config parsing, checkpoint integrity, fail-fast assertion và error handling. Mọi kiểm tra an toàn phải nằm trong code repo đã được test kỹ ở local.
+- **Colab Notebook Cells (Driver thuần túy):** Chỉ đóng vai trò kích hoạt (trigger) theo cấu trúc 3 cells chuẩn mực:
+  - **Cell 1:** Setup môi trường, clone repo, chuẩn bị dataset & tải checkpoint tổ tiên (thuần shell commands: `nvidia-smi`, `git clone`, `prepare_data`, `wget`).
+  - **Cell 2:** Kích hoạt huấn luyện đơn nhất (`%cd /content/SAGE_LITE` và `!python scripts/train_crack.py ...`).
+  - **Cell 3:** Chẩn đoán hậu huấn luyện, nén zip và kích hoạt browser download (`tools/...` + `shutil.make_archive` + `files.download`).
+
+
 
 
 
