@@ -400,6 +400,32 @@ sage-lite/
     * Diagnostics: `results/P3_C_Routing_Diagnostics_D2/` (đầy đủ `full_val/` và `error_analysis/`).
     * Config: `results/configs/b2_p3_run_c_d2.yaml`.
     * Dữ liệu: Cập nhật `results/p3_abc_epoch_by_epoch_metrics.json` & `.md`.
+- **2026-09-28 (tiếp tục)**: Khảo sát Dung lượng Kích hoạt Top-k=2 (D4 K2, 8 experts pool):
+  + Val Dice đạt **0.7618** (chỉ chênh -0.21% so với 0.7639 của D4 K4 dù giảm 50% số expert kích hoạt).
+  + Khẳng định tính hiệu quả và gọn nhẹ của cấu hình $k=2$ cho các phase tối ưu hóa tiếp theo.
+- **2026-09-28**: Nghiên cứu Can thiệp Định tuyến (Routing Intervention Diagnostic trên N=348 Crack500 Val):
+  + Phép thử hoán đổi Adaptive vs Frequency-based Static Top-4 cho $\Delta = +0.00037$ ($p = 0.413$, không có ý nghĩa thống kê).
+  + Kết luận đột phá: Hiệu năng vượt trội của SAGE-Lite đến từ **Ensemble Quality** (tập hợp chuyên gia phong phú kết hợp SA-Hub và ASDW) chứ không phụ thuộc vào quyết định routing động từng mẫu. Khóa nguyên vẹn router, không can thiệp GAP.
+- **2026-09-29**: Khảo sát Độ nhạy Scale Residual (Residual/Fusion Sensitivity):
+  + Tách bạch phản ứng của từng họ tầng: S3 nhạy scale dương, nhóm ViT nhạy scale âm khi $>0.1$.
+  + Biên độ biến thiên rất nhỏ ($<0.001$ Dice), loại trừ cơ chế fusion khỏi danh sách các nút thắt hiệu năng chính.
+- **2026-09-29**: Hoàn thành & Nghiệm thu Phase 3 Router Hidden Dimension Sweep ($H32 \to H64 \to H128$):
+  + Thiết lập đường cong chữ U ngược: $H32 (0.7587) < H128 (0.7550) < \mathbf{H64 (0.7618)}$.
+  + **Chính thức khóa $router\_hidden\_dim = 64$** làm tham số nền tảng.
+- **2026-09-29**: Hoàn thành & Nghiệm thu Phase 4 Load Balancing Factor Sweep ($0.005 \to 0.010 \to 0.030$):
+  + Xác lập đỉnh Pareto tại $LB = 0.010$ (Val Dice **0.7641** của Candidate B).
+  + **Chính thức khóa $load\_balance\_factor = 0.010$** làm chuẩn mực vĩnh viễn.
+- **2026-09-29**: Nghiệm thu Phase 5 & Đóng băng Chuẩn tắc Candidate B:
+  + Quét 6 tỉ số learning rate Stage 2 ($r \in \{0.25, 0.50, 1.00, 2.00, 4.00, 5.00\}$). Xác lập $r=1.00$ là Sweet Spot tối ưu.
+  + **Chính thức khóa Candidate B** ($D=4, K=2, H=64$, Stage 2 base $r=1.00$) làm Canonical Base với Val Dice **0.7641**, Mean IoU **0.6417**.
+- **2026-09-30**: Hoàn thành Thực nghiệm Phase 6-A.1 Objective Probe (Soft Boundary IoU Loss, $\lambda=0.50, d=2$):
+  + **Thiết lập Đỉnh Toàn Dự Án Mới: Val Dice 0.7684** (+0.0043), Mean IoU **0.6465**, Precision **0.7416** (+0.79%).
+  + Đột phá trên nhóm vết nứt siêu mảnh ($Q4$ thin cracks $>0.20$): Val Dice tăng $+2.37\%$ ($0.6404 \to 0.6641$), sai số loang viền dôi dư giảm $-15.82\%$ ($80.37\% \to 64.55\%$).
+- **2026-09-30 (hiện tại)**: Triển khai & Khởi động Phase 6-A.2 Representation Probe (Progressive Learned Upsampling Head - PLU):
+  + Hoàn tất cấu trúc `ProgressiveLearnedUpsamplingHead` ($112 \to 224 \to 448$, $+6,408$ params, lineage remapping kế thừa `conv112/norm112` từ Stage 1 Candidate B).
+  + Toàn bộ unit tests, shape contract, preflight assertions và diagnostic toolsuite đã đồng bộ trên nhánh `crack500-audit` (commit `51fd9ae`).
+  + Đang chạy huấn luyện 18 epochs Stage 2 trên Colab T4, sẵn sàng nạp artifacts và thực hiện phân tích đối chiếu Setting A.
+
 
 
 

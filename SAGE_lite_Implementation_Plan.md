@@ -288,9 +288,15 @@ Mục tiêu: Đối chiếu hiệu năng của SAGE-lite với các kiến trúc
 * **B1 ViT-Depth Screening đã hoàn thành 100% trên Crack500**:
   - Đã quét các độ sâu `{4, 6, 8, 12}`: D4 Val Dice 0.7428, D6 Val Dice 0.7420 (Test Setting A 0.6857, Setting B 0.6895, HD95 77.43 px), D12 Val Dice 0.7419.
   - Kết luận: Hiệu năng trên tập Validation hoàn toàn tương đồng (~0.742), không có hiện tượng underperform so với B0 (0.7318).
-* **CHUYỂN TIẾP CHÍNH THỨC SANG B2**:
-  - **B2 Phase 0 (Runtime Preflight)**: Đã hoàn thành 100% trên phần cứng thực tế Tesla T4 (14.56 GB VRAM). Đã khóa cứng cấu hình runtime an toàn: `batch_size = 12`, `num_workers = 2` (Peak Alloc 13.84 GB, headroom an toàn 0.51 GB; cấu hình `batch_size >= 14` đều dính OOM).
-  - **B2 Phase 1 (ViT Depth Lock)**: Khảo sát và khóa chính thức ViT depth `{12, 6, 4}` trong môi trường B2 có đầy đủ routing injection theo đúng lộ trình thực nghiệm tại [`docs/B2_Experimental_Roadmap.md`](file:///d:/truong/SpecialSubjectTTNT/docs/B2_Experimental_Roadmap.md).
-* Preprocessing đã khóa cứng (Frozen Canonical: `image_size = 448`, ImageNet mean/std, scale-aware mask scaling).
+* **TIẾN ĐỘ THỰC HIỆN B2 (PHASE 0 ĐẾN PHASE 6):**
+  - **B2 Phase 0 (Runtime Preflight)**: Đã hoàn thành 100% trên Tesla T4. Khóa an toàn `batch_size = 12..14`, `num_workers = 2`.
+  - **B2 Phase 1 (ViT Depth Lock)**: Khóa chính thức Base Depth $D = 4$.
+  - **B2 Phase 2 (P3-C ASDW Refinement)**: Đạt Val Dice 0.7639 ($K=4$), xác lập giải pháp gia cố chi tiết cục bộ ASDW.
+  - **B2 Phase 3 (Router Hidden Dim Lock)**: Khóa chính thức $H = 64$ (Val Dice 0.7618 với $K=2$).
+  - **B2 Phase 4 (Load Balance Factor Lock)**: Khóa chính thức $load\_balance\_factor = 0.010$ (Val Dice 0.7641 với Candidate B).
+  - **B2 Phase 5 (Optimization Stability & Candidate B Lock)**: Khóa Candidate B ($D=4, K=2, H=64$, Stage 2 base $r=1.00$) làm Canonical Base với Val Dice **0.7641**, Mean IoU **0.6417**.
+  - **B2 Phase 6-A.1 (Objective Probe — Soft Boundary IoU Loss)**: ĐÃ HOÀN THÀNH 100%. Thiết lập kỷ lục mới **Val Dice 0.7684** (+0.0043), bứt phá trên nhóm vết nứt mảnh $Q4$ ($+2.37\%$, tỷ lệ loang viền giảm $-15.82\%$).
+  - **B2 Phase 6-A.2 (Representation Probe — Progressive Learned Upsampling Head)**: ĐÃ TRIỂN KHAI XONG MÃ NGUỒN. Khởi tạo `ProgressiveLearnedUpsamplingHead` ($112 \to 224 \to 448$, $+6,408$ params, lineage remapping từ Stage 1), hoàn tất preflight và suite chẩn đoán. Đang trong chu kỳ huấn luyện Colab T4 (18 epochs Stage 2) và chờ nạp kết quả Setting A.
+
 
 

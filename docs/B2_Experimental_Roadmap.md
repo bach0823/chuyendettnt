@@ -703,47 +703,41 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
 
 ---
 
-## Phase 6 — Regularization & Fusion Mechanics (Khóa Cấu Hình Nền Tảng Cuối Cùng)
+## Phase 6 — Điều Tra Định Hướng Sai Số (Failure-Driven Investigation: Objective vs Representation Probes)
 
-Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢNG (Lock Base SAGE-Lite)**, khảo sát cơ chế điều hòa và hợp nhất đặc trưng của nhánh expert trước khi bước sang nhóm tối ưu High-Resolution (P3 $\to$ P1 $\to$ P2).
+Dựa trên phân loại sai số hình thái học toàn diện (Morphology Error Taxonomy) của **Candidate B** (Val Dice 0.7641), nguyên nhân kìm hãm hiệu năng chính không đến từ cơ chế định tuyến (đã chứng minh routing utility $\approx 0$) hay tỉ lệ dung hợp residual (biến thiên $<0.001$ Dice trong khảo sát hậu nghiệm), mà bắt nguồn từ **nút thắt ranh giới vết nứt mảnh (thin-crack boundary dilation)** và **nút thắt biểu diễn giải mã (decoder representation bottleneck)**.
 
-* **Kế thừa toàn bộ thông số đã khóa**:
-  - Locked Base ViT Depth = 4 (từ Phase 1).
-  - Provisional Best `top_k = 2` (từ Phase 2).
-  - Best Router Hidden Dim (từ Phase 3).
-  - Locked Load Balancing (từ Phase 4: Best LB nếu RUN, hoặc inherited 0.01 nếu SKIPPED).
-  - Locked SAGE LR (từ Phase 5.1).
-  - Locked Warmup (từ Phase 5.2: Best Warmup nếu RUN, hoặc inherited 0 nếu SKIPPED).
-  - **Locked Stage-2 LR Ratio** (từ Phase 5.3).
-* **6.1 Khảo sát Adapter Dropout**:
-  - `expert_dropout = {0.0, 0.1, 0.2}`
-* **6.2 Khảo sát Residual Scale**:
-  - `fusion_type = "residual"`
-  - Thử nghiệm:
-    * Run 6A: `residual_scale = 0.05`
-    * Run 6B: `residual_scale = 0.10` (Baseline mặc định)
-    * Run 6C: `residual_scale = 0.20`
-* **6.3 So sánh Fusion Type (Residual vs Adaptive)**:
-  - So sánh `residual_scale` tốt nhất từ 6.2 với `adaptive` fusion (learnable alpha $\alpha$).
-  - Thử nghiệm:
-    * Run 6D: Residual Fusion (với scale tối ưu)
-    * Run 6E: Adaptive Fusion (với learnable $\alpha$)
-* **Quy tắc Quyết định**: Chọn cơ chế fusion và scale tốt nhất **dựa duy nhất trên Validation Dice**.
+Phase 6 được tái cấu trúc thành 2 nhánh can thiệp có kiểm soát chặt chẽ:
+
+* **Phase 6-A.1: Objective Probe — Soft Boundary IoU Loss [HOÀN TẤT 100% ✅]**:
+  - **Mục tiêu:** Cung cấp áp lực gradient hình thái học trực tiếp tại đường biên mà **không thay đổi bất kỳ tham số nào** (0 additional params).
+  - **Cấu hình:** $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{base\_seg}} + 1.0 \times \mathcal{L}_{\text{LB}} + 0.50 \times \mathcal{L}_{\text{B-IoU}}$ ($d=2$, kernel $5\times 5$).
+  - **Kết quả:**
+    * **Thiết lập Đỉnh Toàn Dự Án Mới**: Val Dice **0.7684** (+0.0043), Mean IoU **0.6465**, Precision **0.7416** (+0.79%).
+    * **Bứt phá trên nhóm vết nứt mảnh ($Q4$ thin cracks $>0.20$)**: Val Dice tăng $+2.37\%$ ($0.6404 \to 0.6641$), sai số loang viền dôi dư giảm $-15.82\%$ ($80.37\% \to 64.55\%$).
+    * Rơi vào **Pattern 2 (Dual Chain Recovery / Strong Thin Recovery)** theo ma trận quyết định.
+
+* **Phase 6-A.2: Representation Probe — Progressive Learned Upsampling Head (PLU-Head) [ĐANG THỰC THI ⏳]**:
+  - **Mục tiêu:** Kiểm tra giả thuyết representation bottleneck do phép nội suy song tuyến tính cố định $4\times$ ($112 \to 448$) làm mờ biên đạo hàm của vết nứt mảnh.
+  - **Kiến trúc:** Thay thế tầng nội suy cố định bằng `ProgressiveLearnedUpsamplingHead` ($112 \to 224 \to 448$) qua 2 bước ConvTranspose2d ($24 \to 16 \to 1$) + BatchNorm + ReLU.
+  - **Kiểm soát biến số khắt khe:**
+    * Chỉ tăng $+6,408$ params (+0.0633%, từ $10,118,955 \to 10,125,363$).
+    * Kế thừa nguyên vẹn trọng số `conv112` và `norm112` từ Stage 1 Candidate B (`best_model_b2_stage1.pth`), chỉ 5 parameter tensors mới được khởi tạo fresh.
+    * Giữ nguyên hàm mục tiêu $\mathcal{L}_{\text{B-IoU}}$ ($\lambda=0.50, d=2$) để đo lường hiệu ứng cộng hưởng.
+  - **Trạng thái:** Mã nguồn hoàn tất, preflight PASS, đang chạy huấn luyện Stage 2 (18 epochs) trên Colab T4.
 
 ---
 
 ### ĐÓNG BĂNG CẤU HÌNH NỀN TẢNG (LOCKED BASE SAGE-LITE CONFIGURATION)
 > [!IMPORTANT]
 > **TIẾN TRÌNH KHÓA CẤU HÌNH NỀN TẢNG (BASE SAGE LOCK STATUS):**
-> Sau khi Phase 4 được bỏ qua theo conditional gate, cấu hình nền tảng kế thừa bước vào Phase 5 như sau:
-> - `vit_depth`: **4** (Đã khóa từ Phase 1).
-> - `top_k`: **2 (Provisional Working Base)** (Tạm chốt từ Phase 2, pending any explicitly approved Phase-2 robustness/reopen decision).
-> - `router_hidden_dim`: **64 (Best Observed Configuration)** (Chọn lọc từ Phase 3, seed=42).
-> - `load_balance_factor`: **0.010 (Tạm chốt / Optimal Pareto Peak)** (Đã khảo sát đầy đủ qua 3 mức {0.005, 0.010, 0.030} tại Phase 4; tạm chốt giữ nguyên LB=0.010 đạt Peak Val Dice 0.7641 của Candidate B).
-> - `sage_lr` & `warmup`: Đang chuẩn bị khảo sát tại Phase 5.1 & 5.2 (với tier `sage_lr` đã được cô lập trong code).
-> - `stage2_lr_ratio`: **1.00 (Anchor Sweet Spot)** (Đã khóa từ Phase 5.3 sau khi quét trọn vẹn 6 tỉ số $r \in \{0.25, 0.50, 1.00, 2.00, 4.00, 5.00\}$ xác lập đỉnh $0.7641$).
-> - `dropout`, `residual_scale` & `fusion_type`: Khảo sát tại Phase 6.
-> 
-> **CHUYỂN GIAO SANG GIAI ĐOẠN 2:**
-> Mô hình nền tảng đã khóa sẽ được đưa vào làm chuẩn so sánh cho **Nhóm Tối Ưu High-Resolution CNN $\to$ ViT (Optimization Group)** bắt đầu với **Proposal 3 (P3: ASDW-Concat + Spatial Compression 28×28)** theo đúng 9 Phase tuần tự đã lập ở Mục 2.
+> Cấu hình nền tảng hiện tại của dự án:
+> - `vit_depth`: **4** (Đã khóa từ Phase 1, sweet spot giữa CNN và ViT).
+> - `top_k`: **2** (Đã khóa từ Phase 2, hiệu năng tương đương $k=4$ nhưng giảm 50% expert compute).
+> - `router_hidden_dim`: **64** (Đã khóa từ Phase 3, điểm cân bằng Pareto giữa 32 và 128).
+> - `load_balance_factor`: **0.010** (Đã khóa từ Phase 4, tối ưu entropy và hạn chế co cụm).
+> - `stage2_lr_ratio`: **1.00** (Đã khóa từ Phase 5.3, Candidate B với $r=1.00$ đạt Val Dice 0.7641).
+> - `objective_loss`: **BCE + 1.5×SoftDice + 1.0×LB + 0.5×SoftBoundaryIoU** (Đã kiểm chứng bứt phá tại Phase 6-A.1 đạt Val Dice 0.7684).
+> - `upsampling_head`: Đang thẩm định tại **Phase 6-A.2** (Bilinear Baseline vs. Progressive Learned Upsampling).
+
 

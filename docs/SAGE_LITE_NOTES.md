@@ -1240,19 +1240,7 @@ Dữ liệu được trích xuất trực tiếp từ các file chẩn đoán [`
 
 ---
 
-## 26. Bài học Kinh nghiệm: Giả định Môi trường Colab & Thư mục Drive ảo (2026-09-30)
-
-1. **Hiểu đúng cơ chế File System của Linux/Colab:**
-   - Đường dẫn `/content/drive/MyDrive/crack_seg/...` chỉ là một chuỗi đường dẫn tệp thông thường. Nếu không mount Google Drive, lệnh `os.makedirs(path, exist_ok=True)` trong Python (`train_crack.py` L386) vẫn tự động tạo các thư mục con `drive/MyDrive/crack_seg/` trên ổ đĩa ảo `/content/` của Colab hoàn toàn bình thường. Checkpoint ghi vào đây vẫn đọc/ghi bình thường và không hề bị crash.
-   - Không được thấy chữ `MyDrive` là vội vàng kết luận máy móc rằng bắt buộc phải mount Google Drive.
-
-2. **Tôn trọng Quy trình Tối giản của Người dùng:**
-   - Khi người dùng cung cấp một chuỗi lệnh chạy Colab gọn gàng, đã được kiểm nghiệm qua các phase trước (từ Phase 1 đến Phase 5): **KHÔNG ĐƯỢC PHÉP** tự ý nhồi nhét thêm các câu lệnh `pip install` hoặc cảnh báo thiếu Drive nếu chưa kiểm tra lỗi thực tế.
-   - Chỉ bổ sung khi có lỗi thực thi cụ thể từ terminal output của người dùng.
-
----
-
-## 27. Kết Quả Thực Nghiệm Phase 6-A.1: Objective Probe — Soft Boundary IoU Loss (2026-09-30)
+## 26. Kết Quả Thực Nghiệm Phase 6-A.1: Objective Probe — Soft Boundary IoU Loss (2026-09-30)
 
 ### 1. Bối cảnh & Mục tiêu Thực nghiệm
 - **Kiến trúc:** Candidate B ($D=4, K=2, H=64$, ConvNeXtV2-Femto + ViT-Tiny, P3-C ASDW) — **Khóa cứng 100%, 0 tham số thêm mới**.
@@ -1288,18 +1276,18 @@ Kết quả rơi vào **Pattern 2 (Dual Chain Recovery / Strong Thin Recovery)**
 
 ---
 
-## 28. Bài học Kinh nghiệm: Chuẩn mực Colab Cell Tối Giản — Ultra-Minimal Driver Pattern (2026-09-30)
+## 27. Nguyên Lý Khoa Học Phase 6-A.2: Representation Probe — Progressive Learned Upsampling Head (2026-09-30)
 
-### 1. Nguyên Tắc Cốt Lõi: Đã Test Local Thì Không Ghi Thừa Lên Colab
-- **Quy tắc vàng:** Code python kiểm tra tồn tại / tính toàn vẹn (file existence, assertions, metadata check) nếu đã test ở máy local rồi thì lên Colab **TUYỆT ĐỐI KHÔNG CẦN GHI THÊM**.
-- **Không over-engineering trên Notebook:** Không viết hàng chục dòng Python inline để `assert os.path.isfile(...)`, tính toán checksum SHA-256 (`hashlib.sha256`), in các banner ASCII phân cách (`print("=" * 80)`), hay đọc/parse JSON thủ công trong cell. Người dùng cần giao diện Colab sạch sẽ, trực quan, chỉ bấm là chạy.
+### 1. Bối cảnh & Giả thuyết Kiến trúc (Representation vs Objective Bottleneck)
+- **Vấn đề cốt lõi của Baseline:** Mô hình Candidate B và Phase 6-A.1 tạo logits ở độ phân giải $112 \times 112$ rồi phóng to $4\times$ lên $448 \times 448$ bằng phép nội suy tuyến tính cố định (`F.interpolate(..., scale_factor=4, mode='bilinear')`).
+- **Nút thắt biểu diễn (Representation Bottleneck):** Nội suy song tuyến tính cố định làm mờ biên độ đạo hàm ở các chi tiết siêu mảnh (hairline crack $\le 2\text{ px}$) và không thể học cách phục hồi cấu trúc cục bộ tại ranh giới vật lý của vết nứt.
+- **Can thiệp đơn lẻ (Single Intervention):** Thay thế tầng nội suy cố định bằng **Progressive Learned Upsampling Head (PLU-Head)**:
+  $$\mathbf{F}_{112} \xrightarrow{\text{Conv3}\times\text{3 (24ch) + BN + ReLU}} \mathbf{H}_{112} \xrightarrow{\text{ConvTransp2}\times\text{2 (16ch) + BN + ReLU}} \mathbf{H}_{224} \xrightarrow{\text{ConvTransp2}\times\text{2 (1ch)}} \text{Logits}_{448}$$
 
-### 2. Phân Định Rạch Ròi Trách Nhiệm (Separation of Concerns)
-- **Repository Scripts (`scripts/`, `tools/`):** Chịu trách nhiệm toàn bộ về validation, config parsing, checkpoint integrity, fail-fast assertion và error handling. Mọi kiểm tra an toàn phải nằm trong code repo đã được test kỹ ở local.
-- **Colab Notebook Cells (Driver thuần túy):** Chỉ đóng vai trò kích hoạt (trigger) theo cấu trúc 3 cells chuẩn mực:
-  - **Cell 1:** Setup môi trường, clone repo, chuẩn bị dataset & tải checkpoint tổ tiên (thuần shell commands: `nvidia-smi`, `git clone`, `prepare_data`, `wget`).
-  - **Cell 2:** Kích hoạt huấn luyện đơn nhất (`%cd /content/SAGE_LITE` và `!python scripts/train_crack.py ...`).
-  - **Cell 3:** Chẩn đoán hậu huấn luyện, nén zip và kích hoạt browser download (`tools/...` + `shutil.make_archive` + `files.download`).
+### 2. Bảo Toàn Tính Khách Quan Khoa Học (Scientific Controls)
+- **Mức tăng tham số cực vi mô:** Tổng tham số tăng từ $10,118,955 \to 10,125,363$ ($\Delta = +6,408$ tham số, $+0.0633\%$), bảo đảm mọi cải thiện (nếu có) được quy thuộc chính xác cho cấu trúc biểu diễn tiến trình mà không phải do mở rộng dung lượng dung sai (capacity confounder).
+- **Kế thừa nguồn gốc Stage 1 (Stage 1 Lineage Remapping):** Kế thừa nguyên vẹn trọng số `conv112` và `norm112` từ Stage 1 checkpoint của Candidate B (`segmentation_head.0` và `.1`), chỉ khởi tạo mới 5 trainable parameter tensors ở các tầng upsampling trung gian ($112 \to 224 \to 448$).
+- **Mục tiêu kiểm định kép:** Kết hợp cấu trúc PLU-Head với hàm mục tiêu $\mathcal{L}_{\text{B-IoU}}$ ($\lambda=0.50, d=2$) đã chứng minh hiệu quả ở Phase 6-A.1 để xác định xem: *Liệu can thiệp đồng thời vào cả tầng Biểu diễn (Representation) lẫn Hàm mục tiêu (Objective) có tạo ra cộng hưởng triệt tiêu lỗi rách biên và phục hồi phân vị vết nứt mảnh vượt trần 0.7684 hay không?*
 
 
 
