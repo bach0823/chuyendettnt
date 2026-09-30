@@ -157,28 +157,66 @@ CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_plu.yaml"
   --data-root /content/dataset/Crack500
 ```
 
-### Cell 2: Post-Training Diagnostics, Packaging & Auto-Download (Colab)
+### Cell 2: Hardened Post-Training Diagnostics, Packaging & Auto-Download (Colab)
 ```python
 # ==============================================================================
-# Cell 2: Routing Diagnostics, Error Analysis, Artifacts Packaging & Download
+# Cell 2: Hardened Post-Training Diagnostics, Packaging & Auto-Download
 # ==============================================================================
 %cd /content/SAGE_LITE
 
 import os
 import shutil
+import torch
 from google.colab import files
 
 CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_plu.yaml"
 RUN_DIR = "/content/runs/P3_C_Phase6_A2_PLU_D4_K2_H64"
+
+# 1. Fail-fast Preamble & Config Invariant Assertions
+assert "phase6_a2_plu" in CONFIG_PATH, f"Invalid config path: {CONFIG_PATH}"
+assert "Phase6_A2_PLU" in RUN_DIR, f"Invalid run directory: {RUN_DIR}"
+assert os.path.isdir(RUN_DIR), f"Missing RUN_DIR: {RUN_DIR}"
+
+# 2. Strict Checkpoint Resolution (Zero Silent Fallback)
 CKPT_PATH = os.path.join(RUN_DIR, "best_model_b2_global.pth")
-if not os.path.exists(CKPT_PATH):
-    CKPT_PATH = os.path.join(RUN_DIR, "best_model_b2_stage2.pth")
+if not os.path.isfile(CKPT_PATH):
+    fallback_stage2 = os.path.join(RUN_DIR, "best_model_b2_stage2.pth")
+    if os.path.isfile(fallback_stage2):
+        print(f"[AUDIT WARNING] best_model_b2_global.pth missing, found {fallback_stage2}")
+        CKPT_PATH = fallback_stage2
+    else:
+        raise FileNotFoundError(f"[CRITICAL FAIL-FAST] Missing canonical checkpoint at: {CKPT_PATH}")
+
+ckpt_data = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
+recorded_dice = ckpt_data.get("best_dice", None)
+recorded_loss = ckpt_data.get("best_loss", None)
+recorded_epoch = ckpt_data.get("epoch", None)
+
+print("=" * 80)
+print(f"[AUDIT PASS] CANONICAL BEST CHECKPOINT IDENTIFIED")
+print(f"  Checkpoint File:    {CKPT_PATH}")
+print(f"  Recorded Best Dice: {recorded_dice}")
+print(f"  Recorded Best Loss: {recorded_loss}")
+print(f"  Recorded Best Epoch:{recorded_epoch}")
+print(f"  Config:             {CONFIG_PATH}")
+print(f"  Run Directory:      {RUN_DIR}")
+print("=" * 80)
 
 DIAG_DIR = os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics")
 FULL_VAL_DIR = os.path.join(DIAG_DIR, "full_val")
 ERROR_ANALYSIS_DIR = os.path.join(DIAG_DIR, "error_analysis")
 
-# 1. Routing Diagnostics (Full Val Split)
+# 3. Canonical Setting A Official Evaluation
+print("\n>>> STEP 1/3: Running Canonical Official Setting A Evaluation...")
+!python scripts/evaluate_crack_official.py \
+  --config {CONFIG_PATH} \
+  --checkpoint {CKPT_PATH} \
+  --protocol setting_a \
+  --blend_mode probs \
+  --diagnostic
+
+# 4. Full Routing Diagnostics on Validation Set (348 samples)
+print("\n>>> STEP 2/3: Running Full Routing Diagnostics...")
 !python tools/analyze_routing.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
@@ -186,7 +224,11 @@ ERROR_ANALYSIS_DIR = os.path.join(DIAG_DIR, "error_analysis")
   --split val \
   --data_root /content/dataset/Crack500
 
-# 2. Comprehensive Error Analysis & Morphology Stratification
+assert os.path.exists(f"{FULL_VAL_DIR}/routing_statistics.json"), \
+    "[CRITICAL FAIL-FAST] Routing diagnostics did not produce routing_statistics.json!"
+
+# 5. Comprehensive Error Analysis & Morphology Stratification
+print("\n>>> STEP 3/3: Running Error Analysis & Morphology Stratification...")
 !python tools/run_p3_c_error_analysis.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
@@ -194,19 +236,25 @@ ERROR_ANALYSIS_DIR = os.path.join(DIAG_DIR, "error_analysis")
   --output-dir {ERROR_ANALYSIS_DIR} \
   --data-root /content/dataset/Crack500
 
-# 3. Đóng gói Artifacts & Tải về máy cục bộ
+assert os.path.exists(f"{ERROR_ANALYSIS_DIR}/per_sample_metrics.csv"), \
+    "[CRITICAL FAIL-FAST] Error analysis did not produce per_sample_metrics.csv!"
+
+# 6. Đóng gói Artifacts (Preserving Top-Level Directory) & Tải về máy
 ZIP_BASE = "/content/P3_C_Phase6_A2_PLU_D4_K2_H64_Full"
 ZIP_OUTPUT = f"{ZIP_BASE}.zip"
 
-if not os.path.exists(RUN_DIR):
-    raise FileNotFoundError(f"[ERROR] Không tìm thấy thư mục: {RUN_DIR}")
-
 print("\n" + "=" * 80)
-print(f"BẮT ĐẦU ĐÓNG GÓI ARTIFACT: {RUN_DIR}")
+print(f"BẮT ĐẦU ĐÓNG GÓI TOÀN BỘ ARTIFACTS: {RUN_DIR}")
 print(f"Checkpoints: {[f for f in os.listdir(RUN_DIR) if f.endswith('.pth')]}")
 print("=" * 80)
 
-shutil.make_archive(base_name=ZIP_BASE, format="zip", root_dir=RUN_DIR)
+shutil.make_archive(
+    base_name=ZIP_BASE,
+    format="zip",
+    root_dir=os.path.dirname(RUN_DIR),
+    base_dir=os.path.basename(RUN_DIR)
+)
+
 zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
 print(f"✓ ĐÃ NÉN THÀNH CÔNG: {ZIP_OUTPUT} ({zip_size_mb:.2f} MB)")
 print("Đang kích hoạt tải file về máy...")
