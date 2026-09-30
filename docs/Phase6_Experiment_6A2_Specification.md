@@ -206,35 +206,8 @@ DIAG_DIR = os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics")
 FULL_VAL_DIR = os.path.join(DIAG_DIR, "full_val")
 ERROR_ANALYSIS_DIR = os.path.join(DIAG_DIR, "error_analysis")
 
-# 3. Canonical Setting A Official Evaluation (Test set sealed, split='val')
-OFFICIAL_RESULT = os.path.join(RUN_DIR, "official_setting_a_val.json")
-print("\n>>> STEP 1/3: Running Canonical Official Setting A Evaluation...")
-!python scripts/evaluate_crack_official.py \
-  --config {CONFIG_PATH} \
-  --checkpoint {CKPT_PATH} \
-  --protocol setting_a \
-  --split val \
-  --blend_mode probs \
-  --diagnostic \
-  --output_json {OFFICIAL_RESULT}
-
-assert os.path.isfile(OFFICIAL_RESULT), f"[CRITICAL FAIL-FAST] Missing official evaluation artifact: {OFFICIAL_RESULT}"
-with open(OFFICIAL_RESULT, "r", encoding="utf-8") as f:
-    official_metrics = json.load(f)
-
-assert "boundary_iou" in official_metrics, "[CRITICAL FAIL-FAST] Missing boundary_iou in official artifact"
-assert "hd95" in official_metrics, "[CRITICAL FAIL-FAST] Missing hd95 in official artifact"
-
-print(f"[AUDIT PASS] Official Canonical Setting A Metrics:")
-print(f"  Val Dice:         {official_metrics['dice']:.4f}")
-print(f"  Val Precision:    {official_metrics['precision']:.4f}")
-print(f"  Val Recall:       {official_metrics['recall']:.4f}")
-print(f"  Val Pixel IoU:    {official_metrics['global_pixel_iou']:.4f}")
-print(f"  Val Boundary IoU: {official_metrics['boundary_iou']:.4f}")
-print(f"  Val HD95:         {official_metrics['hd95']:.4f}")
-
-# 4. Routing Diagnostics on Deterministic Validation Crops (348 samples, 448x448 CenterCrop)
-print("\n>>> STEP 2/3: Running Routing Diagnostics on Deterministic Validation Crops...")
+# 3. Routing Diagnostics on Deterministic Validation Crops (348 samples, 448x448 CenterCrop)
+print("\n>>> STEP 1/2: Running Routing Diagnostics on Deterministic Validation Crops...")
 !python tools/analyze_routing.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
@@ -253,8 +226,8 @@ assert routing_data["consistency_checks"]["total_global_selections"] == 5568, \
     f"[CRITICAL FAIL-FAST] Expected 5568 selections (348 * 8 * 2), found {routing_data['consistency_checks']['total_global_selections']}"
 print(f"[AUDIT PASS] Routing Diagnostics: verified 348/348 samples and 5,568 total selections.")
 
-# 5. Comprehensive Error Analysis & Morphology Stratification
-print("\n>>> STEP 3/3: Running Error Analysis & Morphology Stratification...")
+# 4. Comprehensive Error Analysis & Morphology Stratification (Full-image Setting A)
+print("\n>>> STEP 2/2: Running Error Analysis & Morphology Stratification...")
 !python tools/run_p3_c_error_analysis.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
@@ -270,7 +243,7 @@ assert len(metrics_df) == 348, f"[CRITICAL FAIL-FAST] Expected 348 samples in pe
 assert "primary_error_category" in metrics_df.columns, "[CRITICAL FAIL-FAST] Missing primary_error_category column"
 print(f"[AUDIT PASS] Error Analysis: verified exactly 348 samples with complete morphology taxonomy.")
 
-# 6. Đóng gói Artifacts (Preserving Top-Level Directory) & Tải về máy
+# 5. Đóng gói Artifacts (Preserving Top-Level Directory) & Tải về máy
 ZIP_BASE = "/content/P3_C_Phase6_A2_PLU_D4_K2_H64_Full"
 ZIP_OUTPUT = f"{ZIP_BASE}.zip"
 
