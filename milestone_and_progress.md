@@ -24,8 +24,9 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
    - K2 (0.7618) đạt xấp xỉ K4 baseline (0.7639) với độ suy giảm tối thiểu (-0.21% Dice), cắt giảm 50% expert calls. K6 bị OOM trên phần cứng Tesla T4 (hardware infeasibility under canonical T4 protocol). Tạm chốt provisional top_k=2 để tiếp tục lộ trình.
 3. **Phase 3: Router Hidden Dim Study (HOÀN TẤT & ĐÃ KHÓA HIDDEN_DIM = 64 ✅):**
    - Đã khảo sát 3 dung lượng router {H32: 0.7587, H64: **0.7618**, H128: 0.7550}. Đường cong chữ U ngược quan sát được: $Dice(H128=0.7550) < Dice(H32=0.7587) < Dice(H64=0.7618)$. Chọn `router_hidden_dim = 64` là best observed configuration dưới D4 + provisional top_k=2 (seed 42).
-4. **Phase 4: Load Balancing Loss Study (HOÀN TẤT & BỎ QUA THEO TIÊU CHUẨN CỔNG ĐIỀU KIỆN — SKIPPED ⏭️):**
-   - Thẩm định routing diagnostic trên checkpoint canonical ghi nhận 0/8 dead experts (min utilization 4.94% > 1.0%), không sụp đổ phân phối. Kế thừa `load_balance_factor = 0.01` (inherited baseline, not tuned).
+4. **Phase 4: Load Balancing Loss Study (KÍCH HOẠT THỰC NGHIỆM ĐẦY ĐỦ — RUNNING 🔄):**
+   - Thẩm định chẩn đoán cục bộ `per_router_usage.csv` phát hiện tại `stage_0`, `stage_1`, `stage_2` có nhiều chuyên gia nhận 0% (dead). Cổng điều kiện chính thức kích hoạt.
+   - Quét lưới 3 mức: $LB \in \{0.005, 0.010, 0.030\}$. Trong đó mốc $LB=0.010$ đã có kết quả (Candidate B: 0.7641). Tiến hành huấn luyện 2 mốc còn lại: $LB=0.005$ và $LB=0.030$.
 5. **Phase 5.1: SAGE LR Isolation (HOÀN TẤT & ĐÃ KHÓA SAGE_LR = 2e-4 ✅):**
    - Đã sweep đủ 4 mức SAGE LR {5e-5: 0.7597, 1e-4: 0.7618, 2e-4: **0.7641** 🏆, 3e-4: 0.7492}.
    - Đường cong hiệu năng theo SAGE LR là đường cong chữ U ngược (inverted U-curve):
@@ -48,7 +49,7 @@ State:
 - Phase 1: D4 locked
 - Phase 2: K6 OOM → provisional top_k=2
 - Phase 3: H64 selected under D4+K2, seed42
-- Phase 4: SKIPPED, LB=0.01 inherited baseline
+- Phase 4: RUNNING (Sweep LB in {0.005, 0.010, 0.030})
 - Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641 làm baseline chính thức, Stage 2 không tách riêng)
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
 - Phase 5.3: HOÀN TẤT & ĐÃ KHÓA r = 1.00 (Candidate B 0.7641; hoàn tất cả 6 tỉ số r in {0.25, 0.50, 1.00, 2.00, 4.00, 5.00})

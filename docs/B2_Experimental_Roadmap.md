@@ -628,29 +628,21 @@ Khảo sát dung lượng chiếu query của Router qua router hidden dimension
 
 ---
 
-## Phase 4 — Cân bằng tải (Load Balancing) (HOÀN TẤT & ĐÃ BỎ QUA THEO TIÊU CHUẨN CỔNG ĐIỀU KIỆN — SKIPPED ⏭️)
+## Phase 4 — Cân bằng tải (Load Balancing Study: LB = 0.005 vs 0.010 vs 0.030) (ĐANG TRIỂN KHAI 🔄)
 
-Phase 4 được thiết kế dưới dạng **Cổng Điều Kiện (Conditional Gate)**: chỉ mở quét lưới siêu tham số nếu log chẩn đoán routing của cấu hình làm việc K2 baseline phát hiện chuyên gia bị "dead" (<1% selection) hoặc phân phối sụp đổ (collapse, top-1 share > 80%).
+Phase 4 ban đầu được thiết kế dưới dạng **Cổng Điều Kiện (Conditional Gate)**. Tuy nhiên, sau quá trình thẩm định kỹ lưỡng trên tệp chẩn đoán chi tiết `per_router_usage.csv` của checkpoint làm việc chính thức (`P3_C_D4_K2_H64_Phase5_SAGELR2e-4`), ghi nhận sự vi phạm tiêu chuẩn tại cấp độ router cục bộ:
+- Tại `convnext.stage_0`: 4 chuyên gia nhận đúng 0.0% (`E0, E2, E3, E7`) và `E1` chỉ đạt 0.86% (< 1.0%).
+- Tại `convnext.stage_1`: 6 trên 8 chuyên gia nhận đúng 0.0% (`E0, E2, E3, E4, E5, E7`), router bị co cụm thành công tắc nhị phân 50/50 giữa `E1` và `E6`.
+- Tại `convnext.stage_2`: `E0, E7` nhận 0.0%, `E2` chỉ đạt 0.29% (< 1.0%).
+- Tại `transformer.block_2`: `E4` chỉ đạt 0.57% (< 1.0%).
 
-* **Kế thừa**: Base config từ Phase 3 (Base depth D4, Provisional `top_k = 2`, Best observed `router_hidden_dim = 64`, seed = 42).
-* **Tiêu chí Kích hoạt Cổng Điều kiện (Conditional Activation Gate)**:
-  - **KÍCH HOẠT QUÉT LB (RUN)**: Khi và chỉ khi routing diagnostic trên checkpoint canonical phát hiện $\ge 1$ chuyên gia bị "dead" ($\text{utilization} < 1.0\%$) hoặc phân phối router bị sụp đổ cục bộ ($\text{top-1 expert share} > 80\%$). Khi đó quét $LB \in \{0.005, 0.01, 0.03\}$ (Run 10, 11, 12).
-  - **BỎ QUA KHÔNG CHẠY (SKIPPED)**: Khi 100% chuyên gia hoạt động lành mạnh ($\text{utilization} \ge 1.0\%$, không dead experts) và entropy phân phối đạt mức phân tán tự nhiên $\implies$ **BỎ QUA Phase 4 (SKIPPED)**, kế thừa `load_balance_factor = 0.01` (baseline mặc định, không tinh chỉnh). Không tự ý đặt ra các ngưỡng mất cân bằng tùy tiện ngoài tiêu chuẩn đã đăng ký trước.
-* **Kết Quả Thẩm Định Routing Diagnostic Thực Tế (Checkpoint `P3_C_Canonical_Base_D4_K2`, 348 Mẫu Validation Crack500, Setting A)**:
-  - **Số chuyên gia "dead" (<1% utilization)**: **0 / 8 experts** (Không có chuyên gia nào bị bỏ rơi).
-  - **Tỷ lệ sử dụng chuyên gia (Expert Utilization)**:
-    + Min utilization: **4.94%** (Chuyên gia CNN Stage 3, E3 — cao gấp 4.9x so với ngưỡng dead 1.0%).
-    + Max utilization: **26.08%** (Chuyên gia ViT Block 2, E6 — so với mức kỳ vọng phân bố đều $2/8 = 25.0\%$).
-    + Toàn bộ 8/8 chuyên gia đều nằm trong dải kích hoạt tự nhiên từ $4.94\%$ đến $26.08\%$.
-  - **Phân tán Entropy & Mức độ tập trung (Entropy & Concentration)**:
-    + Các router tầng ViT (Blocks 0..3): Normalized entropy đạt **0.902 – 0.962** (gần mức phân tán lý tưởng 1.0), số lượng chuyên gia hiệu dụng đạt **6.53 – 7.39 / 8 experts**, chỉ số tập trung HHI thấp **0.140 – 0.173** (tiệm cận mức đều $1/8 = 0.125$).
-    + Các router tầng CNN (Stages 0..3): Thể hiện tính chuyên biệt hóa cấu trúc rõ rệt (Stage 0/1/2 tập trung vào các chuyên gia ViT E4/E6 với HHI 0.48–0.50, Stage 3 phân tán rộng với 5.73 effective experts, HHI 0.199).
-  - **Hiện tượng sụp đổ (Collapse)**: **KHÔNG**. Không có bất kỳ router nào vượt ngưỡng sụp đổ top-1 > 80%.
-  - **Độ nhất quán chẩn đoán (Consistency Check)**: 100% khớp tuyệt đối qua toàn bộ $348 \times 8 \times 2 = 5,568$ lượt lựa chọn chuyên gia.
-* **Phán Quyết Chính Thức Cho Phase 4 (Official Phase 4 Verdict)**:
-  - **Trạng thái**: **SKIPPED (BỎ QUA — Đạt tiêu chuẩn không dead experts theo đăng ký trước)**.
-  - **Khóa tham số**: **`load_balance_factor = 0.01` (inherited baseline, not tuned)**.
-  - **Chuyển giao sang Phase 5**: Kế thừa nguyên vẹn `load_balance_factor = 0.01` làm baseline nền tảng, không tốn thêm ngân sách GPU cho các run LB không cần thiết.
+Do đó, **Cổng Điều Kiện Phase 4 CHÍNH THỨC KÍCH HOẠT (ACTIVATED & RUN)** để khảo sát ảnh hưởng của hệ số cân bằng tải `load_balance_factor` đến việc giải phóng các chuyên gia bị bỏ đói và cải thiện độ chính xác đường biên.
+
+* **Grid thực nghiệm Phase 4 (Load Balancing Loss Study: 35 epochs)**:
+  - **Run 10 ($LB = 0.005$)**: `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase4_lb0005.yaml` — Giảm phạt cân bằng tải, cho phép router tự do chuyên biệt hóa tối đa.
+  - **Run 11 ($LB = 0.010$)**: `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml` (Candidate B) — **[ĐÃ HOÀN TẤT]** Peak Val Dice = **0.7641** (Ep 14), Mean IoU = 0.6417, Median Dice = 0.8066.
+  - **Run 12 ($LB = 0.030$)**: `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase4_lb0030.yaml` — Tăng phạt cân bằng tải gấp 3 lần, ép các router nông san sẻ lưu lượng cho các chuyên gia bị chết.
+* **Tiêu chí nghiệm thu**: So sánh trực tiếp Validation Dice, Mean IoU và bảng `per_router_usage.csv` giữa 3 mức LB để tìm điểm cân bằng tối ưu giữa chuyên biệt hóa và đa dạng hóa chuyên gia.
 
 ---
 
