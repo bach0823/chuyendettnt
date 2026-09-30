@@ -28,6 +28,7 @@
 | **Phase 4 (LB=0.005)** | D4 | 10.12M | +37,874 | 0.7321 (Ep 12) | **0.7580** | S2 Ep 19 | 0.9572 | ~02:45 (1.18s/it) | Budget ceiling (35/35 ep, Router Collapse) |
 | **Phase 4 (LB=0.010, Cand B)** | **D4** | **10.12M** | +37,874 | **0.7326 (Ep 08)** | 🏆 **0.7641** | **S2 Ep 14** | **0.9544** | **~02:40 (1.15s/it)** | 🏆 **LOCKED OPTIMAL (Balanced Pareto)** |
 | **Phase 4 (LB=0.030)** | D4 | 10.12M | +37,874 | 0.7321 (Ep 14) | **0.7624** | S2 Ep 16 | 0.9465 | ~02:42 (1.16s/it) | Budget ceiling (35/35 ep, Over-regularized) |
+| **Phase 6-A.1 (Boundary IoU)** | **D4** | **10.12M** | **0 (Frozen)** | **0.7333 (Ep 13)** | 🏆 **0.7684** | **S2 Ep 16** | **1.3911** | **~02:35 (1.11s/it)** | 🏆 **NEW PEAK (Thin Crack +2.37% Dice, Area +7.85%)** |
 
 ---
 
@@ -427,3 +428,58 @@ Thực nghiệm hoàn chỉnh trên 3 mức $LB \in \{0.005, 0.010, 0.030\}$ xá
 > [!IMPORTANT]
 > **PHÁN QUYẾT CHÍNH THỨC PHASE 4:**
 > Khóa vĩnh viễn hệ số cân bằng tải **$load\_balance\_factor = 0.010$** làm tiêu chuẩn chuẩn mực (Canonical Frozen Hyperparameter) cho toàn bộ cấu hình SAGE-Lite B2 trong các pha tiếp theo.
+
+---
+
+## 10. Phase 6-A.1: Objective Probe — Soft Boundary IoU Loss Study (D4-K2-H64)
+
+> **Mục tiêu Thực nghiệm 6-A.1:**
+> Kiểm chứng xem giới hạn ~0.76 Dice và các dạng lỗi hình thái (Boundary margin loang rộng, Thin crack suy giảm) có xuất phát từ tín hiệu huấn luyện (Objective Bottleneck) hay không, bằng cách bổ sung **Soft Boundary IoU Loss (λ=0.50, d=2)** mà **KHÔNG thêm bất kỳ tham số hay nhánh kiến trúc nào** (0 extra params, architecture 100% frozen).
+
+### 10.1. Lịch trình Huấn luyện Từng Epoch (Stage 2 Resumption, Epochs 1 — 18)
+
+| S2 Ep | Train Loss (LB) | Train Dice | Val Loss | Val Dice | Delta vs Base Peak (0.7641) | Shared / Base / P3 LR | Gamma (S0 / S1) | Ghi chú Trọng yếu |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| 1 | 1.7882 (0.0806) | 0.6968 | 1.7552 | 0.7311 | -0.0330 | 3.40e-05 | 0.0107 / 0.0139 | Resumption từ Candidate B Stage 1 |
+| 2 | 1.7804 (0.0805) | 0.6947 | 1.7390 | 0.7414 | -0.0227 | 6.70e-05 | 0.0110 / 0.0143 | Tăng tốc warmup Stage 2 |
+| 3 | 1.7603 (0.0805) | 0.6890 | 1.7404 | 0.7428 | -0.0213 | 9.34e-05 | 0.0109 / 0.0142 | Đạt đỉnh LR Stage 2 (~1e-4) |
+| 4 | 1.7163 (0.0805) | 0.6933 | 1.6628 | 0.7411 | -0.0230 | 8.84e-05 | 0.0103 / 0.0142 | Bắt đầu chu kỳ Cosine Annealing |
+| 5 | 1.6677 (0.0804) | 0.7008 | 1.5834 | 0.6992 | -0.0649 | 8.23e-05 | 0.0099 / 0.0145 | Dao động gradient thích ứng ranh giới |
+| 6 | 1.6228 (0.0804) | 0.7098 | 1.5739 | 0.7369 | -0.0272 | 7.52e-05 | 0.0095 / 0.0151 | Phục hồi hội tụ nhanh chóng |
+| 7 | 1.5824 (0.0804) | 0.7099 | 1.5616 | 0.7511 | -0.0130 | 6.74e-05 | 0.0091 / 0.0151 | Vượt mốc 0.75 Val Dice |
+| 8 | 1.5503 (0.0803) | 0.7153 | 1.4864 | 0.7603 | -0.0038 | 5.91e-05 | 0.0094 / 0.0157 | Tiếp cận mốc 0.76 |
+| 9 | 1.5162 (0.0803) | 0.7221 | 1.4872 | 0.7358 | -0.0283 | 5.05e-05 | 0.0096 / 0.0163 | Dao động cục bộ giữa lịch trình |
+| 10 | 1.4902 (0.0803) | 0.7258 | 1.4969 | 0.7487 | -0.0154 | 4.19e-05 | 0.0091 / 0.0162 | Train Dice vượt 0.725 |
+| 11 | 1.4595 (0.0803) | 0.7337 | 1.4560 | 0.7629 | -0.0012 | 3.36e-05 | 0.0088 / 0.0166 | Sát ngưỡng kỷ lục cũ |
+| 12 | 1.4451 (0.0803) | 0.7320 | 1.4607 | 0.7444 | -0.0197 | 2.58e-05 | 0.0089 / 0.0168 | Ổn định ranh giới vết nứt |
+| 13 | 1.4341 (0.0803) | 0.7336 | 1.4279 | 0.7591 | -0.0050 | 1.87e-05 | 0.0089 / 0.0170 | Train Loss tiếp cận 1.43 |
+| 14 | 1.4156 (0.0803) | 0.7366 | 1.4062 | **0.7664** | **+0.0023** | 1.26e-05 | 0.0089 / 0.0170 | 🏆 **CHÍNH THỨC PHÁ VỠ KỶ LỤC CANDIDATE B (0.7664 > 0.7641)** |
+| 15 | 1.4095 (0.0803) | 0.7391 | **1.3911** | **0.7675** | **+0.0034** | 7.63e-06 | 0.0091 / 0.0173 | 🏆 **ĐẠT ĐÁY VAL LOSS (1.3911)** |
+| 16 | 1.4000 (0.0803) | 0.7434 | 1.4128 | 🏆 **0.7684** | 🏆 **+0.0043** | 3.99e-06 | 0.0092 / 0.0173 | 🏆 **ĐỈNH TOÀN DỰ ÁN MỚI: 0.7684 VAL DICE** |
+| 17 | 1.3942 (0.0802) | 0.7445 | 1.4174 | 0.7657 | +0.0016 | 1.75e-06 | 0.0092 / 0.0172 | Duy trì trên 0.765 ở plateau cuối |
+| 18 | 1.3881 (0.0802) | 0.7471 | 1.3964 | 0.7664 | +0.0023 | 1.00e-06 | 0.0092 / 0.0172 | Kết thúc lịch trình 35 epochs chuẩn mực |
+
+---
+
+### 10.2. Bảng Đối Chiếu Phân Tầng Tuyệt Đối (Stratified Absolute Delta Comparison)
+
+*Toàn bộ 348 ảnh validation Crack500 đánh giá theo Setting A official tiling protocol:*
+
+| Phân tầng Thẩm định (Stratum) | Chỉ số Đo lường | Candidate B Baseline | Phase 6-A.1 (Boundary IoU) | Độ lệch Tuyệt đối (Δ) | Diễn giải Cơ chế Vật lý |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **Global Validation (n=348)** | **Val Dice** | 0.7641 | 🏆 **0.7684** | **+0.0043** | Đạt đỉnh mới toàn dự án |
+| | **Mean IoU** | 0.6417 | 🏆 **0.6465** | **+0.0048** | Cải thiện độ trùng khớp vùng |
+| | **Precision** | 0.7337 | 🏆 **0.7416** | **+0.0079** | Tăng độ chính xác, giảm FP nền |
+| | **Recall** | **0.8477** | 0.8413 | -0.0064 | Giảm nhẹ hiện tượng loang viền dôi dư |
+| | **Tỷ lệ Diện tích (Pred/GT)** | +8.16% | 🏆 **+7.85%** | **-0.31%** | Diện tích co sát lại gần GT hơn |
+| **Boundary Margin (n=127)** | **Val Dice** | **0.7812** | 0.7787 | -0.0025 | Biến thiên rất nhỏ do siết viền |
+| | **Precision** | 0.7452 | 🏆 **0.7525** | **+0.0073** | Viền sắc nét hơn, ít lem ra nền |
+| | **Tỷ lệ Diện tích (Pred/GT)** | +5.85% | 🏆 **+5.55%** | **-0.30%** | Giảm loang viền ở crack trung bình |
+| **Thin Cracks >0.20 (n=66)** | **Val Dice** | 0.6404 | 🏆 **0.6641** | 🚀 **+0.0237** | **Bứt phá +2.37% Dice trên crack mảnh!** |
+| | **Precision** | 0.5232 | 🏆 **0.5648** | 🚀 **+0.0416** | **Bứt phá +4.16% Precision!** |
+| | **Tỷ lệ Diện tích (Pred/GT)** | +80.37% | 🏆 **+64.55%** | 🚀 **-15.82%** | **Triệt tiêu mạnh lỗi phình to vết nứt mảnh!** |
+| **Thin-Low-Area (n=5)** | **Val Dice** | 0.5370 | 🏆 **0.5382** | +0.0012 | Ổn định các ca thất bại nặng nhất |
+| | **Precision** | 0.3799 | 🏆 **0.3896** | +0.0097 | Tăng nhẹ độ chính xác |
+| | **Tỷ lệ Diện tích (Pred/GT)** | +141.66% | 🏆 **+127.33%** | 🚀 **-14.33%** | Giảm mạnh over-prediction ở ca cực đoan |
+| **Complex Topology (n=27)** | **Val Dice** | 0.7515 | 🏆 **0.7572** | **+0.0057** | Giữ vững tính liên thông topo |
+| | **Precision** | 0.7054 | 🏆 **0.7195** | **+0.0141** | Lọc nhiễu ở mạng lưới nứt phức tạp |

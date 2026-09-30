@@ -1250,6 +1250,43 @@ Dữ liệu được trích xuất trực tiếp từ các file chẩn đoán [`
    - Khi người dùng cung cấp một chuỗi lệnh chạy Colab gọn gàng, đã được kiểm nghiệm qua các phase trước (từ Phase 1 đến Phase 5): **KHÔNG ĐƯỢC PHÉP** tự ý nhồi nhét thêm các câu lệnh `pip install` hoặc cảnh báo thiếu Drive nếu chưa kiểm tra lỗi thực tế.
    - Chỉ bổ sung khi có lỗi thực thi cụ thể từ terminal output của người dùng.
 
+---
+
+## 27. Kết Quả Thực Nghiệm Phase 6-A.1: Objective Probe — Soft Boundary IoU Loss (2026-09-30)
+
+### 1. Bối cảnh & Mục tiêu Thực nghiệm
+- **Kiến trúc:** Candidate B ($D=4, K=2, H=64$, ConvNeXtV2-Femto + ViT-Tiny, P3-C ASDW) — **Khóa cứng 100%, 0 tham số thêm mới**.
+- **Objective:** $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{base\_seg}} + 1.0 \times \mathcal{L}_{\text{LB}} + 0.50 \times \mathcal{L}_{\text{B-IoU}}$ với $d=2$ (kernel size $5\times 5$).
+- **Giao thức:** Stage 2 Resumption từ Stage 1 checkpoint của Candidate B (`best_model_b2_stage1.pth`, Val Dice 0.7333), 18 epochs, optimizer $r=1.00$. Đánh giá trên toàn bộ 348 mẫu val theo Setting A tiling.
+
+### 2. Phát hiện Thực nghiệm Trọng yếu (Empirical Discoveries)
+
+1. **Thiết Lập Đỉnh Toàn Dự Án Mới (Val Dice 0.7684):**
+   - Val Dice tăng từ **$0.7641 \to \mathbf{0.7684}$** ($\Delta = \mathbf{+0.0043}$ tại Epoch 16).
+   - Mean IoU tăng từ **$0.6417 \to \mathbf{0.6465}$** ($\Delta = \mathbf{+0.0048}$).
+   - Precision tăng từ **$0.7337 \to \mathbf{0.7416}$** ($\Delta = \mathbf{+0.0079}$, $+0.79\%$).
+   - Recall đạt $0.8413$ (giảm nhẹ $-0.0064$ so với $0.8477$ do siết viền dôi dư).
+   - Tỷ lệ diện tích dự đoán / GT giảm từ $+8.16\%$ xuống **$+7.85\%$** (dự đoán sát với diện tích thực tế hơn).
+
+2. **Bứt Phá Ngoạn Mục Trên Nhóm Vết Nứt Mảnh (Thin Cracks $>0.20$, $n=66$):**
+   - **Val Dice:** Tăng vọt từ $0.6404 \to \mathbf{0.6641}$ ($\Delta = \mathbf{+0.0237}$, tức **$+2.37\%$**).
+   - **Precision:** Tăng vọt từ $0.5232 \to \mathbf{0.5648}$ ($\Delta = \mathbf{+0.0416}$, tức **$+4.16\%$**).
+   - **Tỷ lệ Diện tích Loang:** Giảm từ $+80.37\%$ xuống **$+64.55\%$** ($\Delta = \mathbf{-15.82\%}$).
+   - *Cơ chế vật lý:* Vì kernel $5\times 5$ ($d=2$) phủ $100\%$ diện tích đối với crack $\le 4\text{ px}$, Boundary IoU đã trở thành một bộ điều hòa hình thái cực mạnh đối với hairline crack, triệt tiêu xu hướng dự đoán phình to viền của mô hình gốc.
+
+3. **Ổn Định Nhóm Boundary Margin Error ($n=127$):**
+   - Precision tăng từ $0.7452 \to \mathbf{0.7525}$ ($+0.73\%$).
+   - Tỷ lệ dôi dư diện tích co lại từ $+5.85\% \to \mathbf{+5.55\%}$ ($-0.30\%$).
+   - Val Dice giữ ở mức $0.7787$ (so với $0.7812$, $\Delta = -0.0025$) do mô hình co viền vào trong sát GT thay vì loang rộng để ăn điểm Recall.
+
+4. **Nhóm Thất Bại Nặng Nhất (Thin-Low-Area, $n=5$):**
+   - Tỷ lệ phình diện tích cực đoan giảm mạnh từ $+141.66\%$ xuống **$+127.33\%$** ($\Delta = \mathbf{-14.33\%}$).
+   - Precision tăng từ $0.3799 \to 0.3896$.
+
+### 3. Phán Quyết Theo Ma Trận Quyết Định Pre-registered
+Kết quả rơi vào **Pattern 2 (Dual Chain Recovery / Strong Thin Recovery)**: Tín hiệu gradient boundary với $\lambda=0.50, d=2$ đã cung cấp áp lực học tập hữu ích, đặc biệt giải quyết hiệu quả lỗi phình to ở vết nứt mảnh mà không cần tăng thêm bất kỳ tham số mạng nào.
+
+
 
 
 

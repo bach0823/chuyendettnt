@@ -47,6 +47,11 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
      $$0.7579\,(r=0.25) < 0.7586\,(r=0.50) < \mathbf{0.7641}\,(r=1.00) > 0.7638\,(r=2.00) > 0.7611\,(r=4.00) > 0.7585\,(r=5.00)$$
    - Soft-freeze shared CNN ($r < 1.0$) và gia tốc quá mức ($r > 2.0$) đều gây suy giảm biểu diễn hình thái vết nứt.
    - Khóa chính thức $r = 1.00$ (kế thừa Candidate B với `stage2_shared_lr = stage2_base_lr = 1e-4` thống nhất toàn diện).
+7. **Phase 6-A.1: Objective Probe — Soft Boundary IoU Loss (HOÀN TẤT & ĐẠT ĐỈNH TOÀN DỰ ÁN MỚI 🏆):**
+   - Giữ nguyên 100% kiến trúc mạng Candidate B (0 params added, D4, K2, H64, LB=0.010, r=1.00), chỉ bổ sung Soft Boundary IoU Loss ($\lambda_{\text{boundary}}=0.50, d=2$).
+   - Kết quả: Đạt đỉnh **Val Dice = 0.7684** (tăng $+0.0043$ so với Candidate B 0.7641), Mean IoU **0.6465**, Precision **0.7416** (+0.79%), Tỷ lệ diện tích dự đoán/GT giảm từ $+8.16\%$ về $+7.85\%$.
+   - Đặc biệt bứt phá trên nhóm vết nứt mảnh (Thin cracks $>0.20$): Dice tăng vọt $+2.37\%$ ($0.6404 \to 0.6641$), Precision tăng $+4.16\%$ ($0.5232 \to 0.5648$), tỷ lệ phình diện tích giảm $-15.82\%$ ($+80.37\% \to +64.55\%$).
+   - Xác nhận Pattern 2 trong Ma trận Quyết định Pre-registered (Objective regularization cải thiện trực tiếp cấu trúc viền vết nứt mảnh).
 
 State:
 - Phase 1: D4 locked
@@ -56,7 +61,8 @@ State:
 - Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641 làm baseline chính thức, Stage 2 không tách riêng)
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
 - Phase 5.3: HOÀN TẤT & ĐÃ KHÓA r = 1.00 (Candidate B 0.7641; hoàn tất cả 6 tỉ số r in {0.25, 0.50, 1.00, 2.00, 4.00, 5.00})
-- Phase 6: Ready to deploy (Regularization & Fusion Mechanics: Dropout & Residual Scale)
+- Phase 6-A.1: HOÀN TẤT (Soft Boundary IoU Loss, Val Dice = 0.7684 🏆, New Global Peak)
+- Phase 6-A.2: Ready to design (Representation Probe: Multi-scale High-Res Skip / Refinement)
 
 Cấu hình hiện hành:
 - ViT depth = 4
