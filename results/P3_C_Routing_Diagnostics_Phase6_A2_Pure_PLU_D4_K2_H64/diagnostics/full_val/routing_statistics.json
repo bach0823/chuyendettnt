@@ -8,7 +8,7 @@
     "top_k": 2,
     "split": "val",
     "num_samples": 348,
-    "checkpoint": "D:\\truong\\SpecialSubjectTTNT\\results\\checkpoints\\P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_best_model_b2_global.pth",
+    "checkpoint": "/content/runs/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64/best_model_b2_global.pth",
     "checkpoint_sha256": "124b17f792f48662b58ab0b9553b032857897a3cd26714d09e943982fc277a4d",
     "checkpoint_metadata": {
       "stage": 2,
@@ -18,11 +18,11 @@
       "p3_mode": "C",
       "num_transformer_layers": 4
     },
-    "config": "D:\\truong\\SpecialSubjectTTNT\\SAGE_LITE\\configs\\p3_ablation\\b2_p3_run_c_d4_k2_h64_phase6_a2_pure_plu.yaml",
-    "data_root": "D:\\truong\\SpecialSubjectTTNT\\datasets\\Crack500_ready",
+    "config": "/content/SAGE_LITE/configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_pure_plu.yaml",
+    "data_root": "/content/dataset/Crack500",
     "evaluation_mode": "eval",
     "exploration_noise_active": false,
-    "timestamp": "2026-10-01T01:22:54.555683"
+    "timestamp": "2026-09-30T18:35:17.844222"
   },
   "routers": [
     {
