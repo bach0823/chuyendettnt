@@ -4,7 +4,7 @@
 > [!IMPORTANT]
 > **Zero-Parameter & Frozen Architecture Constraint:**
 > Experiment 6-A.1 evaluates purely whether the ~0.76 Dice ceiling and associated crack morphology errors are caused by training objective signal allocation, without introducing any architectural modifications or additional parameters.
-> - **Architecture:** Candidate B ($D=4, K=2, H=64$, ConvNeXtV2-Femto + ViT-Tiny, P3-C ASDW) — **100% frozen**.
+> - **Architecture:** Candidate B ($D=4, K=2, H=64$, ConvNeXtV2-Femto + ViT-Tiny, P3-C ASDW) — **100% frozen (0 params added)**.
 > - **Routing:** Sigmoid gating, load balance factor $LB = 0.010$ — **100% frozen**.
 > - **Decoder:** Standard UNet decoder up to $112\times 112$ + bilinear upsample to $448\times 448$ — **100% frozen**.
 > - **Optimization:** Stage 2 Resumption from Candidate B Stage 1 checkpoint (`best_model_b2_stage1.pth`, Val Dice 0.7333), 18 epochs, $r = 1.00$ ($1\times 10^{-4}$ shared, $1\times 10^{-4}$ base, $1\times 10^{-4}$ SAGE).
@@ -34,10 +34,6 @@ Boundary extraction is performed via differentiable morphological erosion:
 $$\text{Erode}_d(X) = 1.0 - \text{MaxPool2D}(1.0 - X, \text{kernel\_size}=2d+1, \text{stride}=1, \text{padding}=d)$$
 $$B(X) = \text{ReLU}(X - \text{Erode}_d(X))$$
 
-- For 1-2 pixel cracks: $\text{Erode}_d(Y) = 0$, so $B(Y) = Y$ (100% of the crack is preserved as boundary).
-- For thick cracks / margins: $B(Y)$ isolates exactly the outer $d$-pixel contour band.
-- For over-predicted boundaries: If $P$ bleeds into the background, $B(P)$ shifts outward, creating a disjoint boundary with zero overlap against $B(Y)$.
-
 Soft Boundary Intersection-over-Union:
 $$\text{Boundary-IoU}(P, Y) = \frac{\sum_{h, w} (B(P) \odot B(Y)) + \epsilon}{\sum_{h, w} (B(P) + B(Y) - B(P) \odot B(Y)) + \epsilon}$$
 
@@ -49,21 +45,52 @@ where $\mathcal{L}_{\text{base\_seg}} = 1.0 \times \text{BCEWithLogits} + 1.5 \t
 
 ---
 
-## 3. Pre-locked Hyperparameters (Locked Ex-Ante)
+## 3. Pre-locked Hyperparameters & Empirical Scale Validation
 
-To avoid post-hoc selection bias, all hyperparameters are locked prior to training:
+All hyperparameters are locked prior to training (*ex-ante*):
 
-| Parameter | Symbol | Locked Value | Rationale |
+| Parameter | Symbol | Locked Value | Epistemic Status & Rationale |
 |:---|:---:|:---:|:---|
-| Boundary Loss Weight | $\lambda_{\text{boundary}}$ | **0.50** | Balances with $\mathcal{L}_{\text{base\_seg}} \approx 0.30-0.45$; provides ~30-40% gradient pressure without destabilizing regional convergence. |
-| Erosion Dilation Radius | $d$ | **2** | Kernel size $5\times 5$. Perfectly covers crack widths $\le 4$px as 100% boundary, while targeting the 2px margin error in medium cracks. |
-| Numerical Epsilon | $\epsilon$ | **1e-5** | Standard epsilon for zero-division avoidance in background-only patches. |
-| Epochs (Stage 2) | $E_2$ | **18** | Identical budget to Candidate B Stage 2 (total 35 epochs equivalent). |
-| Patience | — | **6** | Identical early stopping criterion. |
+| **Boundary Loss Weight** | $\lambda_{\text{boundary}}$ | **0.50** | **LOCKED EXPERIMENTAL VALUE** (pre-registered). Empirically measured gradient norm ratio $\|\nabla \mathcal{L}_{\text{B-IoU}}\| / \|\nabla \mathcal{L}_{\text{base}}\| \approx 0.0454$ on Candidate B model weights, yielding an effective gradient contribution of $\approx 2.27\%$ (a gentle, stable boundary regularizer). *Not an unmeasured claim of "35% gradient pressure".* |
+| **Erosion Dilation Radius** | $d$ | **2** | **LOCKED EXPERIMENTAL VALUE** (Kernel size $5\times 5$). Targets fine structural boundaries. |
+| **Numerical Epsilon** | $\epsilon$ | **1e-5** | Standard epsilon for zero-division avoidance in background-only patches. |
+| **Epochs (Stage 2)** | $E_2$ | **18** | Identical budget to Candidate B Stage 2 (total 35 epochs equivalent). |
+| **Patience** | — | **6** | Identical early stopping criterion. |
+
+### 3.1 Diagnostic Morphology Sanity Audit ($d=2$, Kernel $5\times 5$)
+*Empirical measurement across synthetic crack widths on $32\times 32$ grid:*
+- **Width $w = 1\text{ px}$:** Total $24\text{ px} \to$ Boundary $B(Y) = 24\text{ px}$ (**$100.0\%$ support**, Core $0\text{ px}$).
+- **Width $w = 2\text{ px}$:** Total $48\text{ px} \to$ Boundary $B(Y) = 48\text{ px}$ (**$100.0\%$ support**, Core $0\text{ px}$).
+- **Width $w = 3\text{ px}$:** Total $72\text{ px} \to$ Boundary $B(Y) = 72\text{ px}$ (**$100.0\%$ support**, Core $0\text{ px}$).
+- **Width $w = 4\text{ px}$:** Total $96\text{ px} \to$ Boundary $B(Y) = 96\text{ px}$ (**$100.0\%$ support**, Core $0\text{ px}$).
+- **Width $w = 5\text{ px}$:** Total $120\text{ px} \to$ Boundary $B(Y) = 100\text{ px}$ ($83.33\%$, Core $20\text{ px}$).
+- **Width $w = 8\text{ px}$:** Total $192\text{ px} \to$ Boundary $B(Y) = 112\text{ px}$ ($58.33\%$, Core $80\text{ px}$).
+- **Width $w = 16\text{ px}$:** Total $384\text{ px} \to$ Boundary $B(Y) = 144\text{ px}$ ($37.50\%$, Core $240\text{ px}$).
+- **Cracks touching border:** For widths $w \in \{1, 2, 3, 4\}\text{ px}$ running into the tile border, lateral boundary support remains **$100.0\%$**. Tile boundary is not artificially penalized as a false interior border.
+- **Background-only patch:** Produces exactly **$0$ boundary pixels** (no false boundaries).
 
 ---
 
-## 4. Pre-registered Baseline Comparison Table (Candidate B Anchors)
+## 4. Stage-1 Checkpoint Lineage & Integrity Contract
+
+Before Stage 2 resumption starts, the preflight script executes hard assertions on checkpoint identity:
+
+| Verification Field | Expected Contract | Actual Measurement | Status |
+|:---|:---:|:---:|:---:|
+| **File** | `P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_stage1.pth` | Same | **MATCH** |
+| **SHA256 Checksum** | `9c1b3822011ebc9721de005dc1a2eb84ac4494ba2f25a81d2a4432e77df46fd2` | `9c1b3822...` | **MATCH** |
+| **Stage Index** | `1` | `1` | **MATCH** |
+| **Epoch** | `13` | `13` | **MATCH** |
+| **Stage 1 Best Dice** | `0.7332886585387659` (~0.7333) | `0.7333` | **MATCH** |
+| **Model Type / D / P3** | `B2`, $D=4$, `p3_mode='C'` | `B2`, $D=4$, `p3_mode='C'` | **MATCH** |
+| **SAGE Config** | $\text{top\_k}=2, H=64, LB=0.010$ | $\text{top\_k}=2, H=64, LB=0.010$ | **MATCH** |
+| **Parent Lineage** | Direct ancestor of Candidate B Global Best (`147f7840...`, Dice 0.7641) | Verified in Phase 5.1/5.3 log | **MATCH** |
+
+*Rule:* If SHA256 or any metadata field mismatches $\to$ **STOP immediately**, do not resume.
+
+---
+
+## 5. Pre-registered Baseline Comparison Anchors (Candidate B)
 
 *Source: `results/P3_C_Routing_Diagnostics_D4_K2_H64_Phase5_SAGELR2e-4/diagnostics/error_analysis/per_sample_metrics.csv`*
 
@@ -77,20 +104,22 @@ To avoid post-hoc selection bias, all hyperparameters are locked prior to traini
 
 ---
 
-## 5. Pre-registered Decision Matrix
+## 6. Pre-registered Decision Matrix & Absolute Delta Reporting
 
-Results will be evaluated strictly across this multi-metric matrix rather than relying solely on global Dice:
+All outcomes will be reported using **absolute deltas** ($\Delta$) relative to Candidate B anchors rather than rigid binary cutoff assertions:
 
-| Pattern | Metric Response | Diagnostic Interpretation | Subsequent Action |
+$$\Delta \text{Global Dice}, \quad \Delta \text{Boundary Dice}, \quad \Delta \text{Thin Dice}, \quad \Delta \text{Precision}, \quad \Delta \text{Recall}, \quad \Delta \text{Area Ratio}$$
+
+| Pattern | Descriptive Direction of Deltas | Diagnostic Interpretation | Subsequent Action |
 |:---|:---|:---|:---|
-| **Pattern 1: Boundary Specific Fix** | Boundary Dice $\uparrow$, Precision $\uparrow$ ($> 0.75$), Area delta $\to 0\%$, Thin Dice $\approx 0.64$ | **Objective / boundary supervision bottleneck** confirmed for medium cracks. Thin cracks remain limited by spatial resolution. | Proceed to 6-A.2 (Representation Probe) specifically targeting thin cracks. |
-| **Pattern 2: Dual Chain Recovery** | Boundary Dice $\uparrow$, Thin Dice $\uparrow$ ($> 0.67$), Area delta reduced across all strata | Objective signal alone was sufficient to guide both boundary localization and thin-crack delineation. | SAGE-Lite representation has adequate capacity; explore hybrid objective optimization. |
-| **Pattern 3: Ineffective / Flat** | Boundary Dice $\approx 0.78$, Thin Dice $\approx 0.64$, Global Dice $\approx 0.764$ ($\pm 0.005$) | **Objective probe did NOT resolve failure modes.** Does NOT prove representation bottleneck, but proves gradient reallocation alone is insufficient under Candidate B architecture. | Formally motivates **6-A.2 (Representation Probe)** (e.g. multi-scale high-res skip / explicit edge feature branch). |
-| **Pattern 4: Recall Penalty / Precision Degrade** | Precision $\downarrow$, Pred area $\uparrow$ ($> +12\%$), or Dice $\downarrow$ | Loss destabilized boundary gradients, exacerbating false positives or triggering gradient distortion. | Reject Boundary IoU objective; re-examine loss landscape. |
+| **Pattern 1: Boundary Specific Fix** | $\Delta \text{Boundary Dice} > 0$, $\Delta \text{Precision} > 0$, $\Delta \text{Area Ratio} < 0$, $\Delta \text{Thin Dice} \approx 0$ | **Objective / boundary supervision bottleneck** confirmed for medium cracks. Thin cracks remain limited by spatial representation. | Keep objective; Proceed to **6-A.2 (Representation Probe)** specifically targeting thin cracks. |
+| **Pattern 2: Dual Chain Recovery** | $\Delta \text{Boundary Dice} > 0$, $\Delta \text{Thin Dice} > 0$, $\Delta \text{Area Ratio} < 0$ across all strata | Objective signal alone was sufficient to guide both boundary localization and thin-crack delineation. | SAGE-Lite representation has adequate capacity; explore hybrid objective tuning. |
+| **Pattern 3: Ineffective / Flat** | $|\Delta \text{Boundary Dice}| < 0.005$, $|\Delta \text{Thin Dice}| < 0.005$, $|\Delta \text{Global Dice}| < 0.005$ | **Objective probe did NOT resolve failure modes.** Does NOT prove representation bottleneck, but proves gradient reallocation alone is insufficient under Candidate B architecture. | Formally motivates **6-A.2 (Representation Probe)** (e.g. high-res skip / explicit edge feature branch). |
+| **Pattern 4: Recall Penalty / Precision Degrade** | $\Delta \text{Precision} < 0$, $\Delta \text{Area Ratio} > 0$, or $\Delta \text{Dice} < 0$ | Loss destabilized boundary gradients, exacerbating false positives or triggering gradient distortion. | Reject Boundary IoU objective; re-examine loss landscape. |
 
 ---
 
-## 6. Strict Epistemic Protocol
+## 7. Strict Epistemic Protocol
 
 > [!CAUTION]
 > **Non-negotiable Reporting Rule:**
