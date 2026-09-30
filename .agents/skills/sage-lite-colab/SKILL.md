@@ -19,6 +19,10 @@ Skill này định nghĩa các nguyên tắc bất biến (invariants) và best 
   3. Đóng gói Zip toàn bộ thư mục chạy (bảo tồn Best + Last checkpoints + Logs + Diagnostics figures)
   4. Tự động kích hoạt tải file về máy qua `google.colab.files.download(...)`
   vào **MỘT CELL DUY NHẤT** (All-in-One Cell). Tuyệt đối **KHÔNG** tách nhỏ thành nhiều cell lẻ tẻ để người dùng chỉ cần copy-paste bấm chạy 1 lần duy nhất.
+- **Zero-Drive & Minimal Assumptions Invariant:**
+  - Tuyệt đối **KHÔNG** yêu cầu hoặc ép buộc người dùng mount Google Drive (`drive.mount('/content/drive')`), trừ khi người dùng chủ động yêu cầu.
+  - Hiểu rõ cơ chế hệ thống tệp: `os.makedirs('/content/drive/MyDrive/...', exist_ok=True)` trong mã nguồn Python hoàn toàn tạo được cây thư mục trên ổ đĩa ảo cục bộ `/content/` mà không cần Google Drive FUSE mount. Checkpoint lưu vào đây đọc/ghi hoàn toàn bình thường; không được suy diễn rằng thiếu mount Drive sẽ gây crash.
+  - Tuyệt đối **KHÔNG** tự ý chèn các lệnh `!pip install ...` hàng loạt vào đoạn code của người dùng nếu người dùng đang dùng notebook/script chuẩn đã chạy thành công trước đó (tôn trọng môi trường có sẵn).
 
 ## 2. Environment Setup & Preflight (Tập trung & Tái lập)
 - **All-in-One Preflight Verification Cell Invariant:** Luôn chuẩn bị sẵn **MỘT CELL DUY NHẤT** tích hợp toàn bộ các bước tiền kiểm (Preflight) để User chỉ cần copy-paste bấm chạy 1 lần duy nhất trước khi chạy tác vụ chính:

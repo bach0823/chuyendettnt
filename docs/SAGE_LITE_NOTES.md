@@ -1238,6 +1238,19 @@ Dữ liệu được trích xuất trực tiếp từ các file chẩn đoán [`
 > **PHÁN QUYẾT KHÓA CHÍNH THỨC PHASE 4:**
 > Khóa vĩnh viễn **$load\_balance\_factor = 0.010$ (giữ nguyên giá trị mặc định của Candidate B)** làm tiêu chuẩn chuẩn mực (Canonical Frozen Hyperparameter) cho toàn bộ tiến trình phát triển và kiểm định SAGE-Lite.
 
+---
+
+## 26. Bài học Kinh nghiệm: Giả định Môi trường Colab & Thư mục Drive ảo (2026-09-30)
+
+1. **Hiểu đúng cơ chế File System của Linux/Colab:**
+   - Đường dẫn `/content/drive/MyDrive/crack_seg/...` chỉ là một chuỗi đường dẫn tệp thông thường. Nếu không mount Google Drive, lệnh `os.makedirs(path, exist_ok=True)` trong Python (`train_crack.py` L386) vẫn tự động tạo các thư mục con `drive/MyDrive/crack_seg/` trên ổ đĩa ảo `/content/` của Colab hoàn toàn bình thường. Checkpoint ghi vào đây vẫn đọc/ghi bình thường và không hề bị crash.
+   - Không được thấy chữ `MyDrive` là vội vàng kết luận máy móc rằng bắt buộc phải mount Google Drive.
+
+2. **Tôn trọng Quy trình Tối giản của Người dùng:**
+   - Khi người dùng cung cấp một chuỗi lệnh chạy Colab gọn gàng, đã được kiểm nghiệm qua các phase trước (từ Phase 1 đến Phase 5): **KHÔNG ĐƯỢC PHÉP** tự ý nhồi nhét thêm các câu lệnh `pip install` hoặc cảnh báo thiếu Drive nếu chưa kiểm tra lỗi thực tế.
+   - Chỉ bổ sung khi có lỗi thực thi cụ thể từ terminal output của người dùng.
+
+
 
 
 
