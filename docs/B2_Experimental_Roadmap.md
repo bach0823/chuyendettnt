@@ -739,7 +739,7 @@ Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢ
 > - `vit_depth`: **4** (Đã khóa từ Phase 1).
 > - `top_k`: **2 (Provisional Working Base)** (Tạm chốt từ Phase 2, pending any explicitly approved Phase-2 robustness/reopen decision).
 > - `router_hidden_dim`: **64 (Best Observed Configuration)** (Chọn lọc từ Phase 3, seed=42).
-> - `load_balance_factor`: **0.01 (Inherited Baseline, Not Tuned)** (Phase 4 SKIPPED do 0 dead experts, min utilization 4.94% > 1.0%).
+> - `load_balance_factor`: **0.010 (Tạm chốt / Optimal Pareto Peak)** (Đã khảo sát đầy đủ qua 3 mức {0.005, 0.010, 0.030} tại Phase 4; tạm chốt giữ nguyên LB=0.010 đạt Peak Val Dice 0.7641 của Candidate B).
 > - `sage_lr` & `warmup`: Đang chuẩn bị khảo sát tại Phase 5.1 & 5.2 (với tier `sage_lr` đã được cô lập trong code).
 > - `stage2_lr_ratio`: **1.00 (Anchor Sweet Spot)** (Đã khóa từ Phase 5.3 sau khi quét trọn vẹn 6 tỉ số $r \in \{0.25, 0.50, 1.00, 2.00, 4.00, 5.00\}$ xác lập đỉnh $0.7641$).
 > - `dropout`, `residual_scale` & `fusion_type`: Khảo sát tại Phase 6.

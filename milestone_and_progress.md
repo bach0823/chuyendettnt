@@ -127,18 +127,20 @@ Completed:
 
 
 In Progress:
-- Chuẩn bị triển khai Phase 5.3: Stage-2 Learning Rate Ratio Sweep ($r = LR_{\text{shared}} / LR_{\text{base}} = \text{stage2\_shared\_lr} / \text{stage2\_base\_lr}$):
-  + **Điểm neo Baseline**: $r = 1.00$ (`stage2_shared_lr = 1.0e-4, stage2_base_lr = 1.0e-4`) đã hoàn tất ở Candidate B Phase 5.1 (Peak Val Dice = 0.7641), kế thừa nguyên vẹn, không train lại.
-  + **3 cấu hình chính (Primary Execution Grid — Chạy trước)**:
-    1. $r = 0.25$: `stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4` (soft freeze shared CNN experts).
-    2. $r = 0.50$: `stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4` (tỷ lệ chuẩn SAGE gốc trên GlaS và EBHI-SEG).
-    3. $r = 2.00$: `stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4` (tăng tốc học cho shared CNN experts).
-  + **2 cấu hình mở rộng có điều kiện (Optional Extension — Chỉ xét sau khi có kết quả 3 cấu hình trên)**:
-    4. $r = 4.00$: `stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4` (optional).
-    5. $r = 5.00$: `stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4` (optional — cấu hình SAGE gốc trên Colon Cancer).
-    * Tiêu chí cổng điều kiện: Chỉ xét chạy $r \in \{4.00, 5.00\}$ nếu $r = 2.00$ tăng trưởng mạnh và chưa đạt đỉnh bão hòa ($Dice(r=2.00) > Dice(r=1.00)$). Ngược lại nếu đỉnh rơi vào $r \le 1.00$ hoặc $r=2.00$ suy giảm, bỏ qua cả hai.
-  + **Quy chuẩn thực thi**: Chạy `--stage2-only` kế thừa checkpoint Stage 1 xuất sắc của Candidate B (`best_model_b2_stage1.pth`, Val Dice = 0.7333), tiết kiệm 50% thời gian GPU (18 epochs/run).
-  + P3 refinement cố định tại $\text{stage2\_p3\_lr} = 10^{-4}$. Router/SA-Hub/Decoder đi cùng `stage2_base_lr = 10^{-4}`.
+- **Chuẩn bị triển khai Phase 6: Regularization & Fusion Mechanics (Khóa Cấu Hình Nền Tảng Cuối Cùng)**:
+  + **Kế thừa các thông số đã khóa**:
+    * Base ViT Depth = D4 (Phase 1)
+    * Provisional `top_k = 2` (Phase 2)
+    * `router_hidden_dim = 64` (Phase 3)
+    * **Load balance factor = 0.010 (Tạm chốt giữ nguyên)** (Phase 4)
+    * `sage_lr = 2e-4` (Phase 5.1)
+    * `warmup_epochs = 3` (Phase 5.2)
+    * `stage2_lr_ratio = 1.00` (Phase 5.3)
+  + **Nội dung khảo sát Phase 6**:
+    1. Phase 6.1: `expert_dropout \in {0.0, 0.1, 0.2}` (điều hòa chuyên gia).
+    2. Phase 6.2: `residual_scale \in {0.05, 0.10, 0.20}` (với 0.10 là baseline mặc định).
+    3. Phase 6.3: Cơ chế hợp nhất `fusion_type \in {"residual", "adaptive"}`.
+  + **Tiêu chí lựa chọn**: Duy nhất dựa trên Validation Dice (348 ảnh). Tuyệt đối không can thiệp Test set.
 - **Cập nhật Định hướng Kiến trúc Giải quyết Nút thắt High-Resolution CNN→ViT:**
   + Đã hoàn thành đánh giá độc lập 3 proposal cho nút thắt Stage 0/1 ($N=12,544$ và $N=3,136$) gọi ViT expert.
   + **Thứ tự ưu tiên nghiên cứu & triển khai đã chốt:**
