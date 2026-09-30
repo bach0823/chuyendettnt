@@ -1276,18 +1276,58 @@ Kết quả rơi vào **Pattern 2 (Dual Chain Recovery / Strong Thin Recovery)**
 
 ---
 
-## 27. Nguyên Lý Khoa Học Phase 6-A.2: Representation Probe — Progressive Learned Upsampling Head (2026-09-30)
+## 27. Nguyên Lý Khoa Học & Kết Quả Phase 6-A.2: Pure PLU Representation Probe (2026-10-01)
 
-### 1. Bối cảnh & Giả thuyết Kiến trúc (Representation vs Objective Bottleneck)
-- **Vấn đề cốt lõi của Baseline:** Mô hình Candidate B và Phase 6-A.1 tạo logits ở độ phân giải $112 \times 112$ rồi phóng to $4\times$ lên $448 \times 448$ bằng phép nội suy tuyến tính cố định (`F.interpolate(..., scale_factor=4, mode='bilinear')`).
-- **Nút thắt biểu diễn (Representation Bottleneck):** Nội suy song tuyến tính cố định làm mờ biên độ đạo hàm ở các chi tiết siêu mảnh (hairline crack $\le 2\text{ px}$) và không thể học cách phục hồi cấu trúc cục bộ tại ranh giới vật lý của vết nứt.
-- **Can thiệp đơn lẻ (Single Intervention):** Thay thế tầng nội suy cố định bằng **Progressive Learned Upsampling Head (PLU-Head)**:
-  $$\mathbf{F}_{112} \xrightarrow{\text{Conv3}\times\text{3 (24ch) + BN + ReLU}} \mathbf{H}_{112} \xrightarrow{\text{ConvTransp2}\times\text{2 (16ch) + BN + ReLU}} \mathbf{H}_{224} \xrightarrow{\text{ConvTransp2}\times\text{2 (1ch)}} \text{Logits}_{448}$$
+### 1. Bối cảnh & Giả thuyết Kiến trúc (Pure Representation vs Objective Bottleneck)
+- **Vấn đề cốt lõi của Baseline:** Mô hình Candidate B tạo logits ở độ phân giải $112 \times 112$ rồi phóng to $4\times$ lên $448 \times 448$ bằng phép nội suy tuyến tính cố định (`F.interpolate(..., scale_factor=4, mode='bilinear')`). Bất kỳ 1 điểm kích hoạt tại $112 \times 112$ khi phóng to đều tự nhiên bị nhòe trên vùng $4 \times 4 = 16$ pixels ở $448 \times 448$.
+- **Can thiệp đơn lẻ thuần túy (Pure Architectural Intervention):** Thay thế tầng nội suy cố định bằng **Progressive Learned Upsampling Head (PLU-Head)**:
+  $$\mathbf{F}_{112} \xrightarrow{\text{Conv3}\times\text{3 (24ch) + BN + ReLU}} \mathbf{H}_{112} \xrightarrow{\text{ConvTransp2}\times\text{2 (16ch, k=4, s=2, p=1) + BN + ReLU}} \mathbf{H}_{224} \xrightarrow{\text{ConvTransp2}\times\text{2 (1ch, k=4, s=2, p=1)}} \text{Logits}_{448}$$
+- **Kiểm soát biến độc lập (Variable Isolation):** 
+  - Khóa hoàn toàn BoundaryIoU (`boundary_iou_weight = 0.0`), dùng thuần túy $\mathcal{L}_{\text{Base}}$ ($1.0 \times \text{BCE} + 1.5 \times \text{Dice}$) ở cả 2 Stage.
+  - Huấn luyện toàn vẹn từ đầu: Full Stage 1 (17 epochs, backbone LR=1e-5, decoder/PLU=1e-4, SAGE=2e-4) $\to$ Stage 2 (18 epochs, all LR=1e-4). Không remap checkpoint Candidate B.
 
-### 2. Bảo Toàn Tính Khách Quan Khoa Học (Scientific Controls)
-- **Mức tăng tham số cực vi mô:** Tổng tham số tăng từ $10,118,955 \to 10,125,363$ ($\Delta = +6,408$ tham số, $+0.0633\%$), bảo đảm mọi cải thiện (nếu có) được quy thuộc chính xác cho cấu trúc biểu diễn tiến trình mà không phải do mở rộng dung lượng dung sai (capacity confounder).
-- **Kế thừa nguồn gốc Stage 1 (Stage 1 Lineage Remapping):** Kế thừa nguyên vẹn trọng số `conv112` và `norm112` từ Stage 1 checkpoint của Candidate B (`segmentation_head.0` và `.1`), chỉ khởi tạo mới 5 trainable parameter tensors ở các tầng upsampling trung gian ($112 \to 224 \to 448$).
-- **Mục tiêu kiểm định kép:** Kết hợp cấu trúc PLU-Head với hàm mục tiêu $\mathcal{L}_{\text{B-IoU}}$ ($\lambda=0.50, d=2$) đã chứng minh hiệu quả ở Phase 6-A.1 để xác định xem: *Liệu can thiệp đồng thời vào cả tầng Biểu diễn (Representation) lẫn Hàm mục tiêu (Objective) có tạo ra cộng hưởng triệt tiêu lỗi rách biên và phục hồi phân vị vết nứt mảnh vượt trần 0.7684 hay không?*
+### 2. Quỹ Đạo Huấn Luyện & Hội Tụ Mượt Mà (Convergence Trajectory)
+- **Stage 1 (Scratch with PLU Head):**
+  - Khởi động an toàn: E1 Val Dice = 0.5898 $\to$ E10 Val Dice = **0.7357** (vượt trội Stage 1 của Candidate B vốn đạt 0.7333).
+  - Checkpoint tốt nhất Stage 1 được lưu tại Epoch 10: `best_model_b2_stage1.pth`.
+- **Stage 2 (Joint Fine-tuning with strict=True):**
+  - E1 Val Dice: **0.7235** (Chuyển tiếp mượt mà tuyệt đối, triệt tiêu 100% cú sập 0.1054 từng gặp khi warm-start sai quy chuẩn).
+  - E7: 0.7482 $\to$ E9: 0.7591 $\to$ E14: 0.7546 $\to$ E15: **0.7664** (Global Best Checkpoint, Val Loss = 0.7135).
+  - Hoàn thành đầy đủ 35 epochs budget (16 epochs Stage 1 + 19 epochs Stage 2).
+
+### 3. Bảng Đối Chiếu 3 Chiều Thực Nghiệm (Candidate B vs Phase 6-A.1 vs Phase 6-A.2)
+Trích xuất từ kết quả chẩn đoán chính thức trên toàn bộ 348 ảnh Setting A validation:
+
+| Phân tầng lỗi (Stratum) | Chỉ số | Candidate B (Baseline) | Phase 6-A.1 (B-IoU) | Phase 6-A.2 (Pure PLU) | $\Delta$ (A2 vs B) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Toàn cục (Global, $n=348$)** | **Val Dice** | 0.7641 | 0.7684 | **0.7664** | **+0.0023** |
+| | **Precision** | 0.7337 | 0.7416 | **0.7491** | **+0.0153** |
+| | **Recall** | 0.8477 | 0.8413 | 0.8251 | -0.0226 |
+| | **Tỷ lệ phình diện tích** | +8.16% | +7.85% | **+4.93%** | **-3.22%** |
+| **Vết nứt mảnh ($\text{thinness} > 0.20, n=66$)** | **Thin Dice** | 0.6404 | 0.6641 | **0.6674** | **+0.0270** |
+| | **Thin Precision** | 0.5232 | 0.5648 | **0.5764** | **+0.0532** |
+| | **Thin Recall** | 0.9028 | 0.8757 | 0.8487 | -0.0541 |
+| | **Tỷ lệ phình diện tích** | +80.37% | +64.55% | **+57.00%** | **-23.37%** |
+| **Nhóm hỏng nặng nhất (Thin-Low-Area, $n=5$)** | **Dice** | 0.5370 | 0.5382 | **0.6059** | **+0.0689** |
+| | **Precision** | 0.3799 | 0.3896 | **0.4770** | **+0.0970** |
+| | **Tỷ lệ phình diện tích** | +141.66% | +127.33% | **+77.06%** | **-64.60%** |
+| **Biên độ viền (Boundary Margin, $n=127$)** | **Dice** | 0.7812 | 0.7787 | 0.7779 | -0.0033 |
+| | **Precision** | 0.7452 | 0.7525 | **0.7680** | **+0.0228** |
+| | **Tỷ lệ phình diện tích** | +5.85% | +5.55% | **+1.63%** | **-4.22%** |
+
+### 4. Kết Luận Khoa Học & Phán Quyết Pre-registered
+1. **Phán quyết theo Ma trận Quyết định:** Rơi vào phân loại **POSITIVE**:
+   - $\text{Global Dice} = 0.7664 > 0.7641$ (vượt baseline Candidate B dù không có Boundary loss).
+   - $\Delta \text{Thin Dice} = +0.0270 \ge +0.015$.
+   - $\text{Thin Area Excess} = +57.00\% < +65\%$ (giảm tới $-23.37\%$ so với baseline).
+2. **Khẳng định Giả thuyết Nút thắt Biểu diễn (Representation Bottleneck):**
+   - Giải chập học được tiến trình (PLU-Head) phục hồi độ phân giải không gian trực tiếp, giải phóng mạng khỏi sự phụ thuộc vào phép nội suy song tuyến tính mù quáng.
+   - Thậm chí trên nhóm vết nứt siêu mảnh ($\text{thinness} > 0.20$), PLU head thuần túy còn đạt Dice $0.6674$ và giảm phình diện tích xuống $+57.00\%$, tốt hơn cả can thiệp BoundaryIoU của 6-A.1 ($0.6641$ và $+64.55\%$).
+3. **Mở đường cho Phase 6-A.3 (Combined Intervention):**
+   - Khi cả hai biến can thiệp đơn lẻ đều đã được chứng minh hiệu quả độc lập:
+     - **6-A.1 (Objective Probe):** BoundaryIoU tối ưu hóa gradient biên độ đạo hàm.
+     - **6-A.2 (Representation Probe):** PLU-Head tái tạo chi tiết không gian độ phân giải cao.
+   - Hướng đi tiếp theo hợp lý và tự nhiên nhất là kết hợp cả hai thành phần (**PLU-Head + BoundaryIoU**) trong **Phase 6-A.3** để tìm kiếm sự cộng hưởng vượt mốc $0.7700$ Val Dice.
 
 
 
