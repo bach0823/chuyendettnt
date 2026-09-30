@@ -129,70 +129,61 @@ Huấn luyện trọn vẹn hai giai đoạn (Full Stage 1 $\to$ Stage 2) tuân 
 
 ---
 
-## 7. Execution Commands (Colab / Cloud T4)
+## 7. Execution Commands (Colab / Cloud T4 — Ultra-Minimal 3-Cell Standard)
 
-### Cell 1: Environment Setup, Dataset Preparation & Full Run (Stage 1 -> Stage 2)
-```python
-# ==============================================================================
-# Cell 1: Environment Setup, Dataset & Full 2-Stage Training
-# ==============================================================================
-!git clone -b crack500-audit https://github.com/bach0823/SAGE_LITE.git
-%cd SAGE_LITE
-!git checkout crack500-audit
-!git log -1 --oneline
+### Cell 1: Environment Setup & Dataset Preparation
+```bash
+!rm -rf /content/SAGE_LITE
+!git clone -b crack500-audit https://github.com/bach0823/SAGE_LITE.git /content/SAGE_LITE
+%cd /content/SAGE_LITE
 
 !python prepare_data/prepare_crack500.py
-
-CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_pure_plu.yaml"
-
-!python scripts/train_crack.py \
-  --config {CONFIG_PATH} \
-  --data-root /content/dataset/Crack500
 ```
 
-### Cell 2: Hardened Post-Training Diagnostics & Auto-Download
+### Cell 2: Training Execution (Full Stage 1 -> Stage 2 Run)
 ```python
 # ==============================================================================
-# Cell 2: Diagnostics, Checkpoint Inspection & Auto-Download
+# Cell 2: Training Execution (Pure PLU Stage 1 -> Stage 2)
 # ==============================================================================
 %cd /content/SAGE_LITE
 
-import json
-import os
-import shutil
-import pandas as pd
-import torch
+!python scripts/train_crack.py \
+  --config configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_pure_plu.yaml \
+  --data-root /content/dataset/Crack500
+```
+
+### Cell 3: Post-Training Diagnostics, Packaging & Auto-Download
+```python
+# ==============================================================================
+# Cell 3: Post-Training Diagnostics, Zip & Browser Download
+# ==============================================================================
+%cd /content/SAGE_LITE
 from google.colab import files
+import shutil
 
 CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_pure_plu.yaml"
 RUN_DIR = "/content/runs/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64"
+CKPT_PATH = f"{RUN_DIR}/best_model_b2_global.pth"
+DIAG_VAL = f"{RUN_DIR}/P3_C_Routing_Diagnostics/full_val"
+DIAG_ERR = f"{RUN_DIR}/P3_C_Routing_Diagnostics/error_analysis"
 
-assert os.path.isdir(RUN_DIR), f"[CRITICAL FAIL-FAST] Missing RUN_DIR: {RUN_DIR}"
-CKPT_PATH = os.path.join(RUN_DIR, "best_model_b2_global.pth")
-assert os.path.isfile(CKPT_PATH), f"[CRITICAL FAIL-FAST] Missing canonical checkpoint: {CKPT_PATH}"
-
-ckpt_data = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
-recorded_dice = ckpt_data.get("best_dice")
-recorded_loss = ckpt_data.get("best_loss")
-recorded_epoch = ckpt_data.get("epoch")
-
-print("=" * 80)
-print(f"[AUDIT PASS] CANONICAL BEST CHECKPOINT IDENTIFIED")
-print(f"  Checkpoint File:    {CKPT_PATH}")
-print(f"  Recorded Best Dice: {recorded_dice:.6f}")
-print(f"  Recorded Best Loss: {recorded_loss:.6f}")
-print(f"  Recorded Best Epoch:{recorded_epoch}")
-print("=" * 80)
-
-# Run full diagnostics
-!python scripts/diagnose_boundary_errors.py \
+# 1. Routing Diagnostics (Full Val)
+!python tools/analyze_routing.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
+  --output_dir {DIAG_VAL} \
   --split val \
-  --output-dir {RUN_DIR}/diagnostics
+  --data_root /content/dataset/Crack500
 
-# Archive and download
-zip_path = "/content/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_Full.zip"
-!zip -r -q {zip_path} {RUN_DIR}
-files.download(zip_path)
+# 2. Error Analysis & Morphology Stratification (Setting A Tiling)
+!python tools/run_p3_c_error_analysis.py \
+  --config {CONFIG_PATH} \
+  --checkpoint {CKPT_PATH} \
+  --routing-json {DIAG_VAL}/routing_statistics.json \
+  --output-dir {DIAG_ERR} \
+  --data-root /content/dataset/Crack500
+
+# 3. Zip & Download
+shutil.make_archive("/content/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_Full", "zip", "/content/runs", "P3_C_Phase6_A2_Pure_PLU_D4_K2_H64")
+files.download("/content/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_Full.zip")
 ```
