@@ -13,6 +13,12 @@ Skill này định nghĩa các nguyên tắc bất biến (invariants) và best 
 - **Target Hardware Invariant (Tesla T4 Primary):** Google Colab Tesla T4 (16GB VRAM) là môi trường phần cứng chuẩn duy nhất để đo đạc: OOM probe, batch-size search, throughput benchmark, và official training. Tuyệt đối **KHÔNG** chạy các tác vụ đo đạc tải CUDA nặng trên GPU local (GTX 1650 4GB). Máy local chỉ phục vụ code editing, static audit, git sync, hoặc test cú pháp/mock CPU.
 - **Colab Cell Syntax Invariant:** Khi cung cấp lệnh để chạy trong Colab Notebook, **BẮT BUỘC** định dạng sẵn 100% cú pháp cell notebook: dùng `%cd` cho chuyển thư mục và `!` cho mọi lệnh shell (`!git`, `!python`, `!pip`). Tuyệt đối không đưa bash thô thiếu `!` và `%`.
 - **Checkpoint Archival Invariant (Best + Last Models):** Khi chuẩn bị cell export/download hoặc lưu trữ artifacts sau huấn luyện, **BẮT BUỘC** lưu trữ cả **Best Model** (`best_model_*.pth`) lẫn **Last Model** (`last_model_*.pth`). Tuyệt đối không chỉ lọc riêng `best_model`. Cả hai checkpoint này đều cần thiết: `best_model` để đánh giá benchmark đỉnh cao, và `last_model` để phục vụ audit quỹ đạo, kiểm tra over-fitting cuối lịch trình, hoặc resume tiếp nối.
+- **All-in-One Post-Training Cell Invariant (Diagnose + Zip + Download):** Khi chuẩn bị thao tác hậu huấn luyện (post-training evaluation & archival), **BẮT BUỘC** gộp toàn bộ các bước:
+  1. Routing Diagnostics (`tools/analyze_routing.py`)
+  2. Error Analysis & Morphology (`tools/run_p3_c_error_analysis.py`)
+  3. Đóng gói Zip toàn bộ thư mục chạy (bảo tồn Best + Last checkpoints + Logs + Diagnostics figures)
+  4. Tự động kích hoạt tải file về máy qua `google.colab.files.download(...)`
+  vào **MỘT CELL DUY NHẤT** (All-in-One Cell). Tuyệt đối **KHÔNG** tách nhỏ thành nhiều cell lẻ tẻ để người dùng chỉ cần copy-paste bấm chạy 1 lần duy nhất.
 
 ## 2. Environment Setup & Preflight (Tập trung & Tái lập)
 - **All-in-One Preflight Verification Cell Invariant:** Luôn chuẩn bị sẵn **MỘT CELL DUY NHẤT** tích hợp toàn bộ các bước tiền kiểm (Preflight) để User chỉ cần copy-paste bấm chạy 1 lần duy nhất trước khi chạy tác vụ chính:
@@ -229,6 +235,57 @@ zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
 print(f"ĐÃ NÉN THÀNH CÔNG: {ZIP_OUTPUT} ({zip_size_mb:.2f} MB)")
 print("Đang kích hoạt tải file về máy...")
 files.download(ZIP_OUTPUT)
+```
+
+**Template Cell Colab All-in-One (Diagnose + Error Analysis + Zip + Download - 1 Cell duy nhất):**
+```python
+# ==============================================================================
+# ALL-IN-ONE CELL: DIAGNOSE + ZIP + DOWNLOAD (1 CELL DUY NHẤT)
+# ==============================================================================
+%cd /content/SAGE_LITE
+import os
+from google.colab import files
+
+RUN_DIR = "/content/drive/MyDrive/crack_seg/<RUN_FOLDER_NAME>"
+CONFIG_PATH = "configs/p3_ablation/<CONFIG_NAME>.yaml"
+FOLDER_NAME = "<RUN_FOLDER_NAME>"
+ZIP_NAME = "<RUN_FOLDER_NAME>_Full.zip"
+
+# Tự động nhận diện checkpoint tối ưu (ưu tiên best_global -> best_stage2 -> last_stage2)
+ckpt_path = os.path.join(RUN_DIR, "best_model_b2_global.pth")
+if not os.path.exists(ckpt_path):
+    ckpt_path = os.path.join(RUN_DIR, "best_model_b2_stage2.pth")
+if not os.path.exists(ckpt_path):
+    ckpt_path = os.path.join(RUN_DIR, "last_model_b2_stage2.pth")
+
+diag_val = os.path.join(RUN_DIR, "diagnostics", "full_val")
+diag_err = os.path.join(RUN_DIR, "diagnostics", "error_analysis")
+
+print(f"[*] Checkpoint thẩm định: {ckpt_path}\n")
+
+# 1. Routing Diagnostics (Full Val Split)
+!python tools/analyze_routing.py \
+  --config {CONFIG_PATH} \
+  --checkpoint {ckpt_path} \
+  --output_dir {diag_val} \
+  --data_root /content/dataset/Crack500 \
+  --split val
+
+# 2. Error Analysis & Morphology (Setting A Official Protocol)
+!python tools/run_p3_c_error_analysis.py \
+  --config {CONFIG_PATH} \
+  --checkpoint {ckpt_path} \
+  --routing-json {diag_val}/routing_statistics.json \
+  --output-dir {diag_err} \
+  --data-root /content/dataset/Crack500
+
+# 3. Nén toàn bộ thư mục thực nghiệm (bảo đảm cả Best & Last checkpoints)
+%cd /content/drive/MyDrive/crack_seg
+!zip -r {ZIP_NAME} {FOLDER_NAME}
+
+# 4. Kích hoạt tự động tải về máy
+files.download(f"/content/drive/MyDrive/crack_seg/{ZIP_NAME}")
+print(f"\n✓ Hoàn tất! File đã được lưu an toàn tại Drive và đang tải về máy: {ZIP_NAME}")
 ```
 
 
