@@ -695,11 +695,12 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
     - **3 cấu hình chính (Primary Execution Grid — Chạy trước)**:
       1. **$r = 0.25$** (`stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4`): Khảo sát hướng soft freeze shared CNN experts.
       2. **$r = 0.50$** (`stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4`): Cấu hình chuẩn của SAGE gốc trên GlaS và EBHI-SEG.
-      3. **$r = 2.00$** (`stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát hướng tăng tốc độ học cho shared CNN experts.
+      3. **$r = 2.00$** (`stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát hướng tăng tốc độ học cho shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7638** (Ep 15), Đáy Val Loss kỷ lục toàn dự án = **0.9308** (Ep 18), hoàn tất 35/35 epochs.
     - **2 cấu hình mở rộng có điều kiện (Optional Extension — Chỉ xét sau khi chạy xong 3 cấu hình trên)**:
       4. **$r = 4.00$** (`stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4`) (Optional).
       5. **$r = 5.00$** (`stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4`) (Optional — cấu hình của SAGE gốc trên Colon Cancer).
       - **Tiêu chí cổng điều kiện (Conditional Gate)**: Chỉ kích hoạt chạy $r \in \{4.00, 5.00\}$ nếu kết quả từ 3 cấu hình chính cho thấy xu hướng tăng trưởng hiệu năng rõ rệt theo chiều $r > 1$ ($Dice(r=2.00) > Dice(r=1.00)$ và chưa có dấu hiệu bão hòa/suy giảm). Nếu $r \le 1.00$ là đỉnh hoặc $r=2.00$ đã bão hòa/suy giảm, **BỎ QUA (SKIP) cả $r=4.00$ và $r=5.00$** để tiết kiệm tài nguyên GPU.
+      - **Phán quyết cổng sau khi chạy $r=2.00$**: Vì $Dice(r=2.00) = 0.7638 \approx Dice(r=1.00) = 0.7641$ (đã chạm ngưỡng bão hòa plateau, $\Delta = -0.0003$), **BỎ QUA (SKIP) $r=4.00$ và $r=5.00$** theo đúng conditional gate. Tập trung đánh giá $r = 0.25$ và $r = 0.50$.
   * *Quy tắc khóa*: Chọn tỉ lệ $r$ đạt Validation Dice cao nhất để chuyển giao sang Phase 6.
 
 ---
