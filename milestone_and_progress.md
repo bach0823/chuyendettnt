@@ -421,10 +421,22 @@ sage-lite/
 - **2026-09-30**: Hoàn thành Thực nghiệm Phase 6-A.1 Objective Probe (Soft Boundary IoU Loss, $\lambda=0.50, d=2$):
   + **Thiết lập Đỉnh Toàn Dự Án Mới: Val Dice 0.7684** (+0.0043), Mean IoU **0.6465**, Precision **0.7416** (+0.79%).
   + Đột phá trên nhóm vết nứt siêu mảnh ($Q4$ thin cracks $>0.20$): Val Dice tăng $+2.37\%$ ($0.6404 \to 0.6641$), sai số loang viền dôi dư giảm $-15.82\%$ ($80.37\% \to 64.55\%$).
-- **2026-09-30 (hiện tại)**: Triển khai & Khởi động Phase 6-A.2 Representation Probe (Progressive Learned Upsampling Head - PLU):
-  + Hoàn tất cấu trúc `ProgressiveLearnedUpsamplingHead` ($112 \to 224 \to 448$, $+6,408$ params, lineage remapping kế thừa `conv112/norm112` từ Stage 1 Candidate B).
-  + Toàn bộ unit tests, shape contract, preflight assertions và diagnostic toolsuite đã đồng bộ trên nhánh `crack500-audit` (commit `51fd9ae`).
-  + Đang chạy huấn luyện 18 epochs Stage 2 trên Colab T4, sẵn sàng nạp artifacts và thực hiện phân tích đối chiếu Setting A.
+- **2026-10-01**: Hoàn thành & Nghiệm thu Thực nghiệm Phase 6-A.2 Pure PLU Representation Probe (PLU-Head, BoundaryIoU OFF, L = L_Base):
+  + **Giao thức chuẩn xác**: Huấn luyện toàn vẹn từ đầu Full Stage 1 (17 epochs, backbone LR=1e-5, decoder/PLU=1e-4, SAGE=2e-4) $\to$ Stage 2 (18 epochs, all LR=1e-4). Khóa cứng `boundary_iou_weight = 0.0`. Chuyển tiếp checkpoint Stage 1 $\to$ Stage 2 an toàn tuyệt đối với `strict=True` (0 missing, 0 unexpected).
+  + **Quỹ đạo hội tụ xuất sắc**:
+    * Stage 1 Peak Val Dice: **0.7357** (@ Ep 10, vượt trội 0.7333 của Candidate B).
+    * Stage 2 Ep 1 Val Dice: **0.7235** (hội tụ trơn tru, triệt tiêu 100% cú sập).
+    * Stage 2 Peak Global Val Dice: **0.7664** (@ Ep 15, Val Loss: **0.7135**), vượt qua Candidate B baseline (**0.7641**) chỉ bằng cải tiến biểu diễn thuần túy (+0.0023 Dice, Precision tăng từ 0.7337 lên **0.7491**).
+  + **Đột phá hình thái học trên vết nứt siêu mảnh (Thin Crack Recovery)**:
+    * Nhóm vết nứt mảnh ($\text{thinness} > 0.20, n=66$): Val Dice đạt **0.6674** (+0.0270 vs Candidate B, cao hơn cả can thiệp BoundaryIoU của 6-A.1 đạt 0.6641). Precision đạt **0.5764** (+5.32% vs Candidate B). Tỷ lệ phình diện tích giảm sâu từ $+80.37\%$ xuống **$+57.00\%$** ($\Delta = -23.37\%$).
+    * Nhóm hỏng nặng nhất (Thin-Low-Area, $n=5$): Val Dice tăng vọt từ $0.5370 \to \mathbf{0.6059}$ (+0.0689), tỷ lệ phình diện tích cực đoan giảm sốc từ $+141.66\%$ xuống **$+77.06\%$** ($\Delta = -64.60\%$).
+  + **Phán quyết ma trận**: **POSITIVE**. Xác nhận giả thuyết nút thắt biểu diễn (Representation Bottleneck) là có thật.
+  + **Lưu trữ toàn bộ artifacts**:
+    * Checkpoints: `results/checkpoints/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_best_model_b2_global.pth`, `best_model_b2_stage1.pth`, `best_model_b2_stage2.pth`, `last_model_b2_stage1.pth`, `last_model_b2_stage2.pth`.
+    * Logs: `results/logs/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_train.log`.
+    * Routing & Error Diagnostics: `results/P3_C_Routing_Diagnostics_Phase6_A2_Pure_PLU_D4_K2_H64/` (đầy đủ `full_val/` và `error_analysis/`).
+    * Archive: `results/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_Full.zip`.
+
 
 
 
