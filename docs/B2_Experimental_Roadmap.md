@@ -696,12 +696,13 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
       1. **$r = 0.25$** (`stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4`): Khảo sát hướng soft freeze shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7579** (Ep 16), Mean IoU = 0.6336, Median Dice = 0.8047.
       2. **$r = 0.50$** (`stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4`): Cấu hình chuẩn của SAGE gốc trên GlaS và EBHI-SEG. **[HOÀN TẤT]** Peak Val Dice = **0.7586** (Ep 14), Mean IoU = 0.6347, Median Dice = 0.8042.
       3. **$r = 2.00$** (`stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát hướng tăng tốc độ học cho shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7638** (Ep 15), Đáy Val Loss kỷ lục toàn dự án = **0.9308** (Ep 18).
-    - **2 cấu hình mở rộng có điều kiện (Optional Extension)**:
-      4. **$r = 4.00$** (`stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4`): **BỎ QUA (SKIPPED)** theo conditional gate.
-      5. **$r = 5.00$** (`stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4`): **BỎ QUA (SKIPPED)** theo conditional gate.
+    - **2 cấu hình mở rộng (Optional Extension — HOÀN TẤT THỰC NGHIỆM ĐẦY ĐỦ 100%)**:
+      4. **$r = 4.00$** (`stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát đẩy mạnh tốc độ học cho shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7611** (Ep 16), Mean IoU = 0.6378, Median Dice = 0.8027, Precision = 0.7134, Recall = **0.8680**, Đáy Val Loss = 0.9344.
+      5. **$r = 5.00$** (`stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát ngưỡng cực hạn của shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7585** (Ep 14), Mean IoU = 0.6356, Median Dice = 0.8025, Precision = 0.7207, Recall = 0.8519, Đáy Val Loss = 0.9395.
     - **Phán quyết khóa chính thức (PHASE 5.3 LOCK)**:
-      - Cả 2 cấu hình soft-freeze ($r = 0.25$ và $r = 0.50$) đều làm giảm hiệu năng Validation Dice rõ rệt xuống $0.7579$ và $0.7586$ ($\Delta \approx -0.006$), bác bỏ giả thuyết đóng băng mềm shared CNN experts trên Crack500.
-      - Cấu hình tăng tốc $r = 2.00$ đạt $0.7638$, đi vào vùng bão hòa (plateau) so với mốc $0.7641$ của $r = 1.00$.
+      - Thực nghiệm đầy đủ trên toàn bộ 6 tỉ số $r \in \{0.25, 0.50, 1.00, 2.00, 4.00, 5.00\}$ xác lập đường cong chữ U ngược đơn đỉnh (unimodal inverted-U response curve):
+        $$0.7579\,(r=0.25) < 0.7586\,(r=0.50) < \mathbf{0.7641}\,(r=1.00) > 0.7638\,(r=2.00) > 0.7611\,(r=4.00) > 0.7585\,(r=5.00)$$
+      - Cả 2 cấu hình soft-freeze ($r < 1.0$) và cả 2 cấu hình tăng tốc quá mức ($r > 2.0$) đều làm sụt giảm hiệu năng biểu diễn đặc trưng nứt.
       - **CHÍNH THỨC KHÓA: $r = 1.00$ (Candidate B với $\text{stage2\_shared\_lr} = \text{stage2\_base\_lr} = 1.0 \times 10^{-4}$)**. Toàn bộ các nhóm tham số ở Stage 2 tiếp tục đi chung một learning rate duy nhất $1.0\times 10^{-4}$.
   * *Chuyển giao sang Phase 6*: Đã hoàn tất đóng băng Phase 5, sẵn sàng bước vào Phase 6.
 
@@ -745,7 +746,7 @@ Phase 6 là bước cuối cùng trong chu trình **KHÓA CẤU HÌNH NỀN TẢ
 > - `router_hidden_dim`: **64 (Best Observed Configuration)** (Chọn lọc từ Phase 3, seed=42).
 > - `load_balance_factor`: **0.01 (Inherited Baseline, Not Tuned)** (Phase 4 SKIPPED do 0 dead experts, min utilization 4.94% > 1.0%).
 > - `sage_lr` & `warmup`: Đang chuẩn bị khảo sát tại Phase 5.1 & 5.2 (với tier `sage_lr` đã được cô lập trong code).
-> - `stage2_lr_ratio`: Khảo sát tại Phase 5.3 ($r = LR_{\text{shared experts}} / LR_{\text{fine-grained experts}}$).
+> - `stage2_lr_ratio`: **1.00 (Anchor Sweet Spot)** (Đã khóa từ Phase 5.3 sau khi quét trọn vẹn 6 tỉ số $r \in \{0.25, 0.50, 1.00, 2.00, 4.00, 5.00\}$ xác lập đỉnh $0.7641$).
 > - `dropout`, `residual_scale` & `fusion_type`: Khảo sát tại Phase 6.
 > 
 > **CHUYỂN GIAO SANG GIAI ĐOẠN 2:**

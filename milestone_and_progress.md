@@ -37,6 +37,12 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
      + Kết quả: Đạt đỉnh **0.7644 Val Dice** (Ep 16), đáy Val Loss **0.9412** (Ep 18), Mean IoU **0.6409**, Median Dice **0.8073**.
      + Đóng gói đầy đủ artifacts tại `results/P3_C_Phase5_1_Extra_Stage2_SAGELR2e-4_Full.zip` và diagnostics tại `results/P3_C_Routing_Diagnostics_D4_K2_H64_Phase5_1_Extra_SAGELR2e-4/`.
      + **Quyết định chốt**: Khóa chính thức **Candidate B** (`sage_lr = 2e-4` ở Stage 1); **KHÔNG tách riêng SAGE LR ở Stage 2** (SAGE router ở Stage 2 đi chung với `stage2_base_lr = 1e-4` để giữ tối ưu hóa tinh gọn).
+6. **Phase 5.3: Stage-2 Shared LR Ratio Sweep (HOÀN TẤT & ĐÃ KHÓA r = 1.00 ✅):**
+   - Đã sweep đủ toàn bộ 6 tỉ số $r \in \{0.25, 0.50, 1.00, 2.00, 4.00, 5.00\}$ trải dài hơn một bậc độ lớn ($2.5\times 10^{-5} \to 5.0\times 10^{-4}$).
+   - Xác lập đường cong chữ U ngược đơn đỉnh hoàn chỉnh:
+     $$0.7579\,(r=0.25) < 0.7586\,(r=0.50) < \mathbf{0.7641}\,(r=1.00) > 0.7638\,(r=2.00) > 0.7611\,(r=4.00) > 0.7585\,(r=5.00)$$
+   - Soft-freeze shared CNN ($r < 1.0$) và gia tốc quá mức ($r > 2.0$) đều gây suy giảm biểu diễn hình thái vết nứt.
+   - Khóa chính thức $r = 1.00$ (kế thừa Candidate B với `stage2_shared_lr = stage2_base_lr = 1e-4` thống nhất toàn diện).
 
 State:
 - Phase 1: D4 locked
@@ -45,7 +51,8 @@ State:
 - Phase 4: SKIPPED, LB=0.01 inherited baseline
 - Phase 5.1: SAGE LR = 2e-4 locked (Candidate B 0.7641 làm baseline chính thức, Stage 2 không tách riêng)
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
-- Phase 5.3: Ready to deploy (Stage-2 LR ratio r in {0.25, 0.50, 1.00, 2.00}, optional {4.00, 5.00})
+- Phase 5.3: HOÀN TẤT & ĐÃ KHÓA r = 1.00 (Candidate B 0.7641; hoàn tất cả 6 tỉ số r in {0.25, 0.50, 1.00, 2.00, 4.00, 5.00})
+- Phase 6: Ready to deploy (Regularization & Fusion Mechanics: Dropout & Residual Scale)
 
 Cấu hình hiện hành:
 - ViT depth = 4
