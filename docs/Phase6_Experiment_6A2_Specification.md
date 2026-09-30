@@ -156,3 +156,59 @@ CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_plu.yaml"
   --rng-checkpoint {RNG_CKPT} \
   --data-root /content/dataset/Crack500
 ```
+
+### Cell 2: Post-Training Diagnostics, Packaging & Auto-Download (Colab)
+```python
+# ==============================================================================
+# Cell 2: Routing Diagnostics, Error Analysis, Artifacts Packaging & Download
+# ==============================================================================
+%cd /content/SAGE_LITE
+
+import os
+import shutil
+from google.colab import files
+
+CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_plu.yaml"
+RUN_DIR = "/content/runs/P3_C_Phase6_A2_PLU_D4_K2_H64"
+CKPT_PATH = os.path.join(RUN_DIR, "best_model_b2_global.pth")
+if not os.path.exists(CKPT_PATH):
+    CKPT_PATH = os.path.join(RUN_DIR, "best_model_b2_stage2.pth")
+
+DIAG_DIR = os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics")
+FULL_VAL_DIR = os.path.join(DIAG_DIR, "full_val")
+ERROR_ANALYSIS_DIR = os.path.join(DIAG_DIR, "error_analysis")
+
+# 1. Routing Diagnostics (Full Val Split)
+!python tools/analyze_routing.py \
+  --config {CONFIG_PATH} \
+  --checkpoint {CKPT_PATH} \
+  --output_dir {FULL_VAL_DIR} \
+  --split val \
+  --data_root /content/dataset/Crack500
+
+# 2. Comprehensive Error Analysis & Morphology Stratification
+!python tools/run_p3_c_error_analysis.py \
+  --config {CONFIG_PATH} \
+  --checkpoint {CKPT_PATH} \
+  --routing-json {FULL_VAL_DIR}/routing_statistics.json \
+  --output-dir {ERROR_ANALYSIS_DIR} \
+  --data-root /content/dataset/Crack500
+
+# 3. Đóng gói Artifacts & Tải về máy cục bộ
+ZIP_BASE = "/content/P3_C_Phase6_A2_PLU_D4_K2_H64_Full"
+ZIP_OUTPUT = f"{ZIP_BASE}.zip"
+
+if not os.path.exists(RUN_DIR):
+    raise FileNotFoundError(f"[ERROR] Không tìm thấy thư mục: {RUN_DIR}")
+
+print("\n" + "=" * 80)
+print(f"BẮT ĐẦU ĐÓNG GÓI ARTIFACT: {RUN_DIR}")
+print(f"Checkpoints: {[f for f in os.listdir(RUN_DIR) if f.endswith('.pth')]}")
+print("=" * 80)
+
+shutil.make_archive(base_name=ZIP_BASE, format="zip", root_dir=RUN_DIR)
+zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
+print(f"✓ ĐÃ NÉN THÀNH CÔNG: {ZIP_OUTPUT} ({zip_size_mb:.2f} MB)")
+print("Đang kích hoạt tải file về máy...")
+files.download(ZIP_OUTPUT)
+```
