@@ -1,0 +1,9 @@
+Router,Layer_Type,CNN_Expert_Selections,CNN_Expert_Selection_Ratio,ViT_Expert_Selections,ViT_Expert_Selection_Ratio,Total_Selections
+convnext.stage_0,CNN,18,0.025862,678,0.974138,696
+convnext.stage_1,CNN,344,0.494253,352,0.505747,696
+convnext.stage_2,CNN,1,0.001437,695,0.998563,696
+convnext.stage_3,CNN,415,0.596264,281,0.403736,696
+transformer.block_0,ViT,348,0.500000,348,0.500000,696
+transformer.block_1,ViT,401,0.576149,295,0.423851,696
+transformer.block_2,ViT,237,0.340517,459,0.659483,696
+transformer.block_3,ViT,336,0.482759,360,0.517241,696

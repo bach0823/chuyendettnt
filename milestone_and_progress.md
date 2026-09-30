@@ -225,7 +225,7 @@ Next Step:
 - **load_balance_factor**: 0.01 (Inherited baseline, Phase 4 skipped)
 - **expert_dropout**: 0.1
 - **freeze_encoder/transformer**: False/False
-- **Stage2 LR ratio**: Khảo sát tại Phase 5.3 ($r = LR_{\text{shared experts}} / LR_{\text{fine-grained experts}}$, baseline $r=1.0$)
+- **Stage2 LR ratio**: **1.0 (Đã khóa chính thức từ Phase 5.3)** — Candidate B unified optimizer (`stage2_shared_lr = stage2_base_lr = 1e-4`), bác bỏ soft freeze ($r=0.25, 0.50$).
 - **AMP dtype**: FP16 (tối ưu Tesla T4)
 - **Warmup**: 3 epochs
 - **EarlyStopping patience**: 6

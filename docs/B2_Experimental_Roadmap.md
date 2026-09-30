@@ -692,16 +692,18 @@ Nhóm parameters của SAGE (Routers + Adapters) thường cần LR khác backbo
     5. Không mô tả Stage-2 LR ratio như một "bản vá" (fix) cho residual-scale hay cho riêng ViT; đây là một **optimization-allocation ablation** độc lập về mặt động lực học huấn luyện.
   * **Grid khảo sát Phase 5.3 (Stage-2 LR Ratio $r = \frac{LR_{\text{shared}}}{LR_{\text{base}}}$)**:
     - **Điểm neo (Anchor Baseline)**: $r = 1.00$ (`stage2_shared_lr = 1.0e-4, stage2_base_lr = 1.0e-4`) — **Đã hoàn tất ở Candidate B Phase 5.1 (Peak Dice = 0.7641), kế thừa nguyên vẹn, không chạy lại**.
-    - **3 cấu hình chính (Primary Execution Grid — Chạy trước)**:
-      1. **$r = 0.25$** (`stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4`): Khảo sát hướng soft freeze shared CNN experts.
-      2. **$r = 0.50$** (`stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4`): Cấu hình chuẩn của SAGE gốc trên GlaS và EBHI-SEG.
-      3. **$r = 2.00$** (`stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát hướng tăng tốc độ học cho shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7638** (Ep 15), Đáy Val Loss kỷ lục toàn dự án = **0.9308** (Ep 18), hoàn tất 35/35 epochs.
-    - **2 cấu hình mở rộng có điều kiện (Optional Extension — Chỉ xét sau khi chạy xong 3 cấu hình trên)**:
-      4. **$r = 4.00$** (`stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4`) (Optional).
-      5. **$r = 5.00$** (`stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4`) (Optional — cấu hình của SAGE gốc trên Colon Cancer).
-      - **Tiêu chí cổng điều kiện (Conditional Gate)**: Chỉ kích hoạt chạy $r \in \{4.00, 5.00\}$ nếu kết quả từ 3 cấu hình chính cho thấy xu hướng tăng trưởng hiệu năng rõ rệt theo chiều $r > 1$ ($Dice(r=2.00) > Dice(r=1.00)$ và chưa có dấu hiệu bão hòa/suy giảm). Nếu $r \le 1.00$ là đỉnh hoặc $r=2.00$ đã bão hòa/suy giảm, **BỎ QUA (SKIP) cả $r=4.00$ và $r=5.00$** để tiết kiệm tài nguyên GPU.
-      - **Phán quyết cổng sau khi chạy $r=2.00$**: Vì $Dice(r=2.00) = 0.7638 \approx Dice(r=1.00) = 0.7641$ (đã chạm ngưỡng bão hòa plateau, $\Delta = -0.0003$), **BỎ QUA (SKIP) $r=4.00$ và $r=5.00$** theo đúng conditional gate. Tập trung đánh giá $r = 0.25$ và $r = 0.50$.
-  * *Quy tắc khóa*: Chọn tỉ lệ $r$ đạt Validation Dice cao nhất để chuyển giao sang Phase 6.
+    - **3 cấu hình chính (Primary Execution Grid — HOÀN TẤT 100%)**:
+      1. **$r = 0.25$** (`stage2_shared_lr = 2.5e-5, stage2_base_lr = 1.0e-4`): Khảo sát hướng soft freeze shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7579** (Ep 16), Mean IoU = 0.6336, Median Dice = 0.8047.
+      2. **$r = 0.50$** (`stage2_shared_lr = 5.0e-5, stage2_base_lr = 1.0e-4`): Cấu hình chuẩn của SAGE gốc trên GlaS và EBHI-SEG. **[HOÀN TẤT]** Peak Val Dice = **0.7586** (Ep 14), Mean IoU = 0.6347, Median Dice = 0.8042.
+      3. **$r = 2.00$** (`stage2_shared_lr = 2.0e-4, stage2_base_lr = 1.0e-4`): Khảo sát hướng tăng tốc độ học cho shared CNN experts. **[HOÀN TẤT]** Peak Val Dice = **0.7638** (Ep 15), Đáy Val Loss kỷ lục toàn dự án = **0.9308** (Ep 18).
+    - **2 cấu hình mở rộng có điều kiện (Optional Extension)**:
+      4. **$r = 4.00$** (`stage2_shared_lr = 4.0e-4, stage2_base_lr = 1.0e-4`): **BỎ QUA (SKIPPED)** theo conditional gate.
+      5. **$r = 5.00$** (`stage2_shared_lr = 5.0e-4, stage2_base_lr = 1.0e-4`): **BỎ QUA (SKIPPED)** theo conditional gate.
+    - **Phán quyết khóa chính thức (PHASE 5.3 LOCK)**:
+      - Cả 2 cấu hình soft-freeze ($r = 0.25$ và $r = 0.50$) đều làm giảm hiệu năng Validation Dice rõ rệt xuống $0.7579$ và $0.7586$ ($\Delta \approx -0.006$), bác bỏ giả thuyết đóng băng mềm shared CNN experts trên Crack500.
+      - Cấu hình tăng tốc $r = 2.00$ đạt $0.7638$, đi vào vùng bão hòa (plateau) so với mốc $0.7641$ của $r = 1.00$.
+      - **CHÍNH THỨC KHÓA: $r = 1.00$ (Candidate B với $\text{stage2\_shared\_lr} = \text{stage2\_base\_lr} = 1.0 \times 10^{-4}$)**. Toàn bộ các nhóm tham số ở Stage 2 tiếp tục đi chung một learning rate duy nhất $1.0\times 10^{-4}$.
+  * *Chuyển giao sang Phase 6*: Đã hoàn tất đóng băng Phase 5, sẵn sàng bước vào Phase 6.
 
 ---
 
