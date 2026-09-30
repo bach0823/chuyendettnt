@@ -8,7 +8,7 @@
 > - **Routing:** Sigmoid gating, load balance factor $LB = 0.010$ — **100% frozen**.
 > - **Decoder:** Standard UNet decoder up to $112\times 112$ + bilinear upsample to $448\times 448$ — **100% frozen**.
 > - **Optimization:** Stage 2 Resumption from Candidate B Stage 1 checkpoint (`best_model_b2_stage1.pth`, Val Dice 0.7333), 18 epochs, $r = 1.00$ ($1\times 10^{-4}$ shared, $1\times 10^{-4}$ base, $1\times 10^{-4}$ SAGE).
-> - **Evaluation:** Setting A official tiling ($448\times 448$ tile, 0.5 stride) on all 348 validation images.
+> - **Evaluation:** Setting A official tiling ($448\times 448$ non-overlapping tiles, $\text{stride} = 448$) on all 348 validation images.
 
 ---
 

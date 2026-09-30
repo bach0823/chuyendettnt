@@ -8,7 +8,7 @@
 > - **Architecture:** Candidate B ($D=4, K=2, H=64$, ConvNeXtV2-Femto + ViT-Tiny, P3-C ASDW) — **100% frozen**.
 > - **Routing:** Sigmoid gating, load balance factor $LB = 0.010$, 8 experts — **100% frozen**.
 > - **Objective:** $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{base\_seg}} + 1.0 \times \mathcal{L}_{\text{LB}} + 0.50 \times \mathcal{L}_{\text{B-IoU}}$ ($d=2$) — **100% locked from Phase 6-A.1**.
-> - **Evaluation:** Setting A official tiling ($448\times 448$ tile, 0.5 stride) on all 348 validation images — **100% frozen**.
+> - **Evaluation:** Setting A official tiling ($448\times 448$ non-overlapping tiles, $\text{stride} = 448$) on all 348 validation images — **100% frozen**.
 > - **Single Intervention:** Decoder Segmentation Head replaced with **Progressive Learned Upsampling Head (PLU-Head)**.
 
 ---
@@ -222,16 +222,19 @@ assert os.path.isfile(OFFICIAL_RESULT), f"[CRITICAL FAIL-FAST] Missing official 
 with open(OFFICIAL_RESULT, "r", encoding="utf-8") as f:
     official_metrics = json.load(f)
 
+assert "boundary_iou" in official_metrics, "[CRITICAL FAIL-FAST] Missing boundary_iou in official artifact"
+assert "hd95" in official_metrics, "[CRITICAL FAIL-FAST] Missing hd95 in official artifact"
+
 print(f"[AUDIT PASS] Official Canonical Setting A Metrics:")
 print(f"  Val Dice:         {official_metrics['dice']:.4f}")
 print(f"  Val Precision:    {official_metrics['precision']:.4f}")
 print(f"  Val Recall:       {official_metrics['recall']:.4f}")
 print(f"  Val Pixel IoU:    {official_metrics['global_pixel_iou']:.4f}")
-print(f"  Val Boundary IoU: {official_metrics.get('boundary_iou', 0.0):.4f}")
-print(f"  Val HD95:         {official_metrics.get('hd95', 0.0):.4f}")
+print(f"  Val Boundary IoU: {official_metrics['boundary_iou']:.4f}")
+print(f"  Val HD95:         {official_metrics['hd95']:.4f}")
 
-# 4. Full Routing Diagnostics on Validation Set (348 samples)
-print("\n>>> STEP 2/3: Running Full Routing Diagnostics...")
+# 4. Routing Diagnostics on Deterministic Validation Crops (348 samples, 448x448 CenterCrop)
+print("\n>>> STEP 2/3: Running Routing Diagnostics on Deterministic Validation Crops...")
 !python tools/analyze_routing.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
