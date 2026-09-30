@@ -164,8 +164,10 @@ CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_plu.yaml"
 # ==============================================================================
 %cd /content/SAGE_LITE
 
+import json
 import os
 import shutil
+import pandas as pd
 import torch
 from google.colab import files
 
@@ -173,30 +175,28 @@ CONFIG_PATH = "configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_a2_plu.yaml"
 RUN_DIR = "/content/runs/P3_C_Phase6_A2_PLU_D4_K2_H64"
 
 # 1. Fail-fast Preamble & Config Invariant Assertions
-assert "phase6_a2_plu" in CONFIG_PATH, f"Invalid config path: {CONFIG_PATH}"
-assert "Phase6_A2_PLU" in RUN_DIR, f"Invalid run directory: {RUN_DIR}"
-assert os.path.isdir(RUN_DIR), f"Missing RUN_DIR: {RUN_DIR}"
+assert "phase6_a2_plu" in CONFIG_PATH, f"[CRITICAL FAIL-FAST] Invalid config path: {CONFIG_PATH}"
+assert "Phase6_A2_PLU" in RUN_DIR, f"[CRITICAL FAIL-FAST] Invalid run directory: {RUN_DIR}"
+assert os.path.isdir(RUN_DIR), f"[CRITICAL FAIL-FAST] Missing RUN_DIR: {RUN_DIR}"
 
-# 2. Strict Checkpoint Resolution (Zero Silent Fallback)
+# 2. Strict Checkpoint Resolution (Zero Fallback)
 CKPT_PATH = os.path.join(RUN_DIR, "best_model_b2_global.pth")
-if not os.path.isfile(CKPT_PATH):
-    fallback_stage2 = os.path.join(RUN_DIR, "best_model_b2_stage2.pth")
-    if os.path.isfile(fallback_stage2):
-        print(f"[AUDIT WARNING] best_model_b2_global.pth missing, found {fallback_stage2}")
-        CKPT_PATH = fallback_stage2
-    else:
-        raise FileNotFoundError(f"[CRITICAL FAIL-FAST] Missing canonical checkpoint at: {CKPT_PATH}")
+assert os.path.isfile(CKPT_PATH), f"[CRITICAL FAIL-FAST] Missing canonical checkpoint: {CKPT_PATH}"
 
 ckpt_data = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
 recorded_dice = ckpt_data.get("best_dice", None)
 recorded_loss = ckpt_data.get("best_loss", None)
 recorded_epoch = ckpt_data.get("epoch", None)
 
+assert recorded_dice is not None, "[CRITICAL FAIL-FAST] Checkpoint missing best_dice"
+assert recorded_loss is not None, "[CRITICAL FAIL-FAST] Checkpoint missing best_loss"
+assert recorded_epoch is not None, "[CRITICAL FAIL-FAST] Checkpoint missing epoch"
+
 print("=" * 80)
 print(f"[AUDIT PASS] CANONICAL BEST CHECKPOINT IDENTIFIED")
 print(f"  Checkpoint File:    {CKPT_PATH}")
-print(f"  Recorded Best Dice: {recorded_dice}")
-print(f"  Recorded Best Loss: {recorded_loss}")
+print(f"  Recorded Best Dice: {recorded_dice:.6f}")
+print(f"  Recorded Best Loss: {recorded_loss:.6f}")
 print(f"  Recorded Best Epoch:{recorded_epoch}")
 print(f"  Config:             {CONFIG_PATH}")
 print(f"  Run Directory:      {RUN_DIR}")
@@ -206,14 +206,29 @@ DIAG_DIR = os.path.join(RUN_DIR, "P3_C_Routing_Diagnostics")
 FULL_VAL_DIR = os.path.join(DIAG_DIR, "full_val")
 ERROR_ANALYSIS_DIR = os.path.join(DIAG_DIR, "error_analysis")
 
-# 3. Canonical Setting A Official Evaluation
+# 3. Canonical Setting A Official Evaluation (Test set sealed, split='val')
+OFFICIAL_RESULT = os.path.join(RUN_DIR, "official_setting_a_val.json")
 print("\n>>> STEP 1/3: Running Canonical Official Setting A Evaluation...")
 !python scripts/evaluate_crack_official.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
   --protocol setting_a \
+  --split val \
   --blend_mode probs \
-  --diagnostic
+  --diagnostic \
+  --output_json {OFFICIAL_RESULT}
+
+assert os.path.isfile(OFFICIAL_RESULT), f"[CRITICAL FAIL-FAST] Missing official evaluation artifact: {OFFICIAL_RESULT}"
+with open(OFFICIAL_RESULT, "r", encoding="utf-8") as f:
+    official_metrics = json.load(f)
+
+print(f"[AUDIT PASS] Official Canonical Setting A Metrics:")
+print(f"  Val Dice:         {official_metrics['dice']:.4f}")
+print(f"  Val Precision:    {official_metrics['precision']:.4f}")
+print(f"  Val Recall:       {official_metrics['recall']:.4f}")
+print(f"  Val Pixel IoU:    {official_metrics['global_pixel_iou']:.4f}")
+print(f"  Val Boundary IoU: {official_metrics.get('boundary_iou', 0.0):.4f}")
+print(f"  Val HD95:         {official_metrics.get('hd95', 0.0):.4f}")
 
 # 4. Full Routing Diagnostics on Validation Set (348 samples)
 print("\n>>> STEP 2/3: Running Full Routing Diagnostics...")
@@ -224,20 +239,33 @@ print("\n>>> STEP 2/3: Running Full Routing Diagnostics...")
   --split val \
   --data_root /content/dataset/Crack500
 
-assert os.path.exists(f"{FULL_VAL_DIR}/routing_statistics.json"), \
-    "[CRITICAL FAIL-FAST] Routing diagnostics did not produce routing_statistics.json!"
+ROUTING_JSON = os.path.join(FULL_VAL_DIR, "routing_statistics.json")
+assert os.path.isfile(ROUTING_JSON), "[CRITICAL FAIL-FAST] Missing routing_statistics.json!"
+
+with open(ROUTING_JSON, "r", encoding="utf-8") as f:
+    routing_data = json.load(f)
+assert routing_data["consistency_checks"]["evaluated_samples"] == 348, \
+    f"[CRITICAL FAIL-FAST] Expected 348 samples, found {routing_data['consistency_checks']['evaluated_samples']}"
+assert routing_data["consistency_checks"]["total_global_selections"] == 5568, \
+    f"[CRITICAL FAIL-FAST] Expected 5568 selections (348 * 8 * 2), found {routing_data['consistency_checks']['total_global_selections']}"
+print(f"[AUDIT PASS] Routing Diagnostics: verified 348/348 samples and 5,568 total selections.")
 
 # 5. Comprehensive Error Analysis & Morphology Stratification
 print("\n>>> STEP 3/3: Running Error Analysis & Morphology Stratification...")
 !python tools/run_p3_c_error_analysis.py \
   --config {CONFIG_PATH} \
   --checkpoint {CKPT_PATH} \
-  --routing-json {FULL_VAL_DIR}/routing_statistics.json \
+  --routing-json {ROUTING_JSON} \
   --output-dir {ERROR_ANALYSIS_DIR} \
   --data-root /content/dataset/Crack500
 
-assert os.path.exists(f"{ERROR_ANALYSIS_DIR}/per_sample_metrics.csv"), \
-    "[CRITICAL FAIL-FAST] Error analysis did not produce per_sample_metrics.csv!"
+PER_SAMPLE_CSV = os.path.join(ERROR_ANALYSIS_DIR, "per_sample_metrics.csv")
+assert os.path.isfile(PER_SAMPLE_CSV), "[CRITICAL FAIL-FAST] Missing per_sample_metrics.csv!"
+
+metrics_df = pd.read_csv(PER_SAMPLE_CSV)
+assert len(metrics_df) == 348, f"[CRITICAL FAIL-FAST] Expected 348 samples in per_sample_metrics.csv, got {len(metrics_df)}"
+assert "primary_error_category" in metrics_df.columns, "[CRITICAL FAIL-FAST] Missing primary_error_category column"
+print(f"[AUDIT PASS] Error Analysis: verified exactly 348 samples with complete morphology taxonomy.")
 
 # 6. Đóng gói Artifacts (Preserving Top-Level Directory) & Tải về máy
 ZIP_BASE = "/content/P3_C_Phase6_A2_PLU_D4_K2_H64_Full"
