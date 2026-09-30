@@ -110,8 +110,8 @@ To ensure strictly fair attribution, Phase 6-A.2 starts Stage 2 from the **exact
 $$\text{Stage 1 Checkpoint} \longrightarrow \begin{cases} \text{Phase 6-A.1: Baseline Decoder} + \mathcal{L}_{\text{B-IoU}} \quad (\text{Peak Dice: } 0.7684) \\ \text{Phase 6-A.2: PLU-Head Decoder} + \mathcal{L}_{\text{B-IoU}} \end{cases}$$
 
 - All 340+ backbone, router, SA-Hub, P3-C ASDW, and decoder block tensors are restored identically.
-- `conv112` and `norm112` inherit the Stage 1 feature projection weights.
-- The 7 new PLU tensors initialize deterministically.
+- `conv112` and `norm112` inherit the Stage 1 feature projection weights and running statistics.
+- Các tensor thuộc phần upsampling mới (`up224`, `norm224`, `up448`) được khởi tạo fresh (5 parameter tensors + running stats); các tensor `conv112` và `norm112` được remap từ Stage-1 segmentation head.
 
 ---
 
