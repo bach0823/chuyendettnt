@@ -70,7 +70,36 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
      + Thin-low-area ($n=5$): ❌ Giữ nguyên bản chất ($0.5370 \to 0.5362$, khẳng định cần biểu diễn không gian phân giải cao thay vì chỉ loss).
    - **Kết luận khoa học chốt**:
      > *Phase 6-B.1 provides evidence that asymmetric boundary-band supervision can improve global validation Dice while preserving boundary recall and modestly reducing excess predicted area, but the pre-registered BM Dice and Area Excess guideposts were not fully met. The result therefore supports AB-BPL as a complementary boundary objective, rather than establishing it as a complete solution to boundary over-dilation.*
-   - **Quy tắc thực nghiệm**: Không chạy thêm chỉ để “đuổi” Guidepost $-5\%$. B-1 đã thiết lập phenotype rõ ràng; sử dụng thông tin này để quyết định các cơ chế cần kiểm tra ở các bước kế tiếp, không tune B-1 hậu nghiệm.
+    - **Quy tắc thực nghiệm**: Không chạy thêm chỉ để “đuổi” Guidepost $-5\%$. B-1 đã thiết lập phenotype rõ ràng; sử dụng thông tin này để quyết định các cơ chế cần kiểm tra ở các bước kế tiếp, không tune B-1 hậu nghiệm.
+10. **Phase 6-C.1: Topology Probe — Soft-clDice Loss (HOÀN TẤT & ĐÃ ĐÓNG ✅):**
+    - **Phán quyết chính thức**:
+      $$ \boxed{\textbf{C.1 = Negative global result + confirmed topology trade-off}} $$
+    - **Kết quả thực nghiệm**: Centerline Dice tăng ($0.8498 \to 0.8525$), $T_{\text{sens}}$ tăng ($0.8872 \to 0.8899$), Spurious Islands giảm ($108 \to 102$). Tuy nhiên, Global Dice suy giảm ($0.7641 \to 0.7613$, $\Delta = -0.0028$), Precision tụt ($0.7338 \to 0.7210$), Area Excess tăng mạnh ($+8.16\% \to +11.82\%$). False Bridge hoàn toàn bất biến ($31.6\% \to 32.5\%$), Thin Breakage không đổi ($12.1\% \to 12.1\%$).
+    - **Kết luận cơ chế**: Soft-clDice cải thiện centerline coverage quanh GT centerline nhưng đi kèm xu hướng mở rộng vùng foreground (over-dilation), làm giảm precision và không giải quyết được False Bridge.
+11. **Phase 6-D.0: Area Excess ↔ False Bridge Diagnostic (HOÀN TẤT ✅):**
+    - Khảo sát tương quan chéo giữa mức độ phình diện tích và tần suất xuất hiện cầu nứt giả trên $N=348$ mẫu Candidate B:
+      $$P(\text{Bridge} \mid \text{Excess} \le 0) = 10.7\% \quad \text{vs} \quad P(\text{Bridge} \mid \text{Excess} > 0) = 40.4\% \quad (OR = 5.67, p < 0.0001)$$
+    - **Kết luận khoa học**: False Bridge có thành phần liên quan đến độ phình diện tích, nhưng đồng thời tồn tại một **Residual Separation Bottleneck** độc lập. Giảm over-dilation là cần thiết nhưng không đủ để chữa lành toàn bộ False Bridge.
+12. **Phase 6-D.1: Representation x Boundary Synergy Probe — PLU + AB-BPL (HOÀN TẤT & ĐÃ ĐÓNG ✅):**
+    - **Phán quyết chính thức**:
+      $$ \boxed{\textbf{D.1 = Partial support for representation–boundary complementarity}} $$
+      $$ \boxed{\textbf{Dilation is contributory, but insufficient}} $$
+    - **Lineage**: Stage 2 rẽ nhánh có kiểm soát từ Phase 6-A.2 Stage 1 checkpoint.
+    - **Kết quả 4 Pre-registered Guideposts**: Đạt $1/4$ guidepost (BM Dice $0.7814 \ge 0.7800$ ✅; Thin-low-area $0.5769 < 0.5900$ ❌ [retained 60% gain]; Area Excess $+5.07\% > 5.0\%$ ❌; False Bridge $112 > 107$ ❌).
+    - **Hiệp đồng bổ trợ**: Thiết lập kỷ lục Precision toàn cục ($0.7525$) và Boundary Margin ($0.7772$), tỷ lệ thắng nứt mảnh cao nhất ($80.3\%$), nén Area Excess xuống $+5.07\%$.
+    - **Bằng chứng cơ chế False Bridge**: $105/110$ cầu nứt tồn tại dai dẳng (`persistent under D.1`). D.1 chỉ chữa lành các ca có khoảng cách lớn ($\ge 11\text{ px}$), hoàn toàn bất lực trước các khe hẹp $\le 5-8\text{ px}$.
+13. **Phase 6-D.2: Pure Inter-Component Separation Isolation Probe (PREFLIGHT HOÀN TẤT & KHÓA SPECIFICATION 🔒):**
+    - **Mục tiêu**: Kiểm tra độc lập giả thuyết can thiệp hành lang phân tách âm (negative moat supervision) trên Candidate B gốc:
+      $$L_{\text{D2}} = L_{\text{Base}} + 0.010 \times L_{\text{sep}}(G_{\max}=8.0\text{ px}, r_{ij} = \lceil g_{ij}/2 \rceil + 1)$$
+    - **Lineage**: Candidate B Stage 1 Checkpoint (`P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_stage1.pth`).
+    - **Preflight Suite (7/7 PASS ✅)**:
+      + Đạt chuẩn hình học trên 5 mẫu Crack500 thực tế (moat bám khít khe hẹp, rỗng đối với đơn component và gap $> 8\text{ px}$).
+      + Single-component và Serpentine tự áp sát ($K=1$) $\implies L_{\text{sep}} = 0.0$, grad $= 0$.
+      + Two-component synthetic gap $\implies$ Phạt pixel trong moat ($L=5.0067$), pixel nền ngoài moat bằng 0 ($L=0.0067$).
+      + Empty GT $\implies L_{\text{sep}} = 0.0$, an toàn tuyệt đối.
+      + Exact Base Equivalence ($\lambda_{\text{sep}}=0$) $\implies \texttt{torch.equal} = \text{TRUE}$ ở cấp độ byte cho loss và toàn bộ 100% gradient tham số.
+      + Gradient Calibration trên 8 ca bridge thực tế $\implies \|g_{\text{sep}}\| / \|g_{\text{Base}}\| = 5.6461\times \implies \lambda_{\text{sep}} = 0.010$ (ngân sách $5.65\%$ Base gradient).
+    - **Trạng thái**: Sẵn sàng huấn luyện Stage 2 trên Colab Driver.
 
 State:
 - Phase 1: D4 locked
@@ -83,6 +112,10 @@ State:
 - Phase 6-A.1: HOÀN TẤT (Soft Boundary IoU Loss, Val Dice = 0.7684 🏆, New Global Peak)
 - Phase 6-A.2: HOÀN TẤT (Pure PLU-Head, Val Dice = 0.7664, Thin Crack Recovery 0.6059)
 - Phase 6-B.1: HOÀN TẤT (AB-BPL Probe, Val Dice = 0.7685 🏆, Positive Global + Partial Boundary-Mechanism Success)
+- Phase 6-C.1: HOÀN TẤT (Soft-clDice Probe, Val Dice = 0.7613, Negative Global + Confirmed Topology Trade-off)
+- Phase 6-D.0: HOÀN TẤT (Area Excess ↔ False Bridge Diagnostic, OR = 5.67)
+- Phase 6-D.1: HOÀN TẤT (PLU + AB-BPL Synergy Probe, Val Dice = 0.7669, Partial Support for Complementarity)
+- Phase 6-D.2: PREFLIGHT PASSED & SPECIFICATION FROZEN 🔒 (Pure Separation Isolation Probe, lambda_sep = 0.010)
 
 Cấu hình hiện hành:
 - ViT depth = 4
