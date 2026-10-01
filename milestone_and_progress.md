@@ -514,6 +514,26 @@ sage-lite/
     * Diagnostics: `results/P3_C_Routing_Diagnostics_Phase6_C1_clDice_D4_K2_H64/diagnostics/`.
     * Topology Metrics: `results/diagnostics/phase6_c_topology/topology_c1_metrics.csv`.
     * Archive: `results/P3_C_Phase6_C1_clDice_D4_K2_H64_Full.zip`.
+- **2026-10-01 (tiếp tục)**: Hoàn thành & Nghiệm thu Chẩn đoán Tiền can thiệp Phase 6-D.0 (Deconfounding Over-dilation and False Bridge):
+  + **Mục tiêu**: Làm rõ False Bridge là hệ quả thuần túy của Over-dilation hay là điểm nghẽn phân tách hình thái học (topology separation) độc lập.
+  + **Phát hiện Định lượng Đột phá**:
+    * **Thành phần do phình viền (Dilation-mediated Component)**: $OR = 5.67$ ($p < 0.0001$). Tỉ lệ False Bridge tăng đơn điệu tuyệt đối theo mức phình diện tích: $10.7\%$ (AreaExcess $\le 0\%$) $\to 29.0\%$ ($0-10\%$) $\to 34.5\%$ ($10-30\%$) $\to 52.5\%$ ($>30\%$). $90.0\%$ số ca nối cầu trong Candidate B ($99/110$) nằm ở nhóm phình viền dương.
+    * **Thành phần tồn dư phân tách (Residual Separation Component)**: $10.7\%$ số mẫu thiếu diện tích ($\text{AreaExcess} \le 0\%$) vẫn dính cầu giả; ở nhóm nứt phức tạp (`Complex_Topology`), tỉ lệ này lên tới **$66.7\%$** ($4/6$ mẫu).
+    * **Khóa Khung Khái niệm**:
+      $$\boxed{\text{False Bridge} = \text{Dilation-mediated Component} + \text{Residual Separation Component}}$$
+    * Bác bỏ phương án ghép mù quáng $A1 + B1$ (nguy cơ double-count boundary pressure).
+  + **Báo cáo & Dữ liệu chi tiết**: Lưu tại `results/diagnostics/phase6_d0_bridge_dilation/PHASE_6_D0_DIAGNOSTIC_REPORT.md`, `d0_diagnostic_summary.json`, `d0_per_sample_transitions.csv` (commit `dd63cd7`).
+- **2026-10-02**: Chuẩn bị Toàn diện Thực nghiệm Phase 6-D.1 (Representation × Boundary Synergy Probe: PLU + AB-BPL):
+  + **Thiết kế can thiệp trực giao**: Kết hợp giải pháp phục hồi biểu diễn không gian tầng cao (PLU Head của Phase 6-A.2, 10,125,363 params) với hàm phạt viền bất đối xứng (AB-BPL của Phase 6-B.1, $\lambda=0.040, r=2$).
+  + **Quy trình Phả hệ Chuẩn tắc (Strict Lineage Protocol)**: Nhánh rẽ Stage 2 từ chính checkpoint Stage 1 của Phase 6-A.2 Pure PLU (`best_model_b2_stage1.pth` + RNG/scaler `last_model_b2_stage1.pth`). Nhóm đối chứng là Pure A2 Stage 2 (Base loss) với cùng checkpoint khởi điểm. Triệt tiêu 100% biến ngoại lai do khởi tạo.
+  + **Khóa 4 Trụ cột Nghiệm thu Đăng ký Trước (Pre-registered Guideposts)**:
+    1. *Thin-low-area ($n=5$)*: $\ge 0.5900$ (pre-registered practical retention guidepost, giữ phần lớn gain của PLU).
+    2. *Boundary Margin ($n=127$)*: $\ge 0.7800$ (bảo toàn năng lực kiểm soát viền của B1).
+    3. *Global Area Excess*: $< +5.0\%$ (ép chặt mask viền).
+    4. *Global False Bridge Count*: $\le 107$ ($< 31.0\%$, Net Change $\le -5$ bridges).
+  + **Bộ kiểm thử Tiền trạm (Preflight Gate 1–5)**: Đã chạy thực tế trên GPU và **PASS 100%** (Loss equivalence khi $\lambda=0$, AB-BPL mechanics, AMP FP16 stability trên CUDA với cuDNN disabled cho Turing GTX 1650, parameter invariance 10,125,363, strict checkpoint load 0 missing 0 unexpected).
+  + **Tài liệu & Configs**: Đã lập `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_d1_plu_abbpl.yaml`, `results/configs/...`, `docs/Phase6_Experiment_6D1_Specification.md`, `scripts/tests/test_phase6_d1_plu_abbpl.py`.
+
 
 
 
