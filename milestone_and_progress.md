@@ -52,6 +52,25 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
    - Kết quả: Đạt đỉnh **Val Dice = 0.7684** (tăng $+0.0043$ so với Candidate B 0.7641), Mean IoU **0.6465**, Precision **0.7416** (+0.79%), Tỷ lệ diện tích dự đoán/GT giảm từ $+8.16\%$ về $+7.85\%$.
    - Đặc biệt bứt phá trên nhóm vết nứt mảnh (Thin cracks $>0.20$): Dice tăng vọt $+2.37\%$ ($0.6404 \to 0.6641$), Precision tăng $+4.16\%$ ($0.5232 \to 0.5648$), tỷ lệ phình diện tích giảm $-15.82\%$ ($+80.37\% \to +64.55\%$).
    - Xác nhận Pattern 2 trong Ma trận Quyết định Pre-registered (Objective regularization cải thiện trực tiếp cấu trúc viền vết nứt mảnh).
+8. **Phase 6-A.2: Representation Probe — Pure PLU-Head (HOÀN TẤT & XÁC NHẬN NÚT THẮT BIỂU DIỄN ✅):**
+   - Huấn luyện từ đầu Stage 1 $\to$ Stage 2 với Progressive Learned Upsampling Head ($112 \to 224 \to 448$, +42,720 params). Không đổi objective ($\mathcal{L}_{\text{Base}}$ thuần, $\text{BoundaryIoU}=0.0$).
+   - Kết quả: Peak Global Val Dice = **0.7664** (+0.0023 vs Base 0.7641), Precision tăng mạnh lên **0.7491** (+1.54%).
+   - Đột phá hình thái trên vết nứt siêu mảnh: Thin cracks ($n=66$) Dice vọt lên **0.6674** (+0.0270 vs Base), diện tích phình giảm sâu từ $+80.37\%$ xuống $+57.00\%$ ($\Delta = -23.37\%$). Thin-low-area ($n=5$) tăng vọt từ $0.5370 \to \mathbf{0.6059}$ (+0.0689), phình diện tích giảm từ $+141.66\%$ xuống $+77.06\%$ ($\Delta = -64.60\%$).
+9. **Phase 6-B.1: Boundary Margin Probe — Asymmetric Boundary-Band Penalty Loss (HOÀN TẤT & NGHIỆM THU 🏆):**
+   - **Trạng thái**:
+     $$ \boxed{\textbf{B-1: Positive global result + partial boundary-mechanism success}} $$
+   - **Chi tiết thực nghiệm**:
+     + Global Val Dice: ✅ **0.7641 → 0.7685** (+0.0044, đỉnh cao mới Phase 6, Mean IoU: 0.6465, Win rate: 56.32%).
+     + BM Precision ($n=127$): ✅ Mean tăng từ $0.7452 \to 0.7511$ (+0.0059), Median tăng từ $0.7533 \to 0.7638$ (+0.0105), $56.7\%$ win rate.
+     + BM Recall preservation: ✅ Giữ vững ở mức cao $0.8321$ (Median $\Delta = -0.0005$, bảo toàn nguyên vẹn, không sụt giảm như A2 $0.8087$).
+     + BM Median Dice / Aggregated Dice: ✅ Signal rõ rệt (Median: $0.7841 \to 0.7901$, Aggregated: $0.7869 \to 0.7909$, Win rate $62.20\%$ [79/127], Wilcoxon signed-rank $p = 0.0200$).
+     + BM Sample-mean Dice: ❌ $0.7812 \to 0.7802$ ($-0.0010$, bị kéo lùi bởi 2 mẫu ngoại lai ở đuôi phân phối).
+     + BM Area Excess: ❌ Chưa đạt frozen guidepost ($\le -5.0\%$), nhưng hướng dịch chuyển hoàn toàn chuẩn xác (Sample-mean: $+14.86\% \to +13.38\%$, $\Delta = -1.47\%$; Median: $+15.49\% \to +13.13\%$, $\Delta = -2.36\%$; giảm diện tích phình trên $54.3\%$ số mẫu BM).
+     + Thin cracks ($n=66$): ✅ Dice tăng từ $0.6404 \to 0.6555$ (+0.0151), tỷ lệ phình diện tích giảm $-12.86\%$ ($+80.37\% \to +67.51\%$).
+     + Thin-low-area ($n=5$): ❌ Giữ nguyên bản chất ($0.5370 \to 0.5362$, khẳng định cần biểu diễn không gian phân giải cao thay vì chỉ loss).
+   - **Kết luận khoa học chốt**:
+     > *Phase 6-B.1 provides evidence that asymmetric boundary-band supervision can improve global validation Dice while preserving boundary recall and modestly reducing excess predicted area, but the pre-registered BM Dice and Area Excess guideposts were not fully met. The result therefore supports AB-BPL as a complementary boundary objective, rather than establishing it as a complete solution to boundary over-dilation.*
+   - **Quy tắc thực nghiệm**: Không chạy thêm chỉ để “đuổi” Guidepost $-5\%$. B-1 đã thiết lập phenotype rõ ràng; sử dụng thông tin này để quyết định các cơ chế cần kiểm tra ở các bước kế tiếp, không tune B-1 hậu nghiệm.
 
 State:
 - Phase 1: D4 locked
@@ -62,7 +81,8 @@ State:
 - Phase 5.2: SKIPPED (loss giảm mượt, không spike, kế thừa warmup=3)
 - Phase 5.3: HOÀN TẤT & ĐÃ KHÓA r = 1.00 (Candidate B 0.7641; hoàn tất cả 6 tỉ số r in {0.25, 0.50, 1.00, 2.00, 4.00, 5.00})
 - Phase 6-A.1: HOÀN TẤT (Soft Boundary IoU Loss, Val Dice = 0.7684 🏆, New Global Peak)
-- Phase 6-A.2: Ready to design (Representation Probe: Multi-scale High-Res Skip / Refinement)
+- Phase 6-A.2: HOÀN TẤT (Pure PLU-Head, Val Dice = 0.7664, Thin Crack Recovery 0.6059)
+- Phase 6-B.1: HOÀN TẤT (AB-BPL Probe, Val Dice = 0.7685 🏆, Positive Global + Partial Boundary-Mechanism Success)
 
 Cấu hình hiện hành:
 - ViT depth = 4
@@ -436,6 +456,28 @@ sage-lite/
     * Logs: `results/logs/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_train.log`.
     * Routing & Error Diagnostics: `results/P3_C_Routing_Diagnostics_Phase6_A2_Pure_PLU_D4_K2_H64/` (đầy đủ `full_val/` và `error_analysis/`).
     * Archive: `results/P3_C_Phase6_A2_Pure_PLU_D4_K2_H64_Full.zip`.
+- **2026-10-01 (tiếp tục)**: Hoàn thành & Nghiệm thu Thực nghiệm Phase 6-B.1 Objective Probe (AB-BPL Probe, $\lambda=0.040, r=2$, Stage 2 only):
+  + **Giao thức chuẩn tắc**: Giữ nguyên 100% kiến trúc mạng Candidate B (10,118,955 params, +0 params), khởi động Stage 2 từ Candidate B Stage 1 checkpoint với strict parameter alignment. Bổ sung Asymmetric Boundary-Band Penalty Loss ($\mathcal{L}_{\text{AB-BPL}}$) với $\lambda=0.040, r=2$ để giám sát dải viền ngoài $M_{\text{bg}} = \text{dilate}(GT, r) \setminus GT$.
+  + **Tiền kiểm tra nghiêm ngặt (Preflight Gate 1-5)**: PASS 100% (Loss & Gradient exact equality khi $\lambda=0$, bất đối xứng trừng phạt FP, AMP FP16 numerical stability, bất biến tham số tuyệt đối, strict checkpoint load).
+  + **Kết quả định lượng toàn diện**:
+    * Global Val Dice: ✅ **0.7641 → 0.7685** (+0.0044, thiết lập đỉnh cao mới Phase 6, Mean IoU: 0.6465, Win rate: 56.32% [196/348]).
+    * BM Precision ($n=127$): ✅ Mean tăng $+0.0059$ ($0.7452 \to 0.7511$), Median tăng $+0.0105$ ($0.7533 \to 0.7638$), $56.7\%$ win rate.
+    * BM Recall preservation: ✅ Bảo toàn nguyên vẹn ở mức $0.8321$ (Median $\Delta = -0.0005$, không bị suy sụp như A2 PLU $0.8087$).
+    * BM Median / Aggregated Dice: ✅ Xuất hiện tín hiệu cải thiện rõ rệt (Median: $0.7841 \to 0.7901$, Aggregated: $0.7869 \to 0.7909$, Win rate $62.20\%$ [79/127], kiểm định Wilcoxon $p = 0.0200$).
+    * BM Sample-mean Dice: ❌ $0.7812 \to 0.7802$ ($-0.0010$, bị ảnh hưởng bởi 2 ngoại lai ở đuôi phân phối).
+    * BM Area Excess: ❌ Chưa đạt guidepost đăng ký trước ($\le -5.0\%$), nhưng chiều hướng hoàn toàn đúng (Sample-mean: $+14.86\% \to +13.38\%$, $\Delta = -1.47\%$; Median: $+15.49\% \to +13.13\%$, $\Delta = -2.36\%$; giảm diện tích dôi dư trên $54.3\%$ số mẫu).
+    * Thin Cracks ($n=66$): ✅ Dice tăng từ $0.6404 \to 0.6555$ (+0.0151), độ phình diện tích giảm $-12.86\%$ ($+80.37\% \to +67.51\%$).
+    * Thin-low-area ($n=5$): ❌ Không thay đổi ($0.5370 \to 0.5362$), củng cố phát hiện rằng vết nứt siêu mảnh cần độ phân giải không gian trực tiếp (như A2 PLU) thay vì chỉ ràng buộc hàm mất mát.
+  + **Trạng thái & Phán quyết chính thức**:
+    $$\boxed{\textbf{B-1: Positive global result + partial boundary-mechanism success}}$$
+    > *Phase 6-B.1 provides evidence that asymmetric boundary-band supervision can improve global validation Dice while preserving boundary recall and modestly reducing excess predicted area, but the pre-registered BM Dice and Area Excess guideposts were not fully met. The result therefore supports AB-BPL as a complementary boundary objective, rather than establishing it as a complete solution to boundary over-dilation.*
+  + **Quy tắc vận hành**: Không chạy thêm chỉ để “đuổi” Guidepost $-5\%$. B-1 đã cung cấp một phenotype rất rõ; sử dụng thông tin này làm cơ sở kết hợp cơ chế hoặc mở rộng các nhánh tiếp theo.
+  + **Lưu trữ toàn bộ artifacts**:
+    * Checkpoints: `results/checkpoints/P3_C_Phase6_B1_AB_BPL_D4_K2_H64_best_model_b2_global.pth`, `best_model_b2_stage2.pth`, `last_model_b2_stage2.pth`.
+    * Log huấn luyện: `results/P3_C_Routing_Diagnostics_Phase6_B1_AB_BPL_D4_K2_H64/train.log`.
+    * Diagnostics: `results/P3_C_Routing_Diagnostics_Phase6_B1_AB_BPL_D4_K2_H64/diagnostics/` (bao gồm `error_summary.json`, `per_sample_metrics.csv`, `figures/`, `qualitative/`, `full_val/`).
+    * Config: `results/configs/b2_p3_run_c_d4_k2_h64_phase6_b1_ab_bpl.yaml`.
+    * Archive: `results/P3_C_Phase6_B1_AB_BPL_D4_K2_H64_Full.zip`.
 
 
 
