@@ -106,3 +106,49 @@ python scripts/train_crack.py \
   --rng-checkpoint /content/drive/MyDrive/crack_seg/P3_C_Canonical_Base_D4_K2/last_model_b2_stage1_rng.pth \
   --stage2-epochs 18
 ```
+
+---
+
+## 6. Empirical Outcomes & Guidepost Evaluation
+
+### 6.1 Guidepost Scorecard
+
+| Indicator | Candidate B Baseline | Pre-registered Target | Phase 6-C.1 Result | Guidepost Status |
+| :--- | :---: | :---: | :---: | :---: |
+| **Global Val Dice** | 0.7641 | $\ge 0.7641$ | **0.7613** | ❌ **Missed** ($\Delta = -0.0028$) |
+| **Global clDice (Mean)** | 0.8498 | $\ge 0.8550$ | **0.8525** | ⚠️ **Improved but below target** (+0.0027) |
+| **Thin Cracks Breakage Rate ($n=66$)** | 12.1% (8 samples) | $\le 9.0\%$ | **12.1% (8 samples)** | ❌ **Unimproved** (Invariant) |
+| **Global False Bridge Rate** | 31.6% (110 samples) | Monitor | **32.5% (113 samples)** | Invariant ($\approx +0.9\%$) |
+| **Spurious Islands Count** | 108 | Monitor | **102** | ✅ **Cleanest across all models** |
+| **Global Recall** | 0.8477 | Monitor | **0.8591** | Highest among all models (+0.0114) |
+| **Global Precision** | 0.7338 | Monitor | **0.7210** | Regressed (-0.0128) |
+| **Global Area Excess (Aggregated)** | +8.16% | Monitor | **+11.82%** | Expanded over-dilation (+3.66%) |
+
+---
+
+## 7. Final Scientific Verdict & Mechanistic Finding
+
+$$\boxed{\textbf{C.1 = Negative global result + confirmed topology trade-off}}$$
+
+> **Core Mechanistic Finding:**  
+> Soft-clDice ($\lambda_{\text{clDice}} = 0.030$) improves centerline/topological coverage ($T_{\text{sens}}: 0.8872 \to 0.8899$) and modestly suppresses spurious artifacts/islands ($108 \to 102$), but it completely fails to resolve false bridges ($31.6\% \to 32.5\%$). The observed result is consistent with a mechanism where optimizing skeleton sensitivity rewards maintaining prediction coverage around the ground-truth centerline, which in this crack segmentation task comes with an empirical tendency to widen foreground regions. This induces an unfavorable trade-off: increased predicted area ($+8.16\% \to +11.82\%$), degraded precision ($0.7338 \to 0.7210$), and a slight regression in Global Dice ($0.7641 \to 0.7613$).
+
+### Key Hypothesis Disproven:
+
+$$\boxed{\text{Breakage preservation} \neq \text{False-bridge correction}}$$
+
+A continuity-preserving topology objective addresses network fragmentation, but cannot disentangle or separate merged structures. Because Candidate B's dominant topological bottleneck is False Bridges ($31.6\%$) rather than Breakage ($9.5\%$), soft-clDice regularized the minor failure mode while aggravating the major failure mode.
+
+---
+
+## 8. Final Status & Artifact Manifest
+
+- **Status:** **FROZEN at $\lambda = 0.030$**. No hyperparameter sweep.
+- **Checkpoints Saved:**
+  * `results/checkpoints/P3_C_Phase6_C1_clDice_D4_K2_H64_best_model_b2_global.pth`
+  * `results/checkpoints/P3_C_Phase6_C1_clDice_D4_K2_H64_best_model_b2_stage2.pth`
+  * `results/checkpoints/P3_C_Phase6_C1_clDice_D4_K2_H64_last_model_b2_stage2.pth`
+- **Full Diagnostics & Logs:**
+  * Directory: `results/P3_C_Routing_Diagnostics_Phase6_C1_clDice_D4_K2_H64/`
+  * Archive: `results/P3_C_Phase6_C1_clDice_D4_K2_H64_Full.zip`
+  * Topology Metrics: `results/diagnostics/phase6_c_topology/topology_c1_metrics.csv`

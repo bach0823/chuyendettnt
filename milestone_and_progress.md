@@ -478,6 +478,43 @@ sage-lite/
     * Diagnostics: `results/P3_C_Routing_Diagnostics_Phase6_B1_AB_BPL_D4_K2_H64/diagnostics/` (bao gồm `error_summary.json`, `per_sample_metrics.csv`, `figures/`, `qualitative/`, `full_val/`).
     * Config: `results/configs/b2_p3_run_c_d4_k2_h64_phase6_b1_ab_bpl.yaml`.
     * Archive: `results/P3_C_Phase6_B1_AB_BPL_D4_K2_H64_Full.zip`.
+- **2026-10-01 (tiếp tục)**: Triển khai Chẩn đoán Hình thái học & Liên thông Tiền can thiệp Phase 6-C (Pre-intervention Topology & Connectivity Diagnostics trên N=348 Crack500 Val):
+  + **Động lực & Công cụ**: Tách bạch triệt để giữa hiện tượng Nối cầu giả (False Bridge / Merge) và Đứt gãy (Breakage / Fragmentation) bằng công cụ `tools/run_phase6_c_topology_diagnostic.py` (8-connectivity, hard skeletonization, đo clDice, $T_{\text{prec}}$, $T_{\text{sens}}$, CC signed/abs errors). Chạy ghép cặp đồng thời 4 mô hình: Candidate B, 6-A.1, 6-A.2, 6-B.1.
+  + **Phát hiện Phenotype cốt lõi**:
+    * **Candidate B**: Bottleneck áp đảo là **False Bridges (31.6%, 110 mẫu)** và Over-dilation (Area Excess $+8.16\%$), trong khi Breakage chỉ chiếm **9.5% (33 mẫu)**.
+    * **Phase 6-A.2 (Pure PLU)**: Hiện tượng $Pred\_CC > GT\_CC$ vọt lên $44.5\%$ thực chất là do bùng nổ **Spurious Islands (614 đảo rác vs 108 của Base)** và đứt gãy vết nứt mảnh (Breakage trong nhóm Thin vọt từ $12.1\% \to 30.3\%$).
+    * **Boundary Margin ($n=127$)**: $75.6\%$ số mẫu BM hoàn toàn không bị nối cầu giả; bản chất của BM là vành đai mờ viền (halo expansion) của một vết nứt đơn lẻ.
+  + **Báo cáo & Dữ liệu chi tiết**: Lưu tại `results/diagnostics/phase6_c_topology/TOPOLOGY_PRE_INTERVENTION_REPORT.md`, `topology_per_sample_paired.csv`, `topology_cross_tabulation.csv`, `topology_summary.json`.
+- **2026-10-01 (tiếp tục)**: Hoàn thành & Nghiệm thu Thực nghiệm Phase 6-C.1 (Soft-clDice Controlled Probe, $\lambda_{\text{clDice}}=0.030$, iters=5, Stage 2 only):
+  + **Thiết kế can thiệp**: Bổ sung vi phân Soft-clDice Loss vào Stage 2 (từ Candidate B Stage 1 checkpoint, 10,118,955 params, +0). Hiệu chỉnh gradient scale tỉ lệ $\sim 30\%$ regularizing force ($\text{Base Grad Norm}=0.00052$, $\text{clDice Grad Norm}=0.00487 \implies \text{ratio}=9.36\times$, $\lambda=0.030$). Preflight Gate 1–5 PASS 100% trên GPU.
+  + **Kết quả thực nghiệm 4 Tiers & Topology (So với Candidate B)**:
+    * Global Val Dice: ❌ **0.7641 → 0.7613** ($\Delta = -0.0028$, Win rate: 38.5% [134/348]).
+    * Centerline Dice (clDice): ⚠️ Tăng từ **0.8498 → 0.8525** (Median: $0.9087 \to 0.9114$).
+    * Skeleton Coverage: ✅ $T_{\text{sens}}$ đạt đỉnh cao nhất **0.8899** (Base 0.8872), $T_{\text{prec}}$ tăng lên **0.8501** (Base 0.8473).
+    * Global Recall: ✅ Tăng lên **0.8591** (Base 0.8477).
+    * Global Precision: ❌ Sụt giảm từ **0.7338 → 0.7210** ($\Delta = -0.0128$).
+    * Global Area Excess: ❌ Tăng nở viền từ **+8.16% → +11.82%** (bị phình thêm $+3.66\%$).
+    * Thin Cracks Breakage ($n=66$): ❌ **12.1% → 12.1%** (8 mẫu $\to$ 8 mẫu, bất biến, không đạt guidepost $\le 9.0\%$).
+    * Global False Bridge: ❌ **31.6% → 32.5%** (110 $\to$ 113 mẫu, về cơ bản bất biến).
+    * Spurious Islands: ✅ Giảm còn **102 đảo** (sạch nhất trong toàn bộ 5 models).
+  + **Quy chuẩn Quy ước Tính toán (Convention Locking)**:
+    * Khóa chuẩn duy nhất cho **Area Excess (%)**:
+      $$\text{Area Excess (\%)} = \frac{\sum \text{Pred Area} - \sum \text{GT Area}}{\sum \text{GT Area}} \times 100\%$$
+      (tính trên tổng diện tích phân tầng, đảm bảo tính nhất quán trên toàn bộ các báo cáo).
+  + **Trạng thái & Phán quyết chính thức**:
+    $$\boxed{\textbf{C.1 = Negative global result + confirmed topology trade-off}}$$
+    > *Soft-clDice có thể cải thiện centerline/topological coverage ($T_{\text{sens}}: 0.8872 \to 0.8899$) và giảm một phần artifact fragmentation/island ($108 \to 102$), nhưng không giải quyết false bridge ($31.6\% \to 32.5\%$) và đi kèm trade-off theo hướng tăng predicted area ($+8.16\% \to +11.82\%$), làm giảm precision và Global Dice ($0.7641 \to 0.7613$).*
+  + **Bác bỏ giả thuyết cốt lõi (Scientific Hypothesis Disproven)**:
+    $$\boxed{\text{Breakage preservation} \neq \text{False-bridge correction}}$$
+    *Tối ưu hóa tính liên thông (continuity) giúp bảo vệ khung xương nứt nhưng bất lực trước bài toán chia tách cấu trúc bị nối cầu sai (merge/separation). Kết quả quan sát phù hợp với cơ chế trong đó tối ưu skeleton sensitivity khuyến khích duy trì coverage quanh GT centerline, và trên bài toán này điều đó đi kèm xu hướng mở rộng vùng foreground.*
+  + **Quy tắc vận hành**: **Đóng băng vĩnh viễn C.1 tại $\lambda = 0.030$**, không thực hiện parameter sweep. Chuyển sang định nghĩa giả thuyết nghiên cứu mới cho **Phase 6-D**.
+  + **Lưu trữ toàn bộ artifacts**:
+    * Checkpoints: `results/checkpoints/P3_C_Phase6_C1_clDice_D4_K2_H64_best_model_b2_global.pth`, `best_model_b2_stage2.pth`, `last_model_b2_stage2.pth`.
+    * Log huấn luyện: `results/P3_C_Routing_Diagnostics_Phase6_C1_clDice_D4_K2_H64/train.log`.
+    * Diagnostics: `results/P3_C_Routing_Diagnostics_Phase6_C1_clDice_D4_K2_H64/diagnostics/`.
+    * Topology Metrics: `results/diagnostics/phase6_c_topology/topology_c1_metrics.csv`.
+    * Archive: `results/P3_C_Phase6_C1_clDice_D4_K2_H64_Full.zip`.
+
 
 
 
