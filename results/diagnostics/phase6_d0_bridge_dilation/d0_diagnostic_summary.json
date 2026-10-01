@@ -1,0 +1,490 @@
+{
+  "Global": {
+    "Base": {
+      "n_total": 348,
+      "n_neg_excess": 103,
+      "n_pos_excess": 245,
+      "p_bridge_overall": 0.3160919540229885,
+      "p_bridge_neg_excess": 0.10679611650485436,
+      "p_bridge_pos_excess": 0.40408163265306124,
+      "table": [
+        [
+          92,
+          11
+        ],
+        [
+          146,
+          99
+        ]
+      ],
+      "odds_ratio": 5.671232876712328,
+      "fisher_p": 1.4665364846245835e-08,
+      "point_biserial_r": 0.2514833381162081,
+      "point_biserial_p": 2.0235951161307345e-06,
+      "spearman_rho": 0.3824804295333278,
+      "spearman_p": 1.44230939980498e-13
+    },
+    "A1": {
+      "n_total": 348,
+      "n_neg_excess": 95,
+      "n_pos_excess": 253,
+      "p_bridge_overall": 0.3275862068965517,
+      "p_bridge_neg_excess": 0.14736842105263157,
+      "p_bridge_pos_excess": 0.3952569169960474,
+      "table": [
+        [
+          81,
+          14
+        ],
+        [
+          153,
+          100
+        ]
+      ],
+      "odds_ratio": 3.7815126050420167,
+      "fisher_p": 6.1194126424579375e-06,
+      "point_biserial_r": 0.21303508492418305,
+      "point_biserial_p": 6.178227122082908e-05,
+      "spearman_rho": 0.3306987910147729,
+      "spearman_p": 2.5197757423712647e-10
+    },
+    "A2": {
+      "n_total": 348,
+      "n_neg_excess": 118,
+      "n_pos_excess": 230,
+      "p_bridge_overall": 0.31896551724137934,
+      "p_bridge_neg_excess": 0.16101694915254236,
+      "p_bridge_pos_excess": 0.4,
+      "table": [
+        [
+          99,
+          19
+        ],
+        [
+          138,
+          92
+        ]
+      ],
+      "odds_ratio": 3.473684210526316,
+      "fisher_p": 3.575948125234009e-06,
+      "point_biserial_r": 0.18036058332740054,
+      "point_biserial_p": 0.0007242269289787789,
+      "spearman_rho": 0.3470951269867405,
+      "spearman_p": 2.7409132760565863e-11
+    },
+    "B1": {
+      "n_total": 348,
+      "n_neg_excess": 100,
+      "n_pos_excess": 248,
+      "p_bridge_overall": 0.33045977011494254,
+      "p_bridge_neg_excess": 0.12,
+      "p_bridge_pos_excess": 0.4153225806451613,
+      "table": [
+        [
+          88,
+          12
+        ],
+        [
+          145,
+          103
+        ]
+      ],
+      "odds_ratio": 5.2091954022988505,
+      "fisher_p": 3.6777115858843134e-08,
+      "point_biserial_r": 0.24758961038789784,
+      "point_biserial_p": 2.938168668620372e-06,
+      "spearman_rho": 0.3691567261590928,
+      "spearman_p": 1.1223030109534892e-12
+    },
+    "C1": {
+      "n_total": 348,
+      "n_neg_excess": 82,
+      "n_pos_excess": 266,
+      "p_bridge_overall": 0.32471264367816094,
+      "p_bridge_neg_excess": 0.12195121951219512,
+      "p_bridge_pos_excess": 0.38721804511278196,
+      "table": [
+        [
+          72,
+          10
+        ],
+        [
+          163,
+          103
+        ]
+      ],
+      "odds_ratio": 4.549693251533743,
+      "fisher_p": 3.2587437014002403e-06,
+      "point_biserial_r": 0.2519785864757849,
+      "point_biserial_p": 1.9290036650503884e-06,
+      "spearman_rho": 0.3619026165682968,
+      "spearman_p": 3.2982829741528144e-12
+    }
+  },
+  "Thin_66": {
+    "Base": {
+      "n_total": 66,
+      "n_neg_excess": 3,
+      "n_pos_excess": 63,
+      "p_bridge_overall": 0.6666666666666666,
+      "p_bridge_neg_excess": 0.0,
+      "p_bridge_pos_excess": 0.6984126984126984,
+      "table": [
+        [
+          3,
+          0
+        ],
+        [
+          19,
+          44
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.03365384615384616,
+      "point_biserial_r": 0.09661340560974756,
+      "point_biserial_p": 0.44029083978820144,
+      "spearman_rho": 0.24632683145642312,
+      "spearman_p": 0.04617720881668797
+    },
+    "A1": {
+      "n_total": 66,
+      "n_neg_excess": 5,
+      "n_pos_excess": 61,
+      "p_bridge_overall": 0.6363636363636364,
+      "p_bridge_neg_excess": 0.2,
+      "p_bridge_pos_excess": 0.6721311475409836,
+      "table": [
+        [
+          4,
+          1
+        ],
+        [
+          20,
+          41
+        ]
+      ],
+      "odds_ratio": 8.2,
+      "fisher_p": 0.05469396195202646,
+      "point_biserial_r": 0.15331601518536844,
+      "point_biserial_p": 0.21906110493245196,
+      "spearman_rho": 0.3405912587760355,
+      "spearman_p": 0.0051372300248762074
+    },
+    "A2": {
+      "n_total": 66,
+      "n_neg_excess": 7,
+      "n_pos_excess": 59,
+      "p_bridge_overall": 0.6212121212121212,
+      "p_bridge_neg_excess": 0.2857142857142857,
+      "p_bridge_pos_excess": 0.6610169491525424,
+      "table": [
+        [
+          5,
+          2
+        ],
+        [
+          20,
+          39
+        ]
+      ],
+      "odds_ratio": 4.875,
+      "fisher_p": 0.09475005208082946,
+      "point_biserial_r": 0.21600803910157715,
+      "point_biserial_p": 0.08151581955980464,
+      "spearman_rho": 0.3336560654716806,
+      "spearman_p": 0.0061856285163710235
+    },
+    "B1": {
+      "n_total": 66,
+      "n_neg_excess": 3,
+      "n_pos_excess": 63,
+      "p_bridge_overall": 0.6363636363636364,
+      "p_bridge_neg_excess": 0.0,
+      "p_bridge_pos_excess": 0.6666666666666666,
+      "table": [
+        [
+          3,
+          0
+        ],
+        [
+          21,
+          42
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.04423076923076923,
+      "point_biserial_r": 0.14980428691622175,
+      "point_biserial_p": 0.2299253271000649,
+      "spearman_rho": 0.3422446144011619,
+      "spearman_p": 0.004911744753405145
+    },
+    "C1": {
+      "n_total": 66,
+      "n_neg_excess": 3,
+      "n_pos_excess": 63,
+      "p_bridge_overall": 0.6515151515151515,
+      "p_bridge_neg_excess": 0.0,
+      "p_bridge_pos_excess": 0.6825396825396826,
+      "table": [
+        [
+          3,
+          0
+        ],
+        [
+          20,
+          43
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.03870192307692308,
+      "point_biserial_r": 0.14136802194079096,
+      "point_biserial_p": 0.2575365284723582,
+      "spearman_rho": 0.28793038434514084,
+      "spearman_p": 0.019060414904031403
+    }
+  },
+  "Complex_Topology": {
+    "Base": {
+      "n_total": 27,
+      "n_neg_excess": 6,
+      "n_pos_excess": 21,
+      "p_bridge_overall": 0.8888888888888888,
+      "p_bridge_neg_excess": 0.6666666666666666,
+      "p_bridge_pos_excess": 0.9523809523809523,
+      "table": [
+        [
+          2,
+          4
+        ],
+        [
+          1,
+          20
+        ]
+      ],
+      "odds_ratio": 10.0,
+      "fisher_p": 0.11452991452991454,
+      "point_biserial_r": 0.4258779318572535,
+      "point_biserial_p": 0.026767243944232785,
+      "spearman_rho": 0.46905133781832187,
+      "spearman_p": 0.013583946889026364
+    },
+    "A1": {
+      "n_total": 27,
+      "n_neg_excess": 6,
+      "n_pos_excess": 21,
+      "p_bridge_overall": 0.9259259259259259,
+      "p_bridge_neg_excess": 0.6666666666666666,
+      "p_bridge_pos_excess": 1.0,
+      "table": [
+        [
+          2,
+          4
+        ],
+        [
+          0,
+          21
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.04273504273504274,
+      "point_biserial_r": 0.3865098734833595,
+      "point_biserial_p": 0.04642660134417914,
+      "spearman_rho": 0.3994501715614096,
+      "spearman_p": 0.0389973218819807
+    },
+    "A2": {
+      "n_total": 27,
+      "n_neg_excess": 7,
+      "n_pos_excess": 20,
+      "p_bridge_overall": 0.9629629629629629,
+      "p_bridge_neg_excess": 0.8571428571428571,
+      "p_bridge_pos_excess": 1.0,
+      "table": [
+        [
+          1,
+          6
+        ],
+        [
+          0,
+          20
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.25925925925925924,
+      "point_biserial_r": 0.14385039478799855,
+      "point_biserial_p": 0.47409285008870317,
+      "spearman_rho": 0.27696886068414417,
+      "spearman_p": 0.16192995776822613
+    },
+    "B1": {
+      "n_total": 27,
+      "n_neg_excess": 5,
+      "n_pos_excess": 22,
+      "p_bridge_overall": 0.9259259259259259,
+      "p_bridge_neg_excess": 0.6,
+      "p_bridge_pos_excess": 1.0,
+      "table": [
+        [
+          2,
+          3
+        ],
+        [
+          0,
+          22
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.02849002849002849,
+      "point_biserial_r": 0.39091700752961783,
+      "point_biserial_p": 0.04378046819542195,
+      "spearman_rho": 0.3994501715614096,
+      "spearman_p": 0.0389973218819807
+    },
+    "C1": {
+      "n_total": 27,
+      "n_neg_excess": 5,
+      "n_pos_excess": 22,
+      "p_bridge_overall": 0.9259259259259259,
+      "p_bridge_neg_excess": 0.6,
+      "p_bridge_pos_excess": 1.0,
+      "table": [
+        [
+          2,
+          3
+        ],
+        [
+          0,
+          22
+        ]
+      ],
+      "odds_ratio": Infinity,
+      "fisher_p": 0.02849002849002849,
+      "point_biserial_r": 0.4203532887681667,
+      "point_biserial_p": 0.029025176864721364,
+      "spearman_rho": 0.4176069975414737,
+      "spearman_p": 0.030203466218745905
+    }
+  },
+  "Boundary_Margin": {
+    "Base": {
+      "n_total": 127,
+      "n_neg_excess": 38,
+      "n_pos_excess": 89,
+      "p_bridge_overall": 0.2440944881889764,
+      "p_bridge_neg_excess": 0.10526315789473684,
+      "p_bridge_pos_excess": 0.30337078651685395,
+      "table": [
+        [
+          34,
+          4
+        ],
+        [
+          62,
+          27
+        ]
+      ],
+      "odds_ratio": 3.7016129032258065,
+      "fisher_p": 0.022973651674011525,
+      "point_biserial_r": 0.2632145233143608,
+      "point_biserial_p": 0.002791087489143686,
+      "spearman_rho": 0.2575082403955411,
+      "spearman_p": 0.003469724834808848
+    },
+    "A1": {
+      "n_total": 127,
+      "n_neg_excess": 37,
+      "n_pos_excess": 90,
+      "p_bridge_overall": 0.25196850393700787,
+      "p_bridge_neg_excess": 0.16216216216216217,
+      "p_bridge_pos_excess": 0.28888888888888886,
+      "table": [
+        [
+          31,
+          6
+        ],
+        [
+          64,
+          26
+        ]
+      ],
+      "odds_ratio": 2.0989583333333335,
+      "fisher_p": 0.17822175064993961,
+      "point_biserial_r": 0.16257090704804686,
+      "point_biserial_p": 0.06782995663501803,
+      "spearman_rho": 0.1657327668738568,
+      "spearman_p": 0.0625824911685915
+    },
+    "A2": {
+      "n_total": 127,
+      "n_neg_excess": 46,
+      "n_pos_excess": 81,
+      "p_bridge_overall": 0.25196850393700787,
+      "p_bridge_neg_excess": 0.1956521739130435,
+      "p_bridge_pos_excess": 0.2839506172839506,
+      "table": [
+        [
+          37,
+          9
+        ],
+        [
+          58,
+          23
+        ]
+      ],
+      "odds_ratio": 1.6302681992337165,
+      "fisher_p": 0.29639831270898265,
+      "point_biserial_r": 0.17916498378570722,
+      "point_biserial_p": 0.043856227565355364,
+      "spearman_rho": 0.16721694090556294,
+      "spearman_p": 0.060236318151676516
+    },
+    "B1": {
+      "n_total": 127,
+      "n_neg_excess": 39,
+      "n_pos_excess": 88,
+      "p_bridge_overall": 0.2440944881889764,
+      "p_bridge_neg_excess": 0.1282051282051282,
+      "p_bridge_pos_excess": 0.29545454545454547,
+      "table": [
+        [
+          34,
+          5
+        ],
+        [
+          62,
+          26
+        ]
+      ],
+      "odds_ratio": 2.8516129032258064,
+      "fisher_p": 0.04661838735636076,
+      "point_biserial_r": 0.2324031108070455,
+      "point_biserial_p": 0.00855717124985635,
+      "spearman_rho": 0.2270072643486906,
+      "spearman_p": 0.010271698044735194
+    },
+    "C1": {
+      "n_total": 127,
+      "n_neg_excess": 33,
+      "n_pos_excess": 94,
+      "p_bridge_overall": 0.25196850393700787,
+      "p_bridge_neg_excess": 0.18181818181818182,
+      "p_bridge_pos_excess": 0.2765957446808511,
+      "table": [
+        [
+          27,
+          6
+        ],
+        [
+          68,
+          26
+        ]
+      ],
+      "odds_ratio": 1.7205882352941178,
+      "fisher_p": 0.3547987121452384,
+      "point_biserial_r": 0.20399188241157448,
+      "point_biserial_p": 0.021426338364703493,
+      "spearman_rho": 0.1879953773494495,
+      "spearman_p": 0.0342969593201068
+    }
+  }
+}
