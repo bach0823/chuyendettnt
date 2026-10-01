@@ -23,6 +23,11 @@ Skill này định nghĩa các nguyên tắc bất biến (invariants) và best 
   - Tuyệt đối **KHÔNG** yêu cầu hoặc ép buộc người dùng mount Google Drive (`drive.mount('/content/drive')`), trừ khi người dùng chủ động yêu cầu.
   - Hiểu rõ cơ chế hệ thống tệp: `os.makedirs('/content/drive/MyDrive/...', exist_ok=True)` trong mã nguồn Python hoàn toàn tạo được cây thư mục trên ổ đĩa ảo cục bộ `/content/` mà không cần Google Drive FUSE mount. Checkpoint lưu vào đây đọc/ghi hoàn toàn bình thường; không được suy diễn rằng thiếu mount Drive sẽ gây crash.
   - Tuyệt đối **KHÔNG** tự ý chèn các lệnh `!pip install ...` hàng loạt vào đoạn code của người dùng nếu người dùng đang dùng notebook/script chuẩn đã chạy thành công trước đó (tôn trọng môi trường có sẵn).
+- **Ephemeral Runtime Invariant (No-Reset Assumption Strictly Forbidden):**
+  - Tuyệt đối **KHÔNG BAO GIỜ giả định Colab runtime chưa reset**, hoặc giả định các file/checkpoint từ các cell/phiên làm việc trước đó vẫn còn tồn tại sẵn trên máy ảo hoặc Google Drive (`/content/drive/MyDrive/...`).
+  - Mọi workflow Colab khi cung cấp cho người dùng **BẮT BUỘC phải tự chứa (self-contained)**:
+    1. Checkpoint tổ tiên (ancestor checkpoint, ví dụ Stage-1 checkpoint) phải luôn đi kèm lệnh tải trực tiếp vào thư mục cục bộ `/content/checkpoints/` từ raw GitHub/release URL.
+    2. Cờ `--checkpoint` và `--rng-checkpoint` trong lệnh huấn luyện `train_crack.py` **PHẢI trỏ trực tiếp và khớp 100%** vào file cục bộ vừa tải tại `/content/checkpoints/` (ví dụ `/content/checkpoints/best_model_b2_stage1.pth`), tuyệt đối KHÔNG trỏ sang Google Drive giả định.
 - **Ultra-Minimal Driver Cell Invariant (Zero-Boilerplate Standard):**
   - **Notebook là Driver thuần túy, KHÔNG phải Test Suite hay Script Runner**:
     - **Quy tắc vàng**: Code python kiểm tra tồn tại / tính toàn vẹn (file existence, assertions, metadata check) nếu đã test ở máy local rồi thì lên Colab **TUYỆT ĐỐI KHÔNG CẦN GHI THÊM**.
