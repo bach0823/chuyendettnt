@@ -1,0 +1,50 @@
+model_A,model_A_name,model_B,model_B_name,count_A,count_B,intersection_count,union_count,jaccard_similarity
+Base,Candidate B (Base),Base,Candidate B (Base),110,110,110,110,1.0
+Base,Candidate B (Base),A1,Phase 6-A.1 (B-IoU),110,114,107,117,0.9145
+Base,Candidate B (Base),A2,Phase 6-A.2 (PLU),110,111,105,116,0.9052
+Base,Candidate B (Base),B1,Phase 6-B.1 (AB-BPL),110,115,108,117,0.9231
+Base,Candidate B (Base),C1,Phase 6-C.1 (clDice),110,113,108,115,0.9391
+Base,Candidate B (Base),D1,Phase 6-D.1 (PLU+AB-BPL),110,112,105,117,0.8974
+Base,Candidate B (Base),D2,Phase 6-D.2 (Pure Sep),110,109,103,116,0.8879
+A1,Phase 6-A.1 (B-IoU),Base,Candidate B (Base),114,110,107,117,0.9145
+A1,Phase 6-A.1 (B-IoU),A1,Phase 6-A.1 (B-IoU),114,114,114,114,1.0
+A1,Phase 6-A.1 (B-IoU),A2,Phase 6-A.2 (PLU),114,111,108,117,0.9231
+A1,Phase 6-A.1 (B-IoU),B1,Phase 6-B.1 (AB-BPL),114,115,113,116,0.9741
+A1,Phase 6-A.1 (B-IoU),C1,Phase 6-C.1 (clDice),114,113,111,116,0.9569
+A1,Phase 6-A.1 (B-IoU),D1,Phase 6-D.1 (PLU+AB-BPL),114,112,110,116,0.9483
+A1,Phase 6-A.1 (B-IoU),D2,Phase 6-D.2 (Pure Sep),114,109,108,115,0.9391
+A2,Phase 6-A.2 (PLU),Base,Candidate B (Base),111,110,105,116,0.9052
+A2,Phase 6-A.2 (PLU),A1,Phase 6-A.1 (B-IoU),111,114,108,117,0.9231
+A2,Phase 6-A.2 (PLU),A2,Phase 6-A.2 (PLU),111,111,111,111,1.0
+A2,Phase 6-A.2 (PLU),B1,Phase 6-B.1 (AB-BPL),111,115,108,118,0.9153
+A2,Phase 6-A.2 (PLU),C1,Phase 6-C.1 (clDice),111,113,108,116,0.931
+A2,Phase 6-A.2 (PLU),D1,Phase 6-D.1 (PLU+AB-BPL),111,112,108,115,0.9391
+A2,Phase 6-A.2 (PLU),D2,Phase 6-D.2 (Pure Sep),111,109,107,113,0.9469
+B1,Phase 6-B.1 (AB-BPL),Base,Candidate B (Base),115,110,108,117,0.9231
+B1,Phase 6-B.1 (AB-BPL),A1,Phase 6-A.1 (B-IoU),115,114,113,116,0.9741
+B1,Phase 6-B.1 (AB-BPL),A2,Phase 6-A.2 (PLU),115,111,108,118,0.9153
+B1,Phase 6-B.1 (AB-BPL),B1,Phase 6-B.1 (AB-BPL),115,115,115,115,1.0
+B1,Phase 6-B.1 (AB-BPL),C1,Phase 6-C.1 (clDice),115,113,112,116,0.9655
+B1,Phase 6-B.1 (AB-BPL),D1,Phase 6-D.1 (PLU+AB-BPL),115,112,109,118,0.9237
+B1,Phase 6-B.1 (AB-BPL),D2,Phase 6-D.2 (Pure Sep),115,109,108,116,0.931
+C1,Phase 6-C.1 (clDice),Base,Candidate B (Base),113,110,108,115,0.9391
+C1,Phase 6-C.1 (clDice),A1,Phase 6-A.1 (B-IoU),113,114,111,116,0.9569
+C1,Phase 6-C.1 (clDice),A2,Phase 6-A.2 (PLU),113,111,108,116,0.931
+C1,Phase 6-C.1 (clDice),B1,Phase 6-B.1 (AB-BPL),113,115,112,116,0.9655
+C1,Phase 6-C.1 (clDice),C1,Phase 6-C.1 (clDice),113,113,113,113,1.0
+C1,Phase 6-C.1 (clDice),D1,Phase 6-D.1 (PLU+AB-BPL),113,112,109,116,0.9397
+C1,Phase 6-C.1 (clDice),D2,Phase 6-D.2 (Pure Sep),113,109,108,114,0.9474
+D1,Phase 6-D.1 (PLU+AB-BPL),Base,Candidate B (Base),112,110,105,117,0.8974
+D1,Phase 6-D.1 (PLU+AB-BPL),A1,Phase 6-A.1 (B-IoU),112,114,110,116,0.9483
+D1,Phase 6-D.1 (PLU+AB-BPL),A2,Phase 6-A.2 (PLU),112,111,108,115,0.9391
+D1,Phase 6-D.1 (PLU+AB-BPL),B1,Phase 6-B.1 (AB-BPL),112,115,109,118,0.9237
+D1,Phase 6-D.1 (PLU+AB-BPL),C1,Phase 6-C.1 (clDice),112,113,109,116,0.9397
+D1,Phase 6-D.1 (PLU+AB-BPL),D1,Phase 6-D.1 (PLU+AB-BPL),112,112,112,112,1.0
+D1,Phase 6-D.1 (PLU+AB-BPL),D2,Phase 6-D.2 (Pure Sep),112,109,106,115,0.9217
+D2,Phase 6-D.2 (Pure Sep),Base,Candidate B (Base),109,110,103,116,0.8879
+D2,Phase 6-D.2 (Pure Sep),A1,Phase 6-A.1 (B-IoU),109,114,108,115,0.9391
+D2,Phase 6-D.2 (Pure Sep),A2,Phase 6-A.2 (PLU),109,111,107,113,0.9469
+D2,Phase 6-D.2 (Pure Sep),B1,Phase 6-B.1 (AB-BPL),109,115,108,116,0.931
+D2,Phase 6-D.2 (Pure Sep),C1,Phase 6-C.1 (clDice),109,113,108,114,0.9474
+D2,Phase 6-D.2 (Pure Sep),D1,Phase 6-D.1 (PLU+AB-BPL),109,112,106,115,0.9217
+D2,Phase 6-D.2 (Pure Sep),D2,Phase 6-D.2 (Pure Sep),109,109,109,109,1.0
