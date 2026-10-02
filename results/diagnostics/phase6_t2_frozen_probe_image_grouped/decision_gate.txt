@@ -1,0 +1,23 @@
+================================================================================
+DECISION GATES — Leakage-Safe Image-Level 5-Fold GroupKFold Frozen T2 Probe
+================================================================================
+
+H_A: Higher dimensions really contain usable signal -> SUPPORTED
+     (PCA192 - PCA32 CI: [+0.0120, +0.1093])
+
+H_B: Basis selection itself has a meaningful effect -> PLAUSIBLE BUT NOT PROVEN
+     (PCA32 - RP32 CI:   [-0.0001, +0.1230])
+     (PCA128 - RP128 CI: [-0.0092, +0.0366])
+
+H_C: There is a real T2 representation ceiling -> SUPPORTED
+     (PCA192 test: 0.6943, PCA128: 0.6961, raw288: 0.6969)
+
+CLAIM VERDICT TABLE:
+--------------------------------------------------------------------------------
+T2 contains measurable separation information      | SUPPORTED
+Higher dimensionality recovers real signal         | SUPPORTED
+PCA basis gives unique advantage                   | PLAUSIBLE BUT NOT PROVEN
+T2 has stable ~0.69 ceiling                        | SUPPORTED
+Evidence justifies T2 intervention                 | PLAUSIBLE BUT NOT PROVEN
+Evidence favors upstream representation change     | PLAUSIBLE BUT NOT PROVEN
+--------------------------------------------------------------------------------
