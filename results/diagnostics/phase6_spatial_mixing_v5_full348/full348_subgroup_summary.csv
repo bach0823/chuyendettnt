@@ -1,0 +1,7 @@
+subgroup,N,base_mean_dice,bothhalf_mean_dice,delta_dice,base_mean_recall,bothhalf_mean_recall,base_mean_precision,bothhalf_mean_precision,base_breakage_count,bothhalf_breakage_count,bothhalf_breakage_pct,base_bridges,bothhalf_bridges,bridge_net_change
+Global_348,348,0.7641,0.7635,-0.0006,0.8477,0.8118,0.7337,0.7611,34,73,20.98,110,102,-8
+Thin_Cracks_66,66,0.6404,0.6601,0.0197,0.9028,0.8769,0.5231,0.5549,8,17,25.76,44,39,-5
+Thin_Low_Area_5,5,0.537,0.6042,0.0672,0.9206,0.8717,0.3799,0.4642,0,1,20.0,4,4,0
+Consensus_7of7_101,101,0.7371,0.7506,0.0135,0.8997,0.876,0.6538,0.686,10,15,14.85,101,100,-1
+D2_Cured_7,7,0.7576,0.7766,0.019,0.933,0.8894,0.6583,0.7044,0,2,28.57,7,1,-6
+D2_Created_6,6,0.8124,0.7907,-0.0217,0.8512,0.7563,0.7874,0.8315,3,4,66.67,0,0,0

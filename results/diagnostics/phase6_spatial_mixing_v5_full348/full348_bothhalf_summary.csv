@@ -1,0 +1,17 @@
+metric,Base_C0,BothHalf,Delta
+N_samples,348,348,0
+Global_Mean_Dice,0.7641,0.7635,-0.0006
+Global_Median_Dice,0.8041,0.804,-0.0001
+Win_Tie_Loss_Dice,-,157/23/168,-
+Precision,0.7337,0.7611,0.0275
+Recall,0.8477,0.8118,-0.0359
+Area_Excess_Pct,28.29,14.91,-13.38
+clDice,0.8499,0.8477,-0.0022
+Tprec,0.8473,0.8707,0.0234
+Tsens,0.8872,0.8562,-0.0311
+FalseBridge_Count,110,102,-8
+FalseBridge_Rate_Pct,31.61,29.31,-2.3
+Breakage_Count,34,73,39
+Breakage_Rate_Pct,9.77,20.98,11.21
+Spurious_Islands_Total,111,153,42
+Mean_Abs_CC_Error,1.1092,1.2443,0.1351

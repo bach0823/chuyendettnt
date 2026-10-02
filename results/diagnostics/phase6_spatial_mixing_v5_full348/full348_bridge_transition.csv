@@ -1,0 +1,8 @@
+group,N,base_bridges,bothhalf_bridges,cured,persistent,created,net_change,cure_fraction_pct,persistence_rate_pct
+All_348_Images,348,110,102,8,102,0,-8,7.27,92.73
+Base_110_Bridges,110,110,102,8,102,0,-8,7.27,92.73
+Consensus_7of7_101,101,101,100,1,100,0,-1,0.99,99.01
+D2_Cured_7,7,7,1,6,1,0,-6,85.71,14.29
+D2_Created_6,6,0,0,0,0,0,0,,
+Low_Consensus_9,2,2,1,1,1,0,-1,50.0,50.0
+Clean_Base_228,238,0,0,0,0,0,0,,

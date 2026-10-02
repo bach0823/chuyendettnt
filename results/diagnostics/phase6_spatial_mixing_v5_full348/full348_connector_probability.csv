@@ -1,0 +1,5 @@
+group,N,base_prob_mean,base_prob_median,bothhalf_prob_mean,bothhalf_prob_median,delta_median_prob,mean_delta_prob,base_pct_ge50,bothhalf_pct_ge50,bothhalf_pct_ge75,bothhalf_pct_ge90
+Base_110_Bridges,110,0.9152,0.9437,0.7972,0.8585,-0.0852,-0.118,100.0,90.0,74.55,34.55
+Consensus_7of7_101,101,0.9274,0.9484,0.8305,0.8677,-0.0807,-0.0969,100.0,96.04,81.19,37.62
+D2_Cured_7,7,0.7705,0.8002,0.3853,0.4392,-0.361,-0.3852,100.0,14.29,0.0,0.0
+Low_Consensus_9,2,0.8049,0.8049,0.5554,0.5554,-0.2495,-0.2495,100.0,50.0,0.0,0.0
