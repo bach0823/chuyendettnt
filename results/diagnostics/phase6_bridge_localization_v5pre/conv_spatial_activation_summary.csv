@@ -1,0 +1,9 @@
+stratum,layer,N,neck_center_abs_mean,neck_offcenter_abs_mean,neck_off_over_center_ratio_mean,bg_center_abs_mean,bg_offcenter_abs_mean,contrast_center_mean,contrast_offcenter_mean,diff_center_mean,diff_offcenter_mean
+Consensus_7of7,Conv1,10,0.1657,0.4474,2.6954,0.1651,0.394,1.0037,1.1348,0.0007,0.0534
+Consensus_7of7,Conv2,10,0.2776,0.8527,3.0873,0.1548,0.5902,1.8269,1.4577,0.1229,0.2626
+Created_by_D2,Conv1,5,,,,0.1653,0.3928,,,,
+Created_by_D2,Conv2,5,,,,0.1403,0.5324,,,,
+Cured_by_D2,Conv1,5,0.1599,0.3619,2.261,0.1695,0.3852,0.9434,0.9394,-0.0096,-0.0234
+Cured_by_D2,Conv2,5,0.2277,0.5439,2.4796,0.1783,0.6626,1.2892,0.8117,0.0494,-0.1187
+Low_Consensus,Conv1,5,0.1656,0.378,2.2829,0.1691,0.4158,0.9599,0.9703,-0.0069,-0.0116
+Low_Consensus,Conv2,5,0.1923,0.567,2.9491,0.1453,0.5433,1.1041,0.8325,0.0181,-0.1141
