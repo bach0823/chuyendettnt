@@ -1,0 +1,31 @@
+========================================================================
+DECISION GATE — NECK vs CRACK (Consensus Resistant)
+========================================================================
+  pointwise_T2 (PCA32):   0.6414
+  pointwise_T2_raw (lin): 0.6958   [learned projection baseline]
+  local5_T2_lin:          0.6175
+  local11_T2_lin:         0.6107
+  local5_T2_mlp:          0.6112
+  local11_T2_mlp:         0.5921
+  shuffle5_T2_lin:        0.5226   [spatial control for 5x5]
+  shuffle11_T2_lin:       0.5284  [spatial control for 11x11]
+
+  Delta local5 - pointwise:  -0.0239
+  Delta local11 - pointwise: -0.0307
+  Delta MLP5 - lin5:         -0.0063
+  Delta MLP11 - lin11:       -0.0186
+  Delta raw_lin - PCA_lin:   +0.0544
+  Delta shuffle5 - local5:   -0.0949
+  Delta shuffle11 - local11: -0.0823
+
+CASE C — Learned linear projection (raw_lin) > PCA-compressed linear, local context adds little.
+  Evidence: representation basis mismatch may be part of the issue.
+  Implication: information may exist but requires axis-aligned learned projection, not topology module.
+
+FINAL QUESTION:
+  Is T2 representation separable, but not pointwise-separable (information exists,
+  but handcrafted local features and small probes cannot access it);
+  OR is component-separation information fundamentally absent at T2?
+  -> This probe provides measured evidence, not a definitive answer.
+     See auc_nc values and case analysis above.
+========================================================================
