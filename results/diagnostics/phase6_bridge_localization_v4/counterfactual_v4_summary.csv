@@ -1,0 +1,4 @@
+stratum,N_cases,c0_bridges_remaining,shuf_bridges_remaining,c0_mean_dice,shuf_mean_dice,c0_mean_recall,shuf_mean_recall,c0_breakage_cases,shuf_breakage_cases,c0_neck_median_prob,shuf_neck_median_prob,shuf_neck_pct_ge50
+Consensus_7of7_10cases,10,10/10,2/10,0.8181,0.3166,0.9139,0.2275,0/10,9/10,0.9522,0.1916,13.06
+Cured_by_D2_5cases,5,5/5,0/5,0.8071,0.2568,0.9344,0.1637,0/5,4/5,0.7819,0.0755,0.0
+All_25_Representative_Cases,25,16/16,2/16,0.775,0.2545,0.8577,0.1768,1/25,21/25,0.88,0.1463,8.16

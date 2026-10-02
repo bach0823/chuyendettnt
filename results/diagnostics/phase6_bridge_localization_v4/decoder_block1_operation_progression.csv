@@ -1,0 +1,6 @@
+operation,c7_mean_neck_act,c7_mean_bg_act,c7_contrast_neck_over_bg,c7_diff_neck_minus_bg,c7_ratio_neck_over_crack,cured_contrast_neck_over_bg,cured_diff_neck_minus_bg
+T0_S2_In_28x28,0.4311,0.3914,1.0965,0.0396,0.9597,1.0291,0.0122
+T1_Upsample_56x56,0.2061,0.1887,1.0945,0.0174,0.9466,0.9999,0.0014
+T2_Concat_56x56,0.2793,0.2658,1.0496,0.0135,0.959,0.971,-0.0074
+T3_PostConv1_56x56,0.6658,0.4449,1.5266,0.2209,0.9363,1.166,0.0821
+T4_PostConv2_56x56,0.9627,0.5323,1.8523,0.4304,0.937,1.1878,0.1159
