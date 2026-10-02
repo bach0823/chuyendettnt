@@ -1,0 +1,4 @@
+comparison,top10_intersection_count,top10_jaccard,top10_shared_channels,top20_intersection_count,top20_jaccard,top20_shared_channels
+Resistant vs Sensitive,8,0.6666666666666666,"[18, 20, 30, 35, 46, 57, 72, 92]",12,0.42857142857142855,"[0, 6, 18, 20, 30, 35, 46, 51, 57, 72, 92, 95]"
+Resistant vs D2-Cured,5,0.3333333333333333,"[0, 18, 30, 35, 57]",15,0.6,"[0, 6, 18, 20, 26, 30, 34, 35, 46, 51, 57, 72, 79, 92, 95]"
+Sensitive vs D2-Cured,5,0.3333333333333333,"[6, 18, 30, 35, 57]",12,0.42857142857142855,"[0, 6, 18, 20, 30, 35, 46, 51, 57, 72, 92, 95]"
