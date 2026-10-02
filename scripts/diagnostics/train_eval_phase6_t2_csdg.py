@@ -557,8 +557,13 @@ def audit_gate_spatial_distribution(
 # ---------------------------------------------------------------------------
 
 def main():
+    parser = argparse.ArgumentParser(description="Phase 6: T2-CSDG Training & Evaluation")
+    parser.add_argument('--kernel_size', type=int, default=3, choices=[3, 5], help="Kernel size (3 or 5)")
+    args = parser.parse_args()
+    k = args.kernel_size
+    
     print("=" * 80)
-    print("Phase 6: T2-CSDG (K=3) Intervention Experiment & Spatial Evaluation")
+    print(f"Phase 6: T2-CSDG (K={k}) Intervention Experiment & Spatial Evaluation")
     print("=" * 80)
     
     config_path = 'results/configs/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml'
@@ -609,19 +614,21 @@ def main():
     resistant_stems = set(c7a0[c7a0['has_bridge'] == True]['image_id'].tolist())
     sensitive_stems = set(c7a0[c7a0['has_bridge'] == False]['image_id'].tolist())
     
-    # 2. Setup CSDG (K=3) & Model
+    # 2. Setup CSDG (K) & Model
     model = load_model_from_checkpoint(config_path, ckpt_path, device=device)
-    csdg_k3 = T2CSDG(in_channels=192, skip_channels=96, hidden_dim=64, kernel_size=3).to(device)
-    final_pth = os.path.join(out_dir, 'csdg_k3_final.pth')
-    eval_csv = os.path.join(out_dir, 'validation_csdg_k3_per_sample.csv')
+    csdg = T2CSDG(in_channels=192, skip_channels=96, hidden_dim=64, kernel_size=k).to(device)
+    final_pth = os.path.join(out_dir, f'csdg_k{k}_final.pth')
+    eval_csv = os.path.join(out_dir, f'validation_csdg_k{k}_per_sample.csv')
+    log_csv = os.path.join(out_dir, f'csdg_k{k}_training_log.csv')
+    audit_csv = os.path.join(out_dir, f'gate_spatial_distribution_audit_k{k}.csv')
     
     if os.path.exists(final_pth):
-        print(f"Found existing CSDG-K3 weights at {final_pth}, loading...")
-        csdg_k3.load_state_dict(torch.load(final_pth, map_location=device))
+        print(f"Found existing CSDG-K{k} weights at {final_pth}, loading...")
+        csdg.load_state_dict(torch.load(final_pth, map_location=device))
     else:
         train_res = train_csdg_k3(
             model=model,
-            csdg=csdg_k3,
+            csdg=csdg,
             train_loader=train_loader,
             device=device,
             epochs=8,
@@ -629,9 +636,14 @@ def main():
             lambda_aux=0.1,
             out_dir=out_dir,
         )
-        # Save training logs
+        # Rename default saved file if needed
+        if os.path.exists(os.path.join(out_dir, 'csdg_k3_final.pth')) and k != 3:
+            os.rename(os.path.join(out_dir, 'csdg_k3_final.pth'), final_pth)
+        else:
+            torch.save(csdg.state_dict(), final_pth)
+            
         df_logs = pd.DataFrame(train_res['logs'])
-        df_logs.to_csv(os.path.join(out_dir, 'csdg_k3_training_log.csv'), index=False)
+        df_logs.to_csv(log_csv, index=False)
     
     # Hook forward
     dec_b1 = model.decoder.decoder_blocks[1]
@@ -639,7 +651,7 @@ def main():
         x = dec_b1.upsample(x)
         if x.shape[2:] != skip.shape[2:]:
             x = F.interpolate(x, size=skip.shape[2:], mode="bilinear", align_corners=False)
-        t2_prime, g = csdg_k3(x, skip)
+        t2_prime, g = csdg(x, skip)
         x = dec_b1.conv1(t2_prime)
         x = dec_b1.conv2(x)
         return x
@@ -651,25 +663,31 @@ def main():
         df_eval = pd.read_csv(eval_csv)
     else:
         print("\n" + "=" * 80)
-        print("Evaluating T2-CSDG (K=3) on Full Validation N=348 (Setting A)...")
+        print(f"Evaluating T2-CSDG (K={k}) on Full Validation N=348 (Setting A)...")
         print("=" * 80)
         df_eval, sum_eval = evaluate_on_validation_cohort(
-            model, val_img_paths, val_mask_dir, device, desc="CSDG-K3 Eval"
+            model, val_img_paths, val_mask_dir, device, desc=f"CSDG-K{k} Eval"
         )
         df_eval.to_csv(eval_csv, index=False)
     
     # 4. Spatial Gate Distribution Audit
-    df_audit = audit_gate_spatial_distribution(
-        model=model,
-        csdg=csdg_k3,
-        val_img_paths=val_img_paths,
-        val_mask_dir=val_mask_dir,
-        device=device,
-        stems_to_audit=c7_stems,
-        out_dir=out_dir,
-    )
+    if os.path.exists(audit_csv):
+        print(f"Found existing audit at {audit_csv}, loading...")
+        df_audit = pd.read_csv(audit_csv)
+    else:
+        df_audit = audit_gate_spatial_distribution(
+            model=model,
+            csdg=csdg,
+            val_img_paths=val_img_paths,
+            val_mask_dir=val_mask_dir,
+            device=device,
+            stems_to_audit=c7_stems,
+            out_dir=out_dir,
+        )
+        if os.path.exists(os.path.join(out_dir, 'gate_spatial_distribution_audit.csv')) and k != 3:
+            os.rename(os.path.join(out_dir, 'gate_spatial_distribution_audit.csv'), audit_csv)
     
-    # 5. Comparative Subgroup Analysis (Baseline Candidate B vs Arm B SDSG vs CSDG K=3)
+    # 5. Comparative Subgroup Analysis
     df_base = pd.read_csv('results/diagnostics/phase6_t2_sdsg/validation_baseline_per_sample.csv')
     df_sdsg_b = pd.read_csv('results/diagnostics/phase6_t2_sdsg/validation_arm_B_per_sample.csv')
     
@@ -681,12 +699,21 @@ def main():
         ('Clean_Control_56', clean_stems)
     ]
     
-    rows_comp = []
-    for model_name, df_m in [
+    models_to_compare = [
         ('Baseline_Candidate_B', df_base),
         ('Arm_B_SDSG_1x1', df_sdsg_b),
-        ('T2_CSDG_K3', df_eval),
-    ]:
+    ]
+    k3_path = os.path.join(out_dir, 'validation_csdg_k3_per_sample.csv')
+    if os.path.exists(k3_path):
+        models_to_compare.append(('T2_CSDG_K3', pd.read_csv(k3_path)))
+    k5_path = os.path.join(out_dir, 'validation_csdg_k5_per_sample.csv')
+    if os.path.exists(k5_path):
+        models_to_compare.append(('T2_CSDG_K5', pd.read_csv(k5_path)))
+    if k not in [3, 5]:
+        models_to_compare.append((f'T2_CSDG_K{k}', df_eval))
+        
+    rows_comp = []
+    for model_name, df_m in models_to_compare:
         for cohort_name, stems in cohorts:
             sub_m = df_m[df_m['image_id'].isin(stems)]
             sub_b = df_base[df_base['image_id'].isin(stems)]
