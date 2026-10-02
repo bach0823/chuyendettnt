@@ -1,0 +1,43 @@
+========================================================================
+DECISION GATE — Basis Mismatch vs Capacity/Overfit
+========================================================================
+
+AUC NECK vs CRACK — Test AUC (mean over 10 bootstraps):
+  pca_32           test=0.6424  std=0.0325  gap=+0.1047
+  pca_64           test=0.6676  std=0.0301  gap=+0.1367
+  pca_128          test=0.6882  std=0.0351  gap=+0.1836
+  pca_192          test=0.6928  std=0.0317  gap=+0.2174
+  pca_256          test=0.6894  std=0.0318  gap=+0.2431
+  raw_288          test=0.6881  std=0.0284  gap=+0.2498
+  rand_32          test=0.6051  std=0.0236  gap=+0.1082
+  rand_64          test=0.6323  std=0.0361  gap=+0.1454
+  rand_128         test=0.6704  std=0.0331  gap=+0.1773
+
+Paired bootstrap deltas (vs pca_32):
+  pca_64       - pca_32: mean=+0.0252  95%CI=[+0.0078, +0.0395]
+  pca_128      - pca_32: mean=+0.0458  95%CI=[+0.0108, +0.0704]
+  pca_192      - pca_32: mean=+0.0504  95%CI=[+0.0119, +0.0858]
+  pca_256      - pca_32: mean=+0.0470  95%CI=[+0.0127, +0.0751]
+  raw_288      - pca_32: mean=+0.0457  95%CI=[+0.0141, +0.0703]
+
+Paired bootstrap deltas (vs raw_288):
+  rand_32      - raw_288: mean=-0.0830  95%CI=[-0.1414, -0.0157]
+  rand_64      - raw_288: mean=-0.0557  95%CI=[-0.0947, -0.0246]
+  rand_128     - raw_288: mean=-0.0176  95%CI=[-0.0594, +0.0348]
+
+Evidence Analysis:
+  Monotone PCA sweep (pca_32 -> raw_288): YES
+  raw_288 train/test gap > 0.10 (overfit signal): YES  (+0.2498)
+  raw_288 beats rand_128 by > 2pp (PCA basis matters): NO
+  rand_128 approaches raw_288 (< 2pp gap): YES
+  All conditions within 2pp of each other: NO
+
+VERDICT: PLAUSIBLE BUT NOT PROVEN — Monotone sweep consistent with basis mismatch, BUT
+  raw_288 shows non-trivial train/test gap, suggesting partial capacity confound.
+
+EPISTEMIC LIMITS:
+  n_NECK = 197 total pixels across 60 images. Bootstrap estimates carry
+  high sampling variance (~0.03 std). Differences < 0.03 should not be
+  interpreted as reliable signal.
+  "SUPPORTED" does not imply causal proof or that intervention will succeed.
+========================================================================
