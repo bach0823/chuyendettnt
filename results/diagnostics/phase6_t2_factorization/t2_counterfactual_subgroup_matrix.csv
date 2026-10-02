@@ -1,0 +1,8 @@
+condition,mode,alpha,Resistant_Bridges,Resistant_Cured,Resistant_Breakage,Resistant_Recall,Resistant_Med_ConnProb,Sensitive_Bridges,Sensitive_Cured,Sensitive_Breakage,Control_Bridges_Created,Control_Breakage,D2_Bridges
+Baseline,baseline,1.0,82/82,0/82 (0.0%),7/82,0.9298,0.8922,19/19,0/19 (0.0%),3/19,0/56,8/56,7/7
+T2_Skip_Only,skip_only,1.0,54/82,28/82 (34.1%),54/82,0.7969,0.5220,8/19,11/19 (57.9%),17/19,0/56,37/56,0/7
+T2_Bottleneck_Only,bottleneck_only,1.0,37/82,45/82 (54.9%),61/82,0.4155,0.2078,8/19,11/19 (57.9%),15/19,0/56,32/56,0/7
+T2_Skip_Attenuated_0.50,attenuate_skip,0.5,80/82,2/82 (2.4%),14/82,0.8680,0.8458,18/19,1/19 (5.3%),3/19,0/56,15/56,2/7
+T2_Bottleneck_Attenuated_0.50,attenuate_bottleneck,0.5,82/82,0/82 (0.0%),8/82,0.9395,0.8448,19/19,0/19 (0.0%),3/19,0/56,13/56,4/7
+T2_Skip_Attenuated_0.25,attenuate_skip,0.25,65/82,17/82 (20.7%),34/82,0.7351,0.6310,16/19,3/19 (15.8%),9/19,0/56,25/56,0/7
+T2_Bottleneck_Attenuated_0.25,attenuate_bottleneck,0.25,79/82,3/82 (3.7%),13/82,0.9247,0.7412,18/19,1/19 (5.3%),5/19,0/56,19/56,0/7
