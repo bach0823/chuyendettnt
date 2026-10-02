@@ -1,0 +1,19 @@
+metric,mean_consensus_bridge_101,std_consensus_bridge_101,mean_consensus_clean_228,std_consensus_clean_228,difference (bridge - clean),mann_whitney_p_value,statistically_significant_05,mean_cured_7cases
+base_mean_gs,0.4983,0.0005,0.4981,0.0005,0.0002,0.0086,True,0.4979
+base_mean_margin,0.0013,0.0005,0.0013,0.0004,0.0,0.614,False,0.0016
+base_convnext.stage_0_gs,0.4867,0.0014,0.4864,0.0014,0.0003,0.178,False,0.4872
+base_convnext.stage_0_margin,0.0019,0.0008,0.0021,0.0008,-0.0001,0.2988,False,0.0013
+base_convnext.stage_1_gs,0.4392,0.0019,0.439,0.0017,0.0002,0.5954,False,0.4383
+base_convnext.stage_1_margin,0.0016,0.0012,0.0015,0.0013,0.0001,0.3184,False,0.0015
+base_convnext.stage_2_gs,0.5229,0.0006,0.5229,0.0007,0.0,0.8345,False,0.5229
+base_convnext.stage_2_margin,0.0015,0.0013,0.0014,0.0011,0.0002,0.2166,False,0.0023
+base_convnext.stage_3_gs,0.5034,0.0015,0.5027,0.0016,0.0007,0.0003,True,0.5019
+base_convnext.stage_3_margin,0.0015,0.0013,0.0017,0.0015,-0.0003,0.1935,False,0.002
+base_transformer.block_0_gs,0.5212,0.0015,0.5208,0.0015,0.0004,0.0138,True,0.5203
+base_transformer.block_0_margin,0.0008,0.001,0.0007,0.0006,0.0001,0.6184,False,0.0014
+base_transformer.block_1_gs,0.4954,0.0015,0.4949,0.0013,0.0005,0.0062,True,0.4953
+base_transformer.block_1_margin,0.001,0.0009,0.0012,0.0009,-0.0001,0.1897,False,0.0017
+base_transformer.block_2_gs,0.5094,0.0009,0.5096,0.0008,-0.0002,0.132,False,0.509
+base_transformer.block_2_margin,0.0007,0.0007,0.0007,0.0006,0.0,0.8413,False,0.0008
+base_transformer.block_3_gs,0.5079,0.0015,0.5084,0.0017,-0.0006,0.0035,True,0.5089
+base_transformer.block_3_margin,0.0015,0.0012,0.001,0.0009,0.0004,0.002,True,0.0014

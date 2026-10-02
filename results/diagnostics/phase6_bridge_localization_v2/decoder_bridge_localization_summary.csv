@@ -1,0 +1,6 @@
+stratum,N_samples,S3_14x14_contrast_neck_over_bg,S2_28x28_contrast_neck_over_bg,S1_56x56_contrast_neck_over_bg,S0_112x112_contrast_neck_over_bg,Head_112x112_neck_prob_median,Head_112x112_neck_pct_ge50,Head_112x112_neck_pct_ge75,Final_448x448_neck_prob_median,Final_448x448_neck_pct_ge50,Final_448x448_neck_pct_ge75
+Consensus_7of7_10cases,10,1.0138,1.1508,3.174,4.2157,0.9392,91.37,86.04,0.9522,100.0,93.4
+Cured_by_D2_5cases,5,1.0088,0.9665,2.2294,2.3502,0.7878,84.0,61.53,0.7819,100.0,58.05
+Created_by_D2_5cases,5,1.013,0.9131,1.5998,1.6699,0.2992,21.76,11.14,0.2886,16.86,7.25
+Low_Consensus_5cases,5,1.0317,0.9149,1.9584,2.4348,0.6306,63.64,27.27,0.6481,100.0,27.4
+All_25_Representative_Cases,25,1.0143,1.0391,2.5164,3.0806,0.7361,71.72,59.57,0.7392,80.2,61.33

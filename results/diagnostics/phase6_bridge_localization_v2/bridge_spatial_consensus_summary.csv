@@ -1,0 +1,6 @@
+stratum,N_cases,mean_pairwise_iou,median_pairwise_iou,mean_base_vs_d2_iou,median_base_vs_d2_iou,mean_base_vs_d2_dice,mean_7way_strict_iou,median_7way_strict_iou,mean_7way_intersection_px,mean_7way_union_px,mean_ge4_models_share_ratio,mean_ge5_models_share_ratio,mean_ge6_models_share_ratio
+Consensus_7of7,101,0.7403,0.743,0.7623,0.7941,0.8573,0.4936,0.4875,2422.6,4950.5,0.7266,0.6543,0.5829
+Persistent_Base_to_D2,103,0.7318,0.7426,0.7582,0.7928,0.8544,0.484,0.4847,2375.5,4886.2,0.7215,0.6482,0.5715
+Cured_by_D2,7,0.2659,0.2552,0.0,0.0,0.0,0.0,0.0,0.0,2902.9,0.406,0.2533,0.0492
+Created_by_D2,6,0.4365,0.533,0.0,0.0,0.0,0.0,0.0,0.0,5181.7,0.6318,0.4369,0.3637
+All_116_Target_Cases,116,0.6884,0.7313,0.6732,0.776,0.7586,0.4297,0.4708,2109.3,4781.8,0.6978,0.6135,0.5293

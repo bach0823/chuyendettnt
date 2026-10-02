@@ -1,0 +1,26 @@
+region,bin_label,bin_low,bin_high,pixel_count,pct_of_region
+Minimal_Connector_Neck_All110,"Marginal [0.50, 0.60)",0.5,0.6,1260,7.88
+Minimal_Connector_Neck_All110,"Low-Intermediate [0.60, 0.70)",0.6,0.7,1265,7.91
+Minimal_Connector_Neck_All110,"High-Intermediate [0.70, 0.80)",0.7,0.8,1539,9.62
+Minimal_Connector_Neck_All110,"Confident [0.80, 0.90)",0.8,0.9,2488,15.56
+Minimal_Connector_Neck_All110,"Highly Confident [0.90, 1.00]",0.9,1.0,9440,59.03
+Whole_Bridge_FP_All110,"Marginal [0.50, 0.60)",0.5,0.6,51902,12.88
+Whole_Bridge_FP_All110,"Low-Intermediate [0.60, 0.70)",0.6,0.7,49849,12.38
+Whole_Bridge_FP_All110,"High-Intermediate [0.70, 0.80)",0.7,0.8,55428,13.76
+Whole_Bridge_FP_All110,"Confident [0.80, 0.90)",0.8,0.9,74229,18.43
+Whole_Bridge_FP_All110,"Highly Confident [0.90, 1.00]",0.9,1.0,171412,42.55
+TP_Crack_BridgeImages,"Marginal [0.50, 0.60)",0.5,0.6,22578,2.13
+TP_Crack_BridgeImages,"Low-Intermediate [0.60, 0.70)",0.6,0.7,27481,2.6
+TP_Crack_BridgeImages,"High-Intermediate [0.70, 0.80)",0.7,0.8,40361,3.81
+TP_Crack_BridgeImages,"Confident [0.80, 0.90)",0.8,0.9,76827,7.26
+TP_Crack_BridgeImages,"Highly Confident [0.90, 1.00]",0.9,1.0,890971,84.2
+Neck_7of7_Consensus101,"Marginal [0.50, 0.60)",0.5,0.6,1174,7.59
+Neck_7of7_Consensus101,"Low-Intermediate [0.60, 0.70)",0.6,0.7,1154,7.46
+Neck_7of7_Consensus101,"High-Intermediate [0.70, 0.80)",0.7,0.8,1424,9.21
+Neck_7of7_Consensus101,"Confident [0.80, 0.90)",0.8,0.9,2297,14.85
+Neck_7of7_Consensus101,"Highly Confident [0.90, 1.00]",0.9,1.0,9415,60.88
+Neck_Cured_by_D2_7cases,"Marginal [0.50, 0.60)",0.5,0.6,58,15.93
+Neck_Cured_by_D2_7cases,"Low-Intermediate [0.60, 0.70)",0.6,0.7,88,24.18
+Neck_Cured_by_D2_7cases,"High-Intermediate [0.70, 0.80)",0.7,0.8,68,18.68
+Neck_Cured_by_D2_7cases,"Confident [0.80, 0.90)",0.8,0.9,126,34.62
+Neck_Cured_by_D2_7cases,"Highly Confident [0.90, 1.00]",0.9,1.0,24,6.59
