@@ -167,3 +167,17 @@ Epoch   Arm A (Lseg only)                     Arm B (Lseg + 0.1 Laux)
 | **Resistant 82** | Resistant 82 false bridges are essentially unaffected by pointwise gating (88 $\to$ 87 events), while breakages jump from 8 $\to$ 15. | **Supported by Evidence** | Subgroup analysis of 82 consensus resistant images. |
 | **Causality** | Pointwise gating fails because it lacks 2D spatial context / geometric orientation. | **Consistent with Hypothesis, Not Directly Proven** | Empirical behavior matches spatial erosion, but receptive-field causality has not been isolated via a controlled kernel-size ablation. |
 | **Generalization** | All possible interventions at T2 are incapable of solving bridges. | **Not Proven / Rejected Overclaim** | Only the specific $1 \times 1$ pointwise SDSG formulation was evaluated; context-aware or upstream methods remain uncharacterized. |
+
+---
+
+## 8. Experimental Framework: T2-CSDG (Spatial Context Gate) Protocol & Epistemic Boundaries
+
+To definitively distinguish between **"pointwise gating failed due to lack of 2D spatial context" (H2)** and **"T2 representations are already irreparably corrupted upstream" (H1)**, a controlled, single-variable intervention is designed: **T2-CSDG (Contextual Spatial Dual-Stream Gate)**.
+
+### Epistemic Rules for Upcoming Experiments:
+1. **Support vs Proof (H2)**: If T2-CSDG with spatial kernels ($K=3$ or $K=5$) successfully suppresses false bridges without inducing true crack breakages, this result **supports H2**; it must NOT be claimed that it "proves H2" (as other confounding non-linear interactions may be involved).
+2. **Failure Scope (CSDG)**: If both $K=3$ and $K=5$ fail to break the bridge-vs-breakage trade-off, this strictly concludes that **the CSDG family of convolutional gating modules fails** under this formulation and protocol; it does NOT completely refute H2 (as larger context, non-local attention, or oriented curvilinear filters might theoretically behave differently).
+3. **No Representation Ceiling Claim**: The frozen T2 linear probe AUC ($\sim 0.697$) is strictly an empirical linear diagnostic baseline under image-grouped ridge regression; it must NOT be labeled an absolute "representation ceiling" of T2.
+4. **Parameter Counts**: Any comparative upstream architecture (such as Micro-Stem) must state exact parameter counts derived directly from module tensor specifications, avoiding estimates.
+5. **No Unbenchmarked Latency Claims**: No speculative latency claims (e.g. "<0.1 ms") may be asserted without measured CUDA events / PyTorch benchmark timings.
+
