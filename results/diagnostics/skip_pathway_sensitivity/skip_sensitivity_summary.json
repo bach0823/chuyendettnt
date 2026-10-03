@@ -1,0 +1,89 @@
+{
+  "S0": {
+    "resolution": "112x112",
+    "channels": 48,
+    "decoder_block": "DecoderBlock 2",
+    "wider_gap_43": {
+      "median_delta": -0.32088208198547363,
+      "mean_delta": -0.30996886831383375,
+      "p10": -0.49997806549072266,
+      "p25": -0.4018186926841736,
+      "p75": -0.23455865681171417,
+      "p90": -0.08934431076049784,
+      "cured_count": 1,
+      "cured_rate_pct": 2.3255813953488373,
+      "new_bridges_created": 1
+    },
+    "full_118": {
+      "median_delta": -0.16217172145843506,
+      "mean_delta": -0.18451820984798467,
+      "cured_count": 2,
+      "cured_rate_pct": 1.694915254237288,
+      "new_bridges_created": 2
+    },
+    "clean_control": {
+      "median_crack_delta": -0.24006938934326172,
+      "mean_crack_delta": -0.23797988796303438,
+      "breakage_events": 0,
+      "bridges_created": 0
+    }
+  },
+  "S1": {
+    "resolution": "56x56",
+    "channels": 96,
+    "decoder_block": "DecoderBlock 1",
+    "wider_gap_43": {
+      "median_delta": 0.6426944732666016,
+      "mean_delta": 0.9850570599353591,
+      "p10": 0.0,
+      "p25": 0.18235617876052856,
+      "p75": 1.6688834726810455,
+      "p90": 2.5020595490932465,
+      "cured_count": 8,
+      "cured_rate_pct": 18.6046511627907,
+      "new_bridges_created": 2
+    },
+    "full_118": {
+      "median_delta": 0.08341330289840698,
+      "mean_delta": 0.4891175764407647,
+      "cured_count": 10,
+      "cured_rate_pct": 8.47457627118644,
+      "new_bridges_created": 3
+    },
+    "clean_control": {
+      "median_crack_delta": 1.4813547134399414,
+      "mean_crack_delta": 1.817471128130375,
+      "breakage_events": 3,
+      "bridges_created": 0
+    }
+  },
+  "S2": {
+    "resolution": "28x28",
+    "channels": 192,
+    "decoder_block": "DecoderBlock 0",
+    "wider_gap_43": {
+      "median_delta": 0.0,
+      "mean_delta": -0.07835531026818031,
+      "p10": -0.3232050895690918,
+      "p25": -0.09241437911987305,
+      "p75": 0.0,
+      "p90": 0.048127937316894694,
+      "cured_count": 1,
+      "cured_rate_pct": 2.3255813953488373,
+      "new_bridges_created": 1
+    },
+    "full_118": {
+      "median_delta": 0.0,
+      "mean_delta": -0.028799198189024197,
+      "cured_count": 3,
+      "cured_rate_pct": 2.5423728813559325,
+      "new_bridges_created": 2
+    },
+    "clean_control": {
+      "median_crack_delta": 0.09071564674377441,
+      "mean_crack_delta": 0.08592397009217462,
+      "breakage_events": 0,
+      "bridges_created": 0
+    }
+  }
+}
