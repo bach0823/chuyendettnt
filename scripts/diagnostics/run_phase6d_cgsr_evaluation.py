@@ -436,25 +436,29 @@ def run_phase6d_evaluation(
         for _, ev_row in group.iterrows():
             ev_id = int(ev_row["event_id"])
             p_id = int(ev_row["pred_cc_id"])
-            d_gap = float(ev_row["D_gap"])
+            d_gap = float(ev_row["d_gap_px"]) if "d_gap_px" in ev_row else float(ev_row.get("D_gap", 0.0))
+            gA = int(ev_row["primary_gt_A"]) if "primary_gt_A" in ev_row else 1
+            gB = int(ev_row["primary_gt_B"]) if "primary_gt_B" in ev_row else 2
 
-            ca_y, ca_x = int(ev_row["CA_y"]), int(ev_row["CA_x"])
-            cb_y, cb_x = int(ev_row["CB_y"]), int(ev_row["CB_x"])
+            # 1. Construct bridge corridor mask using morphological dilation between merged GT components
+            cc_fp = (ctrl_labels == p_id) & (target_bin == 0)
+            r = max(int(np.ceil(d_gap / 2.0)) + 2, 3)
+            k_elem = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*r+1, 2*r+1))
+            dil_A = cv2.dilate((gt_labels == gA).astype(np.uint8), k_elem)
+            dil_B = cv2.dilate((gt_labels == gB).astype(np.uint8), k_elem)
+            corridor_mask = (dil_A > 0) & (dil_B > 0) & cc_fp
+            if np.sum(corridor_mask) == 0:
+                corridor_mask = cc_fp
 
-            # 1. Construct bridge corridor mask
-            corridor_line = np.zeros((H, W), dtype=np.uint8)
-            cv2.line(corridor_line, (ca_x, ca_y), (cb_x, cb_y), 1, thickness=3)
-            corridor_mask = (corridor_line == 1) & (target_bin == 0)
+            # 2. Extract adjacent true crack endpoints on gA and gB
+            dil_corr = cv2.dilate(corridor_mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7)))
+            crack_endpoints_mask = ((gt_labels == gA) | (gt_labels == gB)) & (dil_corr > 0)
+            if np.sum(crack_endpoints_mask) == 0:
+                crack_endpoints_mask = ((gt_labels == gA) | (gt_labels == gB))
 
-            # Control endpoints / true crack masks
-            endpoints_mask = np.zeros((H, W), dtype=np.uint8)
-            cv2.circle(endpoints_mask, (ca_x, ca_y), 5, 1, -1)
-            cv2.circle(endpoints_mask, (cb_x, cb_y), 5, 1, -1)
-            crack_endpoints_mask = (endpoints_mask == 1) & (target_bin == 1)
-
-            # Local background mask around corridor (excluding corridor and crack)
-            corridor_dilated = cv2.dilate(corridor_line, cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15)))
-            bg_mask = (corridor_dilated == 1) & (target_bin == 0) & (~corridor_mask)
+            # 3. Local background mask around corridor (excluding corridor and crack)
+            dil_corr_large = cv2.dilate(corridor_mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17)))
+            bg_mask = (dil_corr_large > 0) & (target_bin == 0) & (~corridor_mask)
 
             # Measure logits on corridor
             if np.sum(corridor_mask) > 0:
@@ -484,16 +488,16 @@ def run_phase6d_evaluation(
 
             # Check if bridge is cured in CGSR:
             # A bridge is cured if:
-            # (a) CA and CB no longer belong to the same connected component in cgsr_labels, OR
-            # (b) corridor mean prediction < 0.5 (logits < 0.0)
-            is_cured = False
-            if 0 <= ca_y < H and 0 <= ca_x < W and 0 <= cb_y < H and 0 <= cb_x < W:
-                cgsr_ca_label = cgsr_labels[ca_y, ca_x]
-                cgsr_cb_label = cgsr_labels[cb_y, cb_x]
-                if cgsr_ca_label == 0 or cgsr_cb_label == 0 or (cgsr_ca_label != cgsr_cb_label):
-                    is_cured = True
-                elif z_cgsr_bridge < 0.0:
-                    is_cured = True
+            # (a) gA and gB are no longer merged by any single connected component in cgsr_labels, OR
+            # (b) corridor mean logit < 0.0 (corridor probability < 0.5)
+            is_merged_in_cgsr = False
+            for p_cgsr in range(1, num_cgsr_cc):
+                gt_overlap = np.unique(gt_labels[cgsr_labels == p_cgsr])
+                if gA in gt_overlap and gB in gt_overlap:
+                    is_merged_in_cgsr = True
+                    break
+
+            is_cured = (not is_merged_in_cgsr) or (z_cgsr_bridge < 0.0)
 
             strat_group = "Group B (D > 8)" if d_gap > 8.0 else ("Group A (5 < D <= 8)" if d_gap > 5.0 else "Narrow (D <= 5)")
 
