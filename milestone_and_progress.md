@@ -100,6 +100,17 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
       + Exact Base Equivalence ($\lambda_{\text{sep}}=0$) $\implies \texttt{torch.equal} = \text{TRUE}$ ở cấp độ byte cho loss và toàn bộ 100% gradient tham số.
       + Gradient Calibration trên 8 ca bridge thực tế $\implies \|g_{\text{sep}}\| / \|g_{\text{Base}}\| = 5.6461\times \implies \lambda_{\text{sep}} = 0.010$ (ngân sách $5.65\%$ Base gradient).
     - **Trạng thái**: Sẵn sàng huấn luyện Stage 2 trên Colab Driver.
+14. **Phase 6-D: Kiểm chứng Nhân quả ASDW & Loại bỏ chính thức P3-C (P3-C ASDW ELIMINATED & INTERIM ASDW-OFF MODE LOCKED 🔒):**
+    - **Thực nghiệm đối chứng nhân quả cùng checkpoint (Same-checkpoint causal probe trên $N=348$ Crack500 Val, 81.6M pixels)**:
+      + Đã thực hiện bypass ASDW trực tiếp ($X' = X + \gamma F(X) \to X$, tức `p3_refinement = nn.Identity()`) trên cùng một checkpoint Candidate B đã huấn luyện có ASDW.
+      + Kết quả: $|\Delta z| \approx 10^{-5}$ (mean $|\Delta z| = 0.000011$, max $|\Delta z| = 0.001044$). Chỉ có đúng 45/81,594,144 pixels đảo dấu ($0.000055\%$, tương đương $0.13\text{ px/ảnh}$).
+      + $\Delta\text{Dice} = +1.30 \times 10^{-8}$ ($0.764088 \to 0.764088$), $\Delta\text{clDice} = -1.99 \times 10^{-5}$, $\Delta\text{HD95} = +0.0050\text{ px}$.
+      + Tác động topology: Biến thiên đúng 0 ca false bridge (118 vs 118) và 0 ca thin break (35 vs 35).
+    - **Nguyên nhân vật lý / kiến trúc**: Suy giảm kép (double attenuation: $\gamma_{\text{S0}}=0.0147, \gamma_{\text{S1}}=0.0158$ và SAGE `residual_scale = 0.10`) khiến đóng góp của ASDW hoàn toàn bị triệt tiêu khi ra đến output logits.
+    - **Phán quyết khoa học & Quyết định chính thức**:
+      $$\boxed{\textbf{Chính thức LOẠI BỎ P3-C (ASDW Refinement) khỏi kiến trúc SAGE-Lite}}$$
+      $$\boxed{\textbf{Candidate B vận hành tạm thời ở chế độ: Interim ASDW-OFF Mode} \; (\texttt{turn\_off\_asdw=True})}$$
+    - **Quy tắc vận hành**: Mọi phân tích, diagnostic, và đánh giá tiếp theo của Candidate B đều kích hoạt `turn_off_asdw=True` (thay `stage0.p3_refinement` và `stage1.p3_refinement` bằng `nn.Identity()`), cho đến khi hoàn tất huấn luyện một checkpoint Candidate B sạch hoàn chỉnh không chứa ASDW (dùng P3-A: `AdaptiveAvgPool2d(28, 28)` thuần, 0 tham số phụ).
 
 State:
 - Phase 1: D4 locked
@@ -116,6 +127,7 @@ State:
 - Phase 6-D.0: HOÀN TẤT (Area Excess ↔ False Bridge Diagnostic, OR = 5.67)
 - Phase 6-D.1: HOÀN TẤT (PLU + AB-BPL Synergy Probe, Val Dice = 0.7669, Partial Support for Complementarity)
 - Phase 6-D.2: PREFLIGHT PASSED & SPECIFICATION FROZEN 🔒 (Pure Separation Isolation Probe, lambda_sep = 0.010)
+- Phase 6-D.3: HOÀN TẤT & ĐÃ KHÓA (P3-C ASDW BỊ LOẠI BỎ; Candidate B chuyển sang Interim ASDW-OFF Mode)
 
 Cấu hình hiện hành:
 - ViT depth = 4
@@ -126,6 +138,7 @@ Cấu hình hiện hành:
 - N_injection = 8 routers
 - batch size = 14
 - epoch budget = 35 (17+18)
+- P3 Status: P3-C (ASDW) ĐÃ CHÍNH THỨC BỊ LOẠI BỎ. Candidate B tạm thời chạy ở chế độ Interim ASDW-OFF (`p3_refinement = nn.Identity()`) cho đến khi train Candidate B sạch (Pure P3-A).
 
 
 ### ⚠️ QUY TẮC BẮT BUỘC: PREPROCESSING CHÍNH THỨC ĐÃ KHÓA (FROZEN CANONICAL)
@@ -566,6 +579,35 @@ sage-lite/
     4. *Global False Bridge Count*: $\le 107$ ($< 31.0\%$, Net Change $\le -5$ bridges).
   + **Bộ kiểm thử Tiền trạm (Preflight Gate 1–5)**: Đã chạy thực tế trên GPU và **PASS 100%** (Loss equivalence khi $\lambda=0$, AB-BPL mechanics, AMP FP16 stability trên CUDA với cuDNN disabled cho Turing GTX 1650, parameter invariance 10,125,363, strict checkpoint load 0 missing 0 unexpected).
   + **Tài liệu & Configs**: Đã lập `configs/p3_ablation/b2_p3_run_c_d4_k2_h64_phase6_d1_plu_abbpl.yaml`, `results/configs/...`, `docs/Phase6_Experiment_6D1_Specification.md`, `scripts/tests/test_phase6_d1_plu_abbpl.py`.
+- **2026-10-03**: Hoàn thành Kiểm chứng Nhân quả ASDW Cùng Checkpoint (Same-Checkpoint ASDW Causal Probe) & Chính thức Loại bỏ P3-C (Phase 6-D Closed):
+  + **Động lực & Thiết kế Thực nghiệm**:
+    * Không chấp nhận giả định kiến trúc rằng "ASDW bảo vệ chi tiết vết nứt mảnh" khi chưa có chứng minh nhân quả.
+    * Thực hiện phép thử counterfactual trực tiếp trên chính weights của checkpoint Candidate B (`P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_global.pth`):
+      $$X' = X + \gamma F(X) \quad\longrightarrow\quad X \quad (\texttt{stage.p3\_refinement = nn.Identity()})$$
+    * So sánh **ON vs OFF** trên toàn bộ $N=348$ ảnh validation Crack500 ($81,594,144$ pixels), hoàn toàn không train lại, giữ nguyên mọi trọng số khác.
+  + **Kết quả Đo lường Độc lập (Candidate B, Val N=348)**:
+    * $\Delta\text{Dice} = +1.30 \times 10^{-8}$ ($0.764088 \to 0.764088$, bất biến đến 7 chữ số thập phân).
+    * $\Delta\text{clDice} = -1.99 \times 10^{-5}$ ($0.849852 \to 0.849872$).
+    * $\Delta\text{Boundary IoU} = -9.52 \times 10^{-7}$ ($0.241758 \to 0.241759$).
+    * $\Delta\text{HD95} = +0.0050\text{ px}$ ($53.6483 \to 53.6432\text{ px}$).
+    * $\Delta\text{Thin-Crack Dice} = -1.30 \times 10^{-6}$ ($0.423006 \to 0.423008$).
+    * $\Delta\text{False Bridge Events} = 0$ ($118 \to 118$, bất biến 100%).
+    * $\Delta\text{Break Events} = 0$ ($35 \to 35$, bất biến 100%).
+  + **Tác động Mức Pixel & Logit**:
+    * Mean $|\Delta z| = 0.000011$, Median $|\Delta z| = 0.000005$, Max $|\Delta z| = 0.001044$.
+    * Đảo dấu nhị phân (Sign flips $z > 0 \leftrightarrow z \le 0$): Chỉ có đúng **45 / 81,594,144 pixels** ($0.000055\%$, tương đương $0.13\text{ pixel / ảnh}$).
+  + **Bóc tách Cơ chế Biểu diễn Tiền nén (Pre-compression Representation Probe)**:
+    * Stage 0 ($112 \times 112$): Chuẩn nhiễu $\|X' - X\| / \|X\| = 0.2454\%$ ($\gamma_{\text{S0}} = 0.0147$); Tỉ số Laplacian High-Pass $\Delta_{\text{HP}} = +0.000244$ ($+0.0076\%$).
+    * Stage 1 ($56 \times 56$): Chuẩn nhiễu $\|X' - X\| / \|X\| = 0.0744\%$ ($\gamma_{\text{S1}} = 0.0158$); Tỉ số Laplacian High-Pass $\Delta_{\text{HP}} = +0.000052$ ($+0.0096\%$).
+    * **Căn nguyên toán học**: Đóng góp của ASDW bị suy giảm 2 tầng liên tiếp (double attenuation: $\gamma \approx 0.015$ nhân tiếp với SAGE `residual_scale = 0.10` $\implies$ tỉ lệ khuếch đại thực tế chỉ là $\sim 0.0015$). ASDW hoàn toàn trơ về mặt toán học đối với logits đầu ra.
+    * Khoảng cách $+0.0014$ Dice giữa P3-C và P3-A trong quá khứ chỉ là nhiễu tối ưu (optimization noise) giữa hai lần chạy độc lập.
+  + **Phán quyết Khoa học & Hành động Khóa Cấu hình**:
+    $$\boxed{\textbf{P3-C (ASDW Refinement) chính thức bị LOẠI BỎ (DEPRECATED)}}$$
+    $$\boxed{\textbf{Candidate B vận hành ở chế độ: Interim ASDW-OFF Mode} \; (\texttt{turn\_off\_asdw=True})}$$
+    * **Chính thức đóng Phase 6-D**. Không phát triển thêm adapter/gate/loss cho ASDW.
+    * Tất cả script/công cụ đánh giá Candidate B kế thừa mặc định `turn_off_asdw = True` (thay `stage.p3_refinement = nn.Identity()`).
+    * Mô hình Candidate B tương lai sẽ được huấn luyện chuẩn sạch bằng P3-A thuần (`AdaptiveAvgPool2d(28, 28)`, 0 tham số dư thừa).
+    * Chuyển trọng tâm kiến trúc sang bài toán Upstream Stem Genesis (Anti-aliased downsampling / Nyquist-Shannon resolution preservation).
 
 
 

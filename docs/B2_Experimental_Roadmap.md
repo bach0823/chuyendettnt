@@ -422,21 +422,28 @@ flowchart TD
   - Output: Biên bản phán quyết kiến trúc được phê duyệt dựa trên 4 trụ cột.
 - **Acceptance Criteria**: Quyết định được đưa ra $100\%$ dựa trên số liệu thực nghiệm định lượng từ tập Val, tuyệt đối không suy diễn cảm tính và không chạm vào tập Test.
 - **Verification / Test**: Kiểm tra chéo số liệu giữa log training và bảng đánh giá Validation.
-- **Artifact / Log**: Cập nhật kết luận chính thức vào `milestone_and_progress.md`.
-- **Status**: **TODO**
+- **Artifact / Log**: Cập nhật kết luận chính thức vào `milestone_and_progress.md` và `scripts/diagnostics/run_asdw_same_checkpoint_on_off_probe.py` (commit `62b63b1`).
+- **Status**: **REJECT P3-C / ELIMINATED (HOÀN TẤT & ĐÃ KHÓA ✅)**
+  + **Phán quyết chính thức**: Bác bỏ và loại bỏ hoàn toàn **P3-C (ASDW Refinement)** khỏi kiến trúc SAGE-Lite.
+  + **Căn cứ thực nghiệm nhân quả (Val N=348, 81.6M pixels)**:
+    * Thử nghiệm counterfactual trực tiếp trên cùng một checkpoint Candidate B ($X' = X + \gamma F(X) \to X$) chứng minh ASDW hoàn toàn trơ về mặt toán học đối với logits: Mean $|\Delta z| = 0.000011$, chỉ có 45/81.6M pixels đảo dấu ($0.000055\%$), biến thiên đúng 0 ca false bridge (118 vs 118) và 0 ca thin break (35 vs 35).
+    * Cơ chế suy giảm kép (double attenuation: $\gamma \approx 0.015 \times \text{residual\_scale } 0.10 \approx 0.0015$) triệt tiêu toàn bộ tác động của ASDW. Khoảng cách $+0.0014$ Dice giữa P3-C và P3-A ở Phase 1 là nhiễu tối ưu ngẫu nhiên, không phải năng lực giữ chi tiết của ASDW.
+  + **Quy tắc vận hành tạm thời (Candidate B Interim ASDW-OFF Mode)**:
+    * Khi nạp Candidate B (`P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_global.pth`), `stage.p3_refinement` được bypass mặc định bằng `nn.Identity()` (`turn_off_asdw = True`).
+    * Chế độ này duy trì cho mọi diagnostic/eval tiếp theo cho đến khi huấn luyện một Candidate B chuẩn sạch hoàn chỉnh bằng P3-A (`AdaptiveAvgPool2d(28, 28)` thuần, 0 tham số phụ).
 
 ---
 
 ##### 3. Bảng Kiểm Tra Tiến Độ (Phase Checklist)
 - [x] `P3-PHASE-0`: Freeze Design & Invariants Documentation (FROZEN - ngoại trừ Pos-Embed chờ Phase 1 audit ✅)
-- [ ] `P3-PHASE-1`: Codebase Audit, Positional Encoding & Execution Path Verification (No Code Changes)
-- [ ] `P3-PHASE-2`: Tensor Shape Contract Specification
-- [ ] `P3-PHASE-3`: ASDW Module Signature & Complexity Audit
-- [ ] `P3-PHASE-4`: Integration Guard Logic & Checkpoint Plan
-- [ ] `P3-PHASE-5`: Minimal Verification Suite & Real-Data Runtime Preflight (T4 Pilot)
-- [ ] `P3-PHASE-6`: 3-Run Ablation Protocol Configuration
-- [ ] `P3-PHASE-7`: Controlled Training & Metrics Benchmarking
-- [ ] `P3-PHASE-8`: Architectural Decision Gate Verdict
+- [x] `P3-PHASE-1`: Codebase Audit, Positional Encoding & Execution Path Verification (No Code Changes) ✅
+- [x] `P3-PHASE-2`: Tensor Shape Contract Specification ✅
+- [x] `P3-PHASE-3`: ASDW Module Signature & Complexity Audit ✅
+- [x] `P3-PHASE-4`: Integration Guard Logic & Checkpoint Plan ✅
+- [x] `P3-PHASE-5`: Minimal Verification Suite & Real-Data Runtime Preflight (T4 Pilot) ✅
+- [x] `P3-PHASE-6`: 3-Run Ablation Protocol Configuration ✅
+- [x] `P3-PHASE-7`: Controlled Training & Metrics Benchmarking ✅
+- [x] `P3-PHASE-8`: Architectural Decision Gate Verdict (REJECT P3-C / DEPRECATED ✅)
 
 ---
 
