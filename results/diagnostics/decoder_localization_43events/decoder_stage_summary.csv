@@ -1,0 +1,7 @@
+decoder_stage,first_emergence_count,first_emergence_pct,median_contrast_bridge,p25_contrast_bridge,p75_contrast_bridge,mean_contrast_bridge,median_sim_to_crack,median_sim_to_bg,median_contrast_ctrl,median_sim_ctrl_to_crack,median_logit_corr,median_prob_corr
+bottleneck_14,7,16.3,1.437,-0.1204,643.2831,228.1723,0.9244,0.9714,0.7879,0.9999,,
+decoder_28,14,32.6,0.5615,0.0207,1.2746,650.1451,0.9121,0.8319,1.0012,0.999,,
+decoder_56,9,20.9,0.6285,0.4272,0.7697,0.5997,0.961,0.6204,1.009,0.9991,,
+decoder_112,4,9.3,0.621,0.4384,0.7539,0.6086,0.9878,0.5418,1.0025,0.9991,,
+head_112,6,14.0,0.7433,0.6372,0.8363,0.7351,1.0,-1.0,1.0062,1.0,2.1986,0.9001
+final_448,0,0.0,0.7433,0.6369,0.8368,0.7345,1.0,-1.0,1.0062,1.0,2.1986,0.9001
