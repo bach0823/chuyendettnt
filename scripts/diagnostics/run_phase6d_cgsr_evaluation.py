@@ -49,15 +49,77 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 
-# Ensure SAGE_LITE and project root are on sys.path
+import yaml
+
+# Robust sys.path resolution for both local and Colab environments
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, "..", ".."))
-sage_lite_dir = os.path.join(project_root, "SAGE_LITE")
-for p in [project_root, sage_lite_dir]:
-    if p not in sys.path:
+
+candidate_sage_dirs = [
+    os.environ.get("SAGE_LITE_DIR", ""),
+    os.path.join(project_root, "SAGE_LITE"),
+    os.path.abspath(os.path.join(project_root, "..", "SAGE_LITE")),
+    "/content/SAGE_LITE",
+    os.getcwd(),
+]
+
+for p in [project_root] + candidate_sage_dirs:
+    if p and os.path.exists(p) and p not in sys.path:
         sys.path.insert(0, p)
 
-from tools.run_phase6_c_topology_diagnostic import load_model_from_checkpoint
+from sage.networks import create_b2_unet
+
+
+def load_model_from_checkpoint(
+    config_path: str,
+    checkpoint_path: str,
+    device: torch.device,
+    turn_off_asdw: bool = True,
+) -> nn.Module:
+    """
+    Self-contained loader for B2 UNet checkpoints supporting CGSR and canonical P3-C.
+    """
+    with open(config_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    num_layers = int(cfg.get("num_transformer_layers", 4))
+    p3_mode = cfg.get("p3_mode", "C")
+    img_size = int(cfg.get("img_size", 448))
+    sage_cfg = cfg.get("sage_config", {})
+    use_plu_head = cfg.get("use_plu_head", False)
+    use_cgsr = cfg.get("use_cgsr", cfg.get("cgsr", False))
+    cgsr_init_bias = float(cfg.get("cgsr_init_bias", 3.0))
+
+    model = create_b2_unet(
+        num_classes=1,
+        img_size=img_size,
+        num_transformer_layers=num_layers,
+        pretrained=False,
+        sage_config=sage_cfg,
+        p3_mode=p3_mode,
+        use_plu_head=use_plu_head,
+        use_cgsr=use_cgsr,
+        cgsr_init_bias=cgsr_init_bias,
+    ).to(device)
+
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    state_dict = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    
+    # Clean potential 'module.' prefixes
+    cleaned_state_dict = {}
+    for k, v in state_dict.items():
+        clean_k = k[7:] if k.startswith("module.") else k
+        cleaned_state_dict[clean_k] = v
+
+    model.load_state_dict(cleaned_state_dict)
+
+    if turn_off_asdw and hasattr(model.backbone, "convnext"):
+        for stage in model.backbone.convnext.stages[:2]:
+            if hasattr(stage, "p3_refinement") and stage.p3_refinement is not None:
+                stage.p3_refinement = nn.Identity()
+
+    model.eval()
+    return model
 
 
 # -----------------------------------------------------------------------------
