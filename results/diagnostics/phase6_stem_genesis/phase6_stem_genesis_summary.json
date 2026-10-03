@@ -1,0 +1,95 @@
+{
+  "experiment": "Phase 6: Upstream Genesis U0-C0 vs U0-C1 Causal Diagnostic",
+  "checkpoint_candidate_b": "147f784021414efd0db514aa6dae94585fece820e88f584e436fc65de851fb66",
+  "named_parameters_sha256": "4aeda58ce6d2fb32f5b772cdbf92dec7fb913f9510b392910efe6674b0adf5d6",
+  "training": {
+    "epochs": 8,
+    "batch_size": 14,
+    "lr": 0.0001,
+    "weight_decay": 0.01,
+    "precision": "AMP (FP16)",
+    "trainable_parameters": 4752,
+    "final_halo_l2_norm": 0.307483,
+    "final_halo_max_abs": 0.022637,
+    "final_train_loss_total": 0.522262
+  },
+  "subgroup_comparison": {
+    "Full_Validation_348": {
+      "N": 348,
+      "C0_bridge_images": 110,
+      "C1_bridge_images": 110,
+      "delta_bridge_images": 0,
+      "C0_bridge_events": 118,
+      "C1_bridge_events": 116,
+      "delta_bridge_events": -2,
+      "cured_images": 4,
+      "created_images": 4,
+      "C0_break_events": 35,
+      "C1_break_events": 38,
+      "delta_break_events": 3,
+      "C0_dice": 0.764088,
+      "C1_dice": 0.747788,
+      "delta_dice": -0.0163,
+      "C0_cldice": 0.849852,
+      "C1_cldice": 0.834194,
+      "delta_cldice": -0.015658
+    },
+    "Consensus_Resistant_82": {
+      "N": 82,
+      "C0_bridge_images": 82,
+      "C1_bridge_images": 82,
+      "delta_bridge_images": 0,
+      "C0_bridge_events": 88,
+      "C1_bridge_events": 86,
+      "delta_bridge_events": -2,
+      "cured_images": 0,
+      "created_images": 0,
+      "C0_break_events": 8,
+      "C1_break_events": 7,
+      "delta_break_events": -1,
+      "C0_dice": 0.757463,
+      "C1_dice": 0.749697,
+      "delta_dice": -0.007766,
+      "C0_cldice": 0.858566,
+      "C1_cldice": 0.851572,
+      "delta_cldice": -0.006994
+    },
+    "Clean_Control_56": {
+      "N": 56,
+      "C0_bridge_images": 0,
+      "C1_bridge_images": 0,
+      "delta_bridge_images": 0,
+      "C0_bridge_events": 0,
+      "C1_bridge_events": 0,
+      "delta_bridge_events": 0,
+      "C0_break_events": 8,
+      "C1_break_events": 7,
+      "delta_break_events": -1,
+      "C0_dice": 0.753977,
+      "C1_dice": 0.737220,
+      "delta_dice": -0.016757,
+      "C0_cldice": 0.819982,
+      "C1_cldice": 0.800733,
+      "delta_cldice": -0.01925
+    }
+  },
+  "stem_representation_metrics": {
+    "Resistant_82": {
+      "C0_sep_margin": 0.0125,
+      "C1_sep_margin": 0.0319,
+      "delta_sep_margin": 0.0194,
+      "C0_cos_neck_crack": 0.8397,
+      "C1_cos_neck_crack": 0.8256,
+      "delta_cos_neck_crack": -0.0141
+    },
+    "Sensitive_19": {
+      "C0_sep_margin": 0.0170,
+      "C1_sep_margin": 0.0280,
+      "delta_sep_margin": 0.0110,
+      "C0_cos_neck_crack": 0.8104,
+      "C1_cos_neck_crack": 0.8051,
+      "delta_cos_neck_crack": -0.0052
+    }
+  },
+  "conclusion": "Learnable spatial overlap halo alone (4752 params) fails to cure false bridges (110->110 images, net 0 cured, 82/82 resistant cohort unchanged). Downstream frozen network suffers -1.63% Dice degradation due to distribution shift. Hypothesis H1 (single-layer stride-4 non-overlap is the sole causal bottleneck) is refuted."
+}
