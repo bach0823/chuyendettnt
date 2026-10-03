@@ -1,8 +1,8 @@
 {
   "verdict": "H2 NOT SUPPORTED",
-  "verdict_explanation": "CGSR fails to cure wider-gap false bridges (cure rate: 9.3%, median Delta z_bridge: -0.1386), gate is either non-selective (contrast: +0.0003) or inactive, or causes excessive degradation to true cracks.",
+  "verdict_explanation": "CGSR fails to cure wider-gap false bridges (cure rate: 11.6%, median Delta z_bridge: +0.1595), gate is either non-selective (contrast: +0.0004) or inactive, or causes excessive degradation to true cracks.",
   "decision_flags": {
-    "val_dice_preserved": false,
+    "val_dice_preserved": true,
     "bridge_suppressed": false,
     "gate_discriminative": false,
     "collateral_damage_under_control": false
@@ -16,43 +16,43 @@
       "mean_recall": 0.8476884187202745
     },
     "cgsr": {
-      "mean_dice": 0.7589039693511094,
-      "std_dice": 0.1702428005459821,
-      "mean_iou": 0.635920902458934,
-      "mean_precision": 0.7234988471460035,
-      "mean_recall": 0.8517056138352564
+      "mean_dice": 0.7667432639189591,
+      "std_dice": 0.15500033420055503,
+      "mean_iou": 0.6428669357370973,
+      "mean_precision": 0.7336972487343456,
+      "mean_recall": 0.8458208047489657
     },
-    "delta_dice": -0.0051841620854666814,
-    "delta_iou": -0.00578616158949008,
-    "delta_precision": -0.01019580633394046,
-    "delta_recall": 0.004017195114981997
+    "delta_dice": 0.002655132482383027,
+    "delta_iou": 0.001159871688673264,
+    "delta_precision": 2.5952544016050183e-06,
+    "delta_recall": -0.0018676139713087458
   },
   "cohort_43_wider_gap": {
     "name": "43 Wider-Gap Events (D_gap > 5 px)",
     "N": 43,
-    "cured_count": 4,
-    "cured_rate_pct": 9.30232558139535,
+    "cured_count": 5,
+    "cured_rate_pct": 11.627906976744185,
     "delta_z_bridge": {
-      "mean": 0.001439723857613497,
-      "median": -0.1385960578918457,
-      "p10": -0.8063230037689209,
-      "p25": -0.5315421223640442,
-      "p75": 0.30059708654880524,
-      "p90": 0.921955382823945
+      "mean": 0.2169670798750811,
+      "median": 0.15946292877197266,
+      "p10": -0.4853391647338867,
+      "p25": -0.1859889030456543,
+      "p75": 0.4243175983428955,
+      "p90": 1.0786912918090825
     },
     "delta_z_crack": {
-      "mean": -0.09509295199153035,
-      "median": -0.12217569351196289
+      "mean": 0.054780174479928126,
+      "median": 0.002604246139526367
     },
     "gate_metrics": {
-      "g_bridge_mean": 0.9554253303727438,
-      "g_bridge_median": 0.9556061029434204,
-      "g_crack_mean": 0.95599979716678,
-      "g_crack_median": 0.9562216401100159,
-      "g_contrast_mean": 0.0005744667940361556,
-      "g_contrast_median": 0.0003084540367126465,
-      "spearman_g_vs_delta": -0.5021141649048625,
-      "spearman_p_val": 0.000601897418699031
+      "g_bridge_mean": 0.9546715949856958,
+      "g_bridge_median": 0.9549171328544617,
+      "g_crack_mean": 0.955249432907548,
+      "g_crack_median": 0.9554636478424072,
+      "g_contrast_mean": 0.0005778379218522893,
+      "g_contrast_median": 0.00044292211532592773,
+      "spearman_g_vs_delta": -0.5206886137118695,
+      "spearman_p_val": 0.0003442340717394721
     }
   },
   "cohort_group_a_5_to_8": {
@@ -61,87 +61,87 @@
     "cured_count": 1,
     "cured_rate_pct": 9.090909090909092,
     "delta_z_bridge": {
-      "mean": -0.05534599856896834,
-      "median": -0.3077690601348877,
-      "p10": -0.7961080074310303,
-      "p25": -0.47292280197143555,
-      "p75": 0.4862014651298523,
-      "p90": 0.96075439453125
+      "mean": 0.23222699490460483,
+      "median": 0.15946292877197266,
+      "p10": -0.1876363754272461,
+      "p25": 0.04403144121170044,
+      "p75": 0.23271805047988892,
+      "p90": 0.6177830696105957
     },
     "delta_z_crack": {
-      "mean": -0.022313416004180908,
-      "median": -0.19002258777618408
+      "mean": 0.2163186032663692,
+      "median": 0.17121410369873047
     },
     "gate_metrics": {
-      "g_bridge_mean": 0.9556716572154652,
-      "g_bridge_median": 0.9560185670852661,
-      "g_crack_mean": 0.9558158842000094,
-      "g_crack_median": 0.9560195803642273,
-      "g_contrast_mean": 0.00014422698454423383,
-      "g_contrast_median": 1.2278556823730469e-05,
-      "spearman_g_vs_delta": -0.7090909090909092,
-      "spearman_p_val": 0.014552051953727704
+      "g_bridge_mean": 0.954640887000344,
+      "g_bridge_median": 0.9549171328544617,
+      "g_crack_mean": 0.9548954584381797,
+      "g_crack_median": 0.9549961090087891,
+      "g_contrast_mean": 0.00025457143783569336,
+      "g_contrast_median": 0.00014138221740722656,
+      "spearman_g_vs_delta": -0.4090909090909091,
+      "spearman_p_val": 0.2115450103420961
     }
   },
   "cohort_group_b_gt_8": {
     "name": "Group B (D > 8 px)",
     "N": 32,
-    "cured_count": 3,
-    "cured_rate_pct": 9.375,
+    "cured_count": 4,
+    "cured_rate_pct": 12.5,
     "delta_z_bridge": {
-      "mean": 0.020959815941751003,
-      "median": 0.0286179780960083,
-      "p10": -0.8025485277175903,
-      "p25": -0.5408678352832794,
-      "p75": 0.26348112523555756,
-      "p90": 0.7437130510807042
+      "mean": 0.2117214840836823,
+      "median": 0.14670217037200928,
+      "p10": -0.48700881004333496,
+      "p25": -0.25528207421302795,
+      "p75": 0.4891718626022339,
+      "p90": 1.0887489557266237
     },
     "delta_z_crack": {
-      "mean": -0.12011091748718172,
-      "median": -0.09990829229354858
+      "mean": -0.0007486604154109955,
+      "median": -0.024594545364379883
     },
     "gate_metrics": {
-      "g_bridge_mean": 0.9553406555205584,
-      "g_bridge_median": 0.9556057155132294,
-      "g_crack_mean": 0.9560630172491074,
-      "g_crack_median": 0.9562954306602478,
-      "g_contrast_mean": 0.0007223617285490036,
-      "g_contrast_median": 0.0005693733692169189,
-      "spearman_g_vs_delta": -0.4109237536656892,
-      "spearman_p_val": 0.01947469444286962
+      "g_bridge_mean": 0.9546821508556604,
+      "g_bridge_median": 0.9549261033535004,
+      "g_crack_mean": 0.9553711116313934,
+      "g_crack_median": 0.9556158781051636,
+      "g_contrast_mean": 0.0006889607757329941,
+      "g_contrast_median": 0.0004576444625854492,
+      "spearman_g_vs_delta": -0.5164956011730205,
+      "spearman_p_val": 0.0024750410790499214
     }
   },
   "cohort_all_118": {
     "name": "All 118 Bridge Events",
     "N": 118,
-    "cured_count": 5,
-    "cured_rate_pct": 4.23728813559322,
+    "cured_count": 6,
+    "cured_rate_pct": 5.084745762711865,
     "delta_z_bridge": {
-      "mean": -0.1035338236113726,
-      "median": -0.17926979064941406,
-      "p10": -0.8429662466049195,
-      "p25": -0.5568386912345886,
-      "p75": 0.2860092669725418,
-      "p90": 0.6440720051527024
+      "mean": 0.028390467040619607,
+      "median": 0.016452550888061523,
+      "p10": -0.6601580142974853,
+      "p25": -0.30144840478897095,
+      "p75": 0.31876039505004883,
+      "p90": 0.6186831831932068
     },
     "delta_z_crack": {
-      "mean": -0.11922505475833255,
-      "median": -0.15485632419586182
+      "mean": -0.034046263134075425,
+      "median": -0.03763771057128906
     },
     "gate_metrics": {
-      "g_bridge_mean": 0.9558652275699681,
-      "g_bridge_median": 0.9558955430984497,
-      "g_crack_mean": 0.9561875659530445,
-      "g_crack_median": 0.9562188982963562,
-      "g_contrast_mean": 0.0003223383830765546,
-      "g_contrast_median": 0.00017786026000976562,
-      "spearman_g_vs_delta": -0.4209386492537041,
-      "spearman_p_val": 2.071389110720681e-06
+      "g_bridge_mean": 0.9552527282197597,
+      "g_bridge_median": 0.9552336931228638,
+      "g_crack_mean": 0.9555790788036281,
+      "g_crack_median": 0.9555830657482147,
+      "g_contrast_mean": 0.00032635058386851164,
+      "g_contrast_median": 0.00018617510795593262,
+      "spearman_g_vs_delta": -0.34844550597292373,
+      "spearman_p_val": 0.00011031823631207826
     }
   },
   "clean_controls": {
     "N": 118,
-    "breakages": 12,
-    "mean_delta_z": -0.03556606749672506
+    "breakages": 13,
+    "mean_delta_z": 0.05570774602751106
   }
 }

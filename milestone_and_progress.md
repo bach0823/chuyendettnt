@@ -111,6 +111,15 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
       $$\boxed{\textbf{Chính thức LOẠI BỎ P3-C (ASDW Refinement) khỏi kiến trúc SAGE-Lite}}$$
       $$\boxed{\textbf{Candidate B vận hành tạm thời ở chế độ: Interim ASDW-OFF Mode} \; (\texttt{turn\_off\_asdw=True})}$$
     - **Quy tắc vận hành**: Mọi phân tích, diagnostic, và đánh giá tiếp theo của Candidate B đều kích hoạt `turn_off_asdw=True` (thay `stage0.p3_refinement` và `stage1.p3_refinement` bằng `nn.Identity()`), cho đến khi hoàn tất huấn luyện một checkpoint Candidate B sạch hoàn chỉnh không chứa ASDW (dùng P3-A: `AdaptiveAvgPool2d(28, 28)` thuần, 0 tham số phụ).
+15. **Phase 6-D.CGSR: Context-Guided Stage-1 Skip Refinement (HOÀN TẤT & ĐÃ ĐÓNG VĨNH VIỄN 🔒):**
+    - **Phán quyết chính thức**:
+      $$\boxed{\textbf{H2 NOT SUPPORTED} \quad (\text{Tái khẳng định độc lập qua Run 1 \& Run 2})}$$
+    - **Kết quả thực nghiệm**:
+      + Run 1 ($0.7589$) và Run 2 ($0.7667$, $+0.27\%$ vs Control $0.7641$).
+      + Gate Contrast không đổi giữa hai lần chạy ($+0.0003$ vs $+0.0004$), gate bão hòa ở $0.955$, hoàn toàn không có khả năng phân biệt chọn lọc giữa cầu giả và vết nứt thật.
+      + Wider-gap False Bridge Cure Rate chỉ đạt $11.6\%$ ($5/43$), $88.4\%$ cầu giả tồn tại dai dẳng.
+      + Tỷ lệ làm gãy nứt lành (Clean Crack Breakage) lên tới $11.0\%$ ($13/118$).
+    - **Hành động**: Loại bỏ CGSR khỏi kiến trúc canonical. Giữ Candidate B ở trạng thái Interim ASDW-OFF. Đóng vĩnh viễn Phase 6D.
 
 State:
 - Phase 1: D4 locked
@@ -128,6 +137,7 @@ State:
 - Phase 6-D.1: HOÀN TẤT (PLU + AB-BPL Synergy Probe, Val Dice = 0.7669, Partial Support for Complementarity)
 - Phase 6-D.2: PREFLIGHT PASSED & SPECIFICATION FROZEN 🔒 (Pure Separation Isolation Probe, lambda_sep = 0.010)
 - Phase 6-D.3: HOÀN TẤT & ĐÃ KHÓA (P3-C ASDW BỊ LOẠI BỎ; Candidate B chuyển sang Interim ASDW-OFF Mode)
+- Phase 6-D.CGSR: HOÀN TẤT & ĐÃ ĐÓNG (H2 NOT SUPPORTED qua Run 1 & Run 2; CGSR bị loại bỏ hoàn toàn)
 
 Cấu hình hiện hành:
 - ViT depth = 4
