@@ -42,7 +42,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-sys.path.insert(0, 'SAGE_LITE')
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('SAGE_LITE'))
 from tools.run_phase6_c_topology_diagnostic import (
     load_model_from_checkpoint,
     compute_topology_metrics,
