@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "dummy_max_abs_diff": 0.0,
+  "bridge_images": 110,
+  "bridge_events": 118,
+  "resistant_bridge_events": 88,
+  "dice": 0.7640879981007969,
+  "cldice": 0.8498515829576173
+}
