@@ -1,0 +1,9 @@
+Metric,Setting_A,Setting_B,Delta_B_minus_A
+Bridge Images (Total),110.0,111.0,1.0
+Bridge Events (Total),118.0,116.0,-2.0
+Break Events (Total),33.0,31.0,-2.0
+Break Images (Total),33.0,29.0,-4.0
+Mean Dice,0.7641,0.7707,0.0066
+Mean Recall,0.8477,0.8526,0.0049
+Mean Precision,0.7338,0.7375,0.0037
+Mean clDice,0.8498,0.8562,0.0064
