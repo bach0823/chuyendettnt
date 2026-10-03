@@ -65,52 +65,73 @@ Each event was evaluated alongside a matched **True-Crack Control Segment** of i
 
 ### 2.3 Robustness Check: Natural Background Replacement vs Zeroing
 
-To verify that the causal effect is not an out-of-distribution (OOD) artifact of zeroing activations, we executed a robustness probe on all 21 events with strong causal effect ($\Delta US > 0.8$):
+To verify that the causal effect is not an operator-specific artifact of zeroing activations, we executed a robustness probe on all 21 events with strong causal effect ($\Delta US > 0.8$):
 - Instead of setting corridor feature cells to $0.0$, we replaced them with the channel-wise mean feature vector of local background cells within the same tile:
   $$x_{\text{corridor}} \leftarrow \mu_{\text{local\_bg}}$$
 - **Results:**
   - Mean $\Delta US_{\text{zero}} = \mathbf{2.3919}$
   - Mean $\Delta US_{\text{bg\_replacement}} = \mathbf{1.6690}$
   - Pearson Correlation: $\mathbf{r = 0.8227}$ ($p < 10^{-5}$)
-- **Conclusion:** The suppression effect is robust and physically genuine. Replacing corridor activations with local background features produces an $82\%$ correlated logit suppression, confirming that the bridge is sustained by active crack signals rather than a zero-activation numerical singularity.
+- **Conclusion:** The concordance between zeroing and local-background replacement provides robustness against the hypothesis that the observed effect is specific to one perturbation operator. It confirms that the effect is driven by removing crack evidence from the corridor, rather than an artifact of zero-weight singular activations.
+
+### 2.4 Mask Selectivity & Collateral-Damage Control
+The matched true-crack control segments yielded $\Delta_{\text{selective}} \approx \Delta$. Note that because the mask projection specifically protects cells containing true crack pixels ($w = \max(0, (n_{\text{corr}} - n_{\text{crack}})/S^2)$), this measurement primarily functions as a **mask selectivity and collateral-damage control** (proving the intervention does not damage true crack representation), rather than absolute proof that skip signal is selective only for bridge.
 
 ---
 
 ## 3. Key Causal Findings & Interpretation
 
 ### Finding 1: The Skip Connection at Stage 1 ($56 \times 56$) is the Dominant Causal Driver
-- At `decoder_56`, the median effect of removing the skip connection ($\Delta S = \mathbf{0.6427}$, mean $0.9851$) is **$2.8\times$ stronger** than removing the upsampled stream ($\Delta U = \mathbf{0.2307}$, mean $0.3219$).
-- In $62.8\%$ of all wider-gap events (27/43), the skip stream is the primary driver of the false bridge.
+- At `decoder_56`, the median effect of removing the skip connection ($\Delta S = \mathbf{0.6427}$) is approximately **$2.8\times$ the median upsample effect** ($\Delta U = \mathbf{0.2307}$). (In terms of mean values, the skip effect is $0.9851$ vs $0.3219$, or approximately $3.1\times$).
+- In $62.8\%$ of all wider-gap events (27/43), the skip stream is classified as the primary causal driver of the false bridge.
 - When both are masked at `decoder_56`, the median corridor logit drops by **$0.7795$ points** (mean $1.3153$ points), directly curing **$25.6\%$ of all wider-gap false bridges (11/43 events)** with **zero retraining**.
 
-### Finding 2: Reconciling Localization vs Causality (Why Decoder 28 is Causal-Inactive)
+### Finding 2: Reconciling Localization vs Causality (First Appearance != Causal Source)
 - In the localization diagnostic, `decoder_28` had the largest number of first-emergence events (14/43, 32.6%).
 - However, the causal ablation reveals that intervening at `decoder_28` produces **$\Delta US = 0.0000$** for $81.4\%$ of events (cure rate only $2.3\%$).
 - **Explanation:**
-  1. *Spatial resolution constraint:* At $28 \times 28$ ($S=16\text{ px}$), gaps of $8-15\text{ px}$ occupy less than 1 cell. Protecting true crack endpoints leaves either 0 or 1 cell masked.
-  2. *Downstream re-injection:* Even when features begin to correlate with crack at $28 \times 28$, wiping out that signal at $28 \times 28$ is ineffective because the encoder skip connection at Stage 1 ($56 \times 56$) independently carries the high-frequency false bridge evidence directly into Decoder Block 1!
-  3. Thus, Stage 28 represents early feature correlation, but **Stage 56 is the actual causal commitment bottleneck**.
+  1. *Decoder 28 = where the bridge becomes observable:* At $28 \times 28$ ($S=16\text{ px}$), gaps of $8-15\text{ px}$ occupy less than 1 cell. Feature correlations begin shifting here.
+  2. *Decoder 56 = where Stage-1 skip provides localized causal evidence:* Even if wiped out at $28 \times 28$, the encoder skip connection at Stage 1 ($56 \times 56$) independently carries the high-frequency false bridge evidence directly into Decoder Block 1!
+  3. Thus, **first appearance $\neq$ causal source**. Stage 28 represents early feature correlation, but **Stage 56 is the actual causal commitment bottleneck**.
 
-### Finding 3: Linear Additivity vs Non-Linear Interaction
+### Finding 3: No Substantial Non-Linear Interaction Detected
 - The median interaction effect $I_{US}$ at `decoder_56` is $+0.0030$ (mean $+0.0083$).
-- This near-zero interaction means the upsampled stream and skip stream contribute **quasi-linearly** to the post-concatenation conv activations:
-  $$\Delta US \approx \Delta U + \Delta S$$
-- The false bridge is not created out of an unexpected non-linear resonance between the two streams; rather, both streams carry positive crack evidence into the corridor, with the Stage 1 skip connection contributing the lion's share ($\approx 75\%$).
+- Under the tested interventions and operating point, **no substantial nonlinear interaction was detected between the two branches**.
+- The combined effect is approximately additive ($\Delta US \approx \Delta U + \Delta S$), indicating that the false bridge is not generated by an unexpected non-linear synergy or constructive resonance between the two streams.
 
 ---
 
 ## 4. Negative Evidence & What Remains Unproven
 
 1. **The Sub-8px Ceiling:**
-   For the 11 events with $D_{\text{gap}} \le 8.0\text{ px}$, zero-training feature ablation at both $28 \times 28$ and $56 \times 56$ has negligible effect ($|\Delta US| < 0.2$). At stride 8, an 8-pixel gap still overlaps with the crack endpoints. Separating the bridge from the endpoints for gaps under $8\text{ px}$ cannot be achieved at $56 \times 56$ without higher spatial resolution (e.g. Stage 0 skip at $112 \times 112$, or sub-pixel routing).
+   For the 11 sub-8px events ($D_{\text{gap}} \le 8.0\text{ px}$), the current spatial corridor intervention at stride 8 does not provide a viable selective causal mechanism for bridge removal ($|\Delta US| < 0.2$). This reflects two intertwined mechanisms: (1) spatial representation limitation (a single $8 \times 8$ cell may encompass both endpoints) and (2) intervention-mask limitation (soft protection dampens masking when true crack is present). This does not prove that spatial intervention below 8 px is fundamentally impossible in all architectures, but bounds the capability of the current stride-8 grid.
 
 2. **Scope Limitation:**
-   These findings apply strictly to the **43 wider-gap bridge events ($D_{\text{gap}} > 5.0\text{ px}$)** of Candidate B on Crack500. They do not claim that the decoder is the "sole cause" of all errors in the network, but they conclusively prove that **for false bridging across wider gaps, the Stage 1 skip connection is the primary conduit of false continuity**.
+   These findings apply strictly to the **43 wider-gap bridge events ($D_{\text{gap}} > 5.0\text{ px}$)** of Candidate B on Crack500. They do not claim that the decoder is the "sole cause" of all errors in the network, but they conclusively prove that:
+   $$\boxed{\text{For wider-gap bridges, the Stage-1 skip branch entering Decoder Block 1 is the dominant measured causal pathway.}}$$
 
 ---
 
-## 5. Decision & Architectural Guidance
+## 5. Updated Phase 6 Hypothesis Status & Decision
 
-This diagnostic provides clear, unambiguous architectural guidance for subsequent phases:
-1. **Intervening on the bottleneck or upsampling stream alone will fail:** Interventions that only modulate the deep ViT/bottleneck representation (`u`) address less than $25\%$ of the corridor driving force ($\Delta U = 0.23$ vs $\Delta S = 0.64$).
-2. **The target for topological regularization is the Stage 1 skip connection ($56 \times 56$):** Any mechanism designed to prevent false bridges—whether through adaptive skip gating, spatial-topology filtering, or boundary margin loss—must operate directly on or before the **Stage 1 encoder skip connection** feeding Decoder Block 1.
+| Hypothesis | Status |
+|---|---|
+| Final 4x bilinear creates bridge | **Closed** (disproved: 100% committed at head_112) |
+| Tile boundary / context truncation dominant | **Strongly weakened** (disproved: 98.2% persist in overlap) |
+| Scalar-probability saddle | **Strongly refuted** (Diagnostic A: plateau at p ~ 0.90) |
+| Router / gating magnitude dominant | **Closed** (disproved by routing audit) |
+| Decoder 28 causal source | **Weak / not supported** (ablation delta = 0.0) |
+| Decoder 56 upsample branch dominant | **Not supported** (delta U = 0.23) |
+| Decoder 56 skip branch dominant | **Strongly supported for 43 wider-gap events** (delta S = 0.64) |
+| Strong U x S nonlinear interaction | **Not supported** (I_US ~ 0.0) |
+| Stage-1 skip itself is the upstream source of erroneous feature | **Still open -> Target of next diagnostic** |
+| SAGE injection is source of erroneous Stage-1 skip | **Still open -> Target of next diagnostic** |
+
+### Next Step: Stage-1 Skip Provenance Ablation (Zero-Training)
+Trace upstream:
+```text
+Encoder Stage 1 -> SAGE injection -> Stage-1 Skip -> Decoder Block 1 -> Final Logits
+```
+- **Probe A (pre- vs post-SAGE):** Measure whether bridge corridor feature is already crack-like pre-SAGE or created by SAGE.
+- **Probe B (activation patching on Stage-1 skip):** Patch corridor with local background vs matched true-crack vs shuffled feature.
+- **Probe C (endpoint-preserving gap replacement):** Preserve crack endpoints and replace strictly interior gap activation.
