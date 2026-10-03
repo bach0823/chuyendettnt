@@ -60,13 +60,24 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('SAGE_LITE'))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, "..", ".."))
+sage_lite_dir = os.path.join(project_root, "SAGE_LITE")
 
-from sage_lite.tools.run_phase6_c_topology_diagnostic import (
-    load_model_from_checkpoint,
-    compute_topology_metrics,
-)
+for p in [project_root, sage_lite_dir, os.path.abspath('.'), os.path.abspath('SAGE_LITE')]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from tools.run_phase6_c_topology_diagnostic import (
+        load_model_from_checkpoint,
+        compute_topology_metrics,
+    )
+except ModuleNotFoundError:
+    from SAGE_LITE.tools.run_phase6_c_topology_diagnostic import (
+        load_model_from_checkpoint,
+        compute_topology_metrics,
+    )
 from scripts.diagnostics.phase6_stem_factorization_provenance import (
     isolate_bridged_pairs_and_rois,
     isolate_clean_pairs_and_rois,
