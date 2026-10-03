@@ -332,7 +332,7 @@ def main():
     parser = argparse.ArgumentParser(description="Phase 6: HRRB Training & Evaluation")
     parser.add_argument("--config", type=str, default=DEFAULT_CONFIG)
     parser.add_argument("--checkpoint", type=str, default=DEFAULT_CHECKPOINT)
-    parser.add_argument("--data-root", type=str, default="datasets/Crack500_ready")
+    parser.add_argument("--data-root", "--data_root", dest="data_root", type=str, default="datasets/Crack500_ready")
     parser.add_argument("--out-dir", type=str, default="results/diagnostics/phase6_hrrb")
     parser.add_argument("--mode", type=str, choices=["all", "train", "eval"], default="all")
     parser.add_argument("--epochs", type=int, default=8)
@@ -345,9 +345,33 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
     device = torch.device(args.device)
 
+    # Auto-resolve data root across local and Colab environments
+    candidates = [
+        args.data_root,
+        "/content/dataset/Crack500",
+        "/content/dataset/Crack500_ready",
+        "/content/SpecialSubjectTTNT/datasets/Crack500_ready",
+        "/content/SpecialSubjectTTNT/datasets/Crack500",
+        "/content/Crack500",
+        "/content/Crack500_ready",
+        "datasets/Crack500_ready",
+        "datasets/Crack500",
+        "../datasets/Crack500_ready",
+        "../datasets/Crack500",
+    ]
+    resolved_data_root = args.data_root
+    for c in candidates:
+        if not c:
+            continue
+        v_dir = os.path.join(c, "val", "images")
+        if os.path.exists(v_dir) and len(glob.glob(os.path.join(v_dir, "*.jpg"))) == 348:
+            resolved_data_root = c
+            break
+
     print("=" * 80)
     print("PHASE 6: HIGH-RESOLUTION RESIDUAL BYPASS (HRRB)")
     print(f"Mode: {args.mode}, Epochs: {args.epochs}, Batch: {args.batch_size}, Device: {device}")
+    print(f"Dataset Root: {resolved_data_root} (provided: {args.data_root})")
     print("=" * 80)
 
     # 1. Preflight Invariants Check
@@ -377,13 +401,13 @@ def main():
     print(">> Preflight Invariant PASS: t=0 Bitwise Identity with Candidate B verified.")
 
     # 3. Datasets Setup
-    train_img_dir = os.path.join(args.data_root, "train", "images")
-    train_mask_dir = os.path.join(args.data_root, "train", "masks")
-    val_img_dir   = os.path.join(args.data_root, "val", "images")
-    val_mask_dir  = os.path.join(args.data_root, "val", "masks")
+    train_img_dir = os.path.join(resolved_data_root, "train", "images")
+    train_mask_dir = os.path.join(resolved_data_root, "train", "masks")
+    val_img_dir   = os.path.join(resolved_data_root, "val", "images")
+    val_mask_dir  = os.path.join(resolved_data_root, "val", "masks")
 
     val_img_paths = sorted(glob.glob(os.path.join(val_img_dir, "*.jpg")))
-    assert len(val_img_paths) == 348, f"Expected 348 validation images, got {len(val_img_paths)}"
+    assert len(val_img_paths) == 348, f"Expected 348 validation images in {val_img_dir}, got {len(val_img_paths)}"
 
     weights_path = os.path.join(args.out_dir, "phase6_hrrb_weights.pth")
     training_log_path = os.path.join(args.out_dir, "hrrb_training_log.csv")
