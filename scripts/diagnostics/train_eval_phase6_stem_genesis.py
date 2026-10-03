@@ -383,27 +383,27 @@ def evaluate_stem_representation(
                         act = stem_module(tile_t)  # (1, 48, 112, 112)
                         energy = torch.norm(act, p=2, dim=1).squeeze(0)  # (112, 112)
                     
-                    energy_448 = F.interpolate(
-                        energy.unsqueeze(0).unsqueeze(0),
-                        size=(tile_size, tile_size),
-                        mode='bilinear',
-                        align_corners=False
-                    ).squeeze().cpu().numpy()
-                    
-                    stem_energy_full[py:py+tile_size, px:px+tile_size] = energy_448
-                    
-                    # Local feature vectors for cosine distance
-                    p_neck = neck_mask[py:py+tile_size, px:px+tile_size] if py < H and px < W else None
-                    p_crack = crack_mask[py:py+tile_size, px:px+tile_size] if py < H and px < W else None
-                    
-                    if p_neck is not None and np.sum(p_neck) > 0:
-                        m_n = (F.interpolate(torch.from_numpy(p_neck).float().unsqueeze(0).unsqueeze(0), size=(112, 112), mode='nearest').squeeze() > 0)
-                        if m_n.any():
-                            f_neck_list.append(act[0, :, m_n].mean(dim=1).cpu())
-                    if p_crack is not None and np.sum(p_crack) > 0:
-                        m_c = (F.interpolate(torch.from_numpy(p_crack).float().unsqueeze(0).unsqueeze(0), size=(112, 112), mode='nearest').squeeze() > 0)
-                        if m_c.any():
-                            f_crack_list.append(act[0, :, m_c].mean(dim=1).cpu())
+                        energy_448 = F.interpolate(
+                            energy.unsqueeze(0).unsqueeze(0),
+                            size=(tile_size, tile_size),
+                            mode='bilinear',
+                            align_corners=False
+                        ).squeeze().cpu().numpy()
+                        
+                        stem_energy_full[py:py+tile_size, px:px+tile_size] = energy_448
+                        
+                        # Local feature vectors for cosine distance
+                        p_neck = neck_mask[py:py+tile_size, px:px+tile_size] if py < H and px < W else None
+                        p_crack = crack_mask[py:py+tile_size, px:px+tile_size] if py < H and px < W else None
+                        
+                        if p_neck is not None and np.sum(p_neck) > 0:
+                            m_n = (F.interpolate(torch.from_numpy(p_neck).float().unsqueeze(0).unsqueeze(0), size=(112, 112), mode='nearest').squeeze() > 0)
+                            if m_n.any():
+                                f_neck_list.append(act[0, :, m_n].mean(dim=1).cpu())
+                        if p_crack is not None and np.sum(p_crack) > 0:
+                            m_c = (F.interpolate(torch.from_numpy(p_crack).float().unsqueeze(0).unsqueeze(0), size=(112, 112), mode='nearest').squeeze() > 0)
+                            if m_c.any():
+                                f_crack_list.append(act[0, :, m_c].mean(dim=1).cpu())
                             
         energy_cropped = stem_energy_full[:H, :W]
         e_neck = float(np.mean(energy_cropped[neck_mask == 1])) if n_neck_px > 0 else 0.0
