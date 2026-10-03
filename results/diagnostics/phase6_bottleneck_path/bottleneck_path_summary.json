@@ -1,0 +1,51 @@
+{
+  "total_bridge_images": 110,
+  "total_bridge_events": 118,
+  "total_mst_edges": 241,
+  "execution_time_seconds": 57.65,
+  "p_bottleneck_distribution": {
+    "min": 0.5047,
+    "P05": 0.5841149999999999,
+    "P10": 0.73953,
+    "P25": 0.9017,
+    "P50_median": 0.96075,
+    "P75": 0.9817750000000001,
+    "P90": 0.99382,
+    "P95": 0.99623,
+    "max": 0.9979,
+    "mean": 0.9120483050847458,
+    "std": 0.11749640527911043
+  },
+  "valley_depth_distribution": {
+    "min": -0.0943,
+    "P25": -0.037700000000000004,
+    "P50_median": -0.01725,
+    "P75": 0.0167,
+    "max": 0.3376,
+    "mean": 0.00442966101694915
+  },
+  "d_gap_distribution": {
+    "min": 2.0,
+    "P25": 2.0,
+    "P50_median": 2.9142,
+    "P75": 8.81155,
+    "max": 130.3112
+  },
+  "gap_stratification_counts": {
+    "Narrow_Ambiguity (<= 3 px)": {
+      "count": 62,
+      "pct": 52.54,
+      "p_bottleneck_median": 0.967
+    },
+    "Intermediate_Ambiguity (3 < D <= 5 px)": {
+      "count": 13,
+      "pct": 11.02,
+      "p_bottleneck_median": 0.9797
+    },
+    "Wider_Gap (> 5 px)": {
+      "count": 43,
+      "pct": 36.44,
+      "p_bottleneck_median": 0.9306
+    }
+  }
+}

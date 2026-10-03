@@ -1,0 +1,4 @@
+gap_category,count,pct_of_118,d_gap_median,p_bottleneck_p25,p_bottleneck_median,p_bottleneck_p75,valley_depth_median,path_length_median,pct_bottleneck_ge75,pct_bottleneck_ge90
+Narrow_Ambiguity (<= 3 px),62,52.54,2.12,0.9123,0.967,0.9897,-0.0206,4.0,88.71,79.03
+Intermediate_Ambiguity (3 < D <= 5 px),13,11.02,4.24,0.9692,0.9797,0.9902,-0.0282,7.0,92.31,92.31
+Wider_Gap (> 5 px),43,36.44,12.0,0.8729,0.9306,0.9616,-0.0013,15.0,88.37,67.44
