@@ -109,21 +109,27 @@ class OverlappingStem7x7(nn.Module):
         # 4. Halo Weight
         if trainable_halo:
             self.halo_weight = nn.Parameter(torch.zeros(self.out_channels, self.in_channels, 7, 7, dtype=torch.float32))
-            # Backward hook to strictly zero gradient at center
-            self.halo_weight.register_hook(lambda grad: grad * self.halo_mask)
+            # Backward hook to strictly zero gradient at center (avoids inf * 0.0 = nan in AMP)
+            def _zero_center_hook(grad):
+                g = grad.clone()
+                g[:, :, 3:7, 3:7] = 0.0
+                return g
+            self.halo_weight.register_hook(_zero_center_hook)
         else:
             self.register_buffer('halo_weight', torch.zeros(self.out_channels, self.in_channels, 7, 7, dtype=torch.float32))
 
     def get_effective_weight(self) -> torch.Tensor:
         """Constructs effective 7x7 weight ensuring bitwise center preservation."""
-        w7 = torch.zeros(
-            self.out_channels, self.in_channels, 7, 7,
-            device=self.fixed_center_weight.device,
-            dtype=self.fixed_center_weight.dtype
-        )
-        w7[:, :, 3:7, 3:7] = self.fixed_center_weight
         if isinstance(self.halo_weight, nn.Parameter):
-            w7 = w7 + self.halo_mask * self.halo_weight
+            w7 = self.halo_weight.clone()
+            w7[:, :, 3:7, 3:7] = self.fixed_center_weight
+        else:
+            w7 = torch.zeros(
+                self.out_channels, self.in_channels, 7, 7,
+                device=self.fixed_center_weight.device,
+                dtype=self.fixed_center_weight.dtype
+            )
+            w7[:, :, 3:7, 3:7] = self.fixed_center_weight
         return w7
 
     def enforce_center_invariants(self):
