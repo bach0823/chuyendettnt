@@ -5,19 +5,35 @@ experiments/phase6_hrrb/test_hrrb_invariants.py
 Preflight Invariant Test Suite for Phase 6: High-Resolution Residual Bypass (HRRB)
 ==================================================================================
 
-Enforces all 7 mandatory scientific invariants:
+Enforces all mandatory scientific invariants:
     Test 1: Trainable Whitelist (Only HRRB parameters trainable, exactly 1,409 params).
     Test 2: Frozen Main Network (Zero gradient propagation to main model).
     Test 3: Zero Residual at Initialization (detail_residual == 0.0 bit-exactly).
     Test 4: End-to-End Bitwise Identity (final_logits == candidate_b_logits at t=0).
     Test 5: Strict Tensor Shape Contract ([B, 1, 448, 448]).
     Test 6: Optimizer Isolation (Optimizer parameter groups contain ONLY HRRB params).
-    Test 7: Candidate B Checkpoint Integrity (SHA256 bit-exact invariant).
+    Test 7: 3-Tiered Candidate B Integrity:
+            - Tier 1: Checkpoint file SHA256 (147f7840...)
+            - Tier 2: Loaded named-parameters SHA256 (4aeda58c...)
+            - Tier 3: Deterministic probe-input output SHA256 (1d35f0d6...)
+    
+Multi-Iteration Differential Benchmark:
+    Warmup: 10 iterations
+    Measurement: 30 iterations (Median, Mean, P90, Std)
+    Three Conditions:
+        1. Candidate B Baseline (forward, torch.no_grad)
+        2. HRRB Standalone (forward + backward)
+        3. Composite Candidate B + HRRB (forward + HRRB backward)
+    Differential Overhead:
+        Delta_VRAM = Peak(Composite) - Peak(Candidate B)
+        Delta_t_forward = Median(Composite Forward) - Median(Candidate B Forward)
+        t_backward = Median(Composite Backward)
 """
 
 import hashlib
 import os
 import sys
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -31,6 +47,9 @@ from experiments.phase6_hrrb.hrrb_module import HighResolutionResidualBypass, Ca
 
 
 CANDIDATE_B_CHECKPOINT_SHA256 = "147f784021414efd0db514aa6dae94585fece820e88f584e436fc65de851fb66"
+CANDIDATE_B_PARAM_SHA256      = "4aeda58ce6d2fb32f5b772cdbf92dec7fb913f9510b392910efe6674b0adf5d6"
+CANDIDATE_B_PROBE_SHA256      = "1d35f0d6f53681097d8f6cfc870c9fd0e1697f6ad9d4f2d3ccdb4b4f27a6d646"
+
 DEFAULT_CONFIG = "results/configs/b2_p3_run_c_d4_k2_h64_phase5_sagelr2e4.yaml"
 DEFAULT_CHECKPOINT = "results/checkpoints/P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_global.pth"
 
@@ -43,6 +62,14 @@ def compute_file_sha256(filepath: str) -> str:
     return h.hexdigest()
 
 
+def compute_model_param_hash(model: nn.Module) -> str:
+    hasher = hashlib.sha256()
+    for name, p in sorted(model.named_parameters()):
+        hasher.update(name.encode("utf-8"))
+        hasher.update(p.detach().cpu().numpy().tobytes())
+    return hasher.hexdigest()
+
+
 def run_preflight_invariants():
     print("=" * 80)
     print("PHASE 6: HIGH-RESOLUTION RESIDUAL BYPASS (HRRB) PREFLIGHT INVARIANT AUDIT")
@@ -51,20 +78,43 @@ def run_preflight_invariants():
     print(f"Device: {device}")
 
     # -------------------------------------------------------------------------
-    # TEST 7: Main Checkpoint Integrity
+    # TEST 7: 3-Tiered Candidate B Integrity Audit
     # -------------------------------------------------------------------------
-    print("\n[TEST 7] Candidate B Checkpoint Integrity...")
+    print("\n[TEST 7] 3-Tiered Candidate B Integrity Audit...")
     assert os.path.exists(DEFAULT_CHECKPOINT), f"Checkpoint not found at {DEFAULT_CHECKPOINT}"
-    actual_hash = compute_file_sha256(DEFAULT_CHECKPOINT)
-    print(f"  Checkpoint SHA256: {actual_hash}")
-    assert actual_hash == CANDIDATE_B_CHECKPOINT_SHA256, (
-        f"VIOLATION TEST 7: Checkpoint SHA256 mismatch!\nExpected: {CANDIDATE_B_CHECKPOINT_SHA256}\nGot: {actual_hash}"
+
+    # Tier 1: Checkpoint file SHA256
+    actual_file_hash = compute_file_sha256(DEFAULT_CHECKPOINT)
+    print(f"  Tier 1 - Checkpoint File SHA256:     {actual_file_hash}")
+    assert actual_file_hash == CANDIDATE_B_CHECKPOINT_SHA256, (
+        f"VIOLATION TEST 7 Tier 1: File hash mismatch!\nExpected: {CANDIDATE_B_CHECKPOINT_SHA256}\nGot: {actual_file_hash}"
     )
-    print(">> PASS TEST 7: Candidate B Checkpoint SHA256 invariant verified.")
 
     # Load Candidate B
-    print("\nLoading Candidate B baseline model...")
     candidate_b = load_model_from_checkpoint(DEFAULT_CONFIG, DEFAULT_CHECKPOINT, device=device)
+
+    # Tier 2: Loaded named-parameters SHA256
+    actual_param_hash = compute_model_param_hash(candidate_b)
+    print(f"  Tier 2 - Named Parameters SHA256:    {actual_param_hash}")
+    assert actual_param_hash == CANDIDATE_B_PARAM_SHA256, (
+        f"VIOLATION TEST 7 Tier 2: Named param hash mismatch!\nExpected: {CANDIDATE_B_PARAM_SHA256}\nGot: {actual_param_hash}"
+    )
+
+    # Tier 3: Deterministic probe-input output SHA256
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(42)
+    probe_x = torch.randn(1, 3, 448, 448, device=device)
+    with torch.no_grad():
+        probe_out = candidate_b(probe_x)
+    actual_probe_hash = hashlib.sha256(probe_out.detach().cpu().numpy().tobytes()).hexdigest()
+    print(f"  Tier 3 - Probe Output SHA256:        {actual_probe_hash}")
+    assert actual_probe_hash == CANDIDATE_B_PROBE_SHA256, (
+        f"VIOLATION TEST 7 Tier 3: Probe output hash mismatch!\nExpected: {CANDIDATE_B_PROBE_SHA256}\nGot: {actual_probe_hash}"
+    )
+    print(">> PASS TEST 7: Candidate B 3-Tiered Integrity verified 100% bit-exactly.")
+
+    # Instantiate Composite Model
     model = CandidateBWithHRRB(candidate_b).to(device)
 
     # -------------------------------------------------------------------------
@@ -181,12 +231,14 @@ def run_preflight_invariants():
     optimizer.zero_grad()
 
     # -------------------------------------------------------------------------
-    # Compute & Memory Benchmark
+    # Multi-Iteration Differential Compute & Memory Benchmark
     # -------------------------------------------------------------------------
     print("\n" + "=" * 80)
-    print("COMPUTE & MEMORY BENCHMARK (Batch 14, FP32, 448x448)")
+    print("MULTI-ITERATION DIFFERENTIAL BENCHMARK (Batch 14, FP32, 448x448)")
+    print("Protocol: 10 warmup iterations + 30 measured iterations with CUDA sync")
     print("=" * 80)
-    # Theoretical FLOPs:
+
+    # Theoretical Complexity
     # Conv1 (3->8, 3x3, 448x448): 8 * (3*3*3) * 448*448 = 43,352,064 MACs
     # Conv2 (8->16, 3x3, s2, 224x224): 16 * (8*3*3) * 224*224 = 57,802,752 MACs
     # Proj (16->1, 1x1, 224x224): 1 * (16*1*1) * 224*224 = 802,816 MACs
@@ -194,48 +246,129 @@ def run_preflight_invariants():
     # Total FLOPs = 2 * MACs = 203,915,264 FLOPs (~0.204 GFLOPs)
     macs_per_image = 101957632
     flops_per_image = 2 * macs_per_image
-    print(f"HRRB Trainable Parameters: {trainable_numel}")
+    print(f"HRRB Trainable Parameters:    {trainable_numel}")
     print(f"HRRB Theoretical MACs/image:  {macs_per_image:,} ({macs_per_image / 1e9:.4f} GMACs)")
     print(f"HRRB Theoretical FLOPs/image: {flops_per_image:,} ({flops_per_image / 1e9:.4f} GFLOPs)")
 
     if torch.cuda.is_available():
-        torch.cuda.reset_peak_memory_stats()
-        torch.cuda.empty_cache()
+        warmup_iters = 10
+        measure_iters = 30
         batch_14_x = torch.randn(14, 3, 448, 448, device=device)
-        mem_init = torch.cuda.memory_allocated() / (1024 ** 2)
 
-        # Forward
-        t0 = torch.cuda.Event(enable_timing=True)
-        t1 = torch.cuda.Event(enable_timing=True)
-        t0.record()
-        out_14 = model(batch_14_x)
-        t1.record()
-        torch.cuda.synchronize()
-        mem_fwd_peak = torch.cuda.max_memory_allocated() / (1024 ** 2)
-        fwd_time_ms = t0.elapsed_time(t1)
+        def measure_condition(fwd_fn, bwd_fn=None):
+            # Warmup
+            for _ in range(warmup_iters):
+                out = fwd_fn(batch_14_x)
+                if bwd_fn is not None:
+                    bwd_fn(out)
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats()
 
-        # Backward
-        loss_14 = out_14.sum()
-        t2 = torch.cuda.Event(enable_timing=True)
-        t3 = torch.cuda.Event(enable_timing=True)
-        t2.record()
-        loss_14.backward()
-        t3.record()
-        torch.cuda.synchronize()
-        mem_fwd_bwd_peak = torch.cuda.max_memory_allocated() / (1024 ** 2)
-        bwd_time_ms = t2.elapsed_time(t3)
+            fwd_times = []
+            bwd_times = []
+            for _ in range(measure_iters):
+                t0 = torch.cuda.Event(enable_timing=True)
+                t1 = torch.cuda.Event(enable_timing=True)
+                t0.record()
+                out = fwd_fn(batch_14_x)
+                t1.record()
+                torch.cuda.synchronize()
+                fwd_times.append(t0.elapsed_time(t1))
 
-        print(f"Peak VRAM Forward:          {mem_fwd_peak:.2f} MB")
-        print(f"Peak VRAM Forward+Backward: {mem_fwd_bwd_peak:.2f} MB")
-        print(f"Measured Forward Time (B=14):  {fwd_time_ms:.2f} ms ({fwd_time_ms/14:.2f} ms/img)")
-        print(f"Measured Backward Time (B=14): {bwd_time_ms:.2f} ms ({bwd_time_ms/14:.2f} ms/img)")
-        del batch_14_x, out_14, loss_14
+                if bwd_fn is not None:
+                    t2 = torch.cuda.Event(enable_timing=True)
+                    t3 = torch.cuda.Event(enable_timing=True)
+                    t2.record()
+                    bwd_fn(out)
+                    t3.record()
+                    torch.cuda.synchronize()
+                    bwd_times.append(t2.elapsed_time(t3))
+
+            peak_vram = torch.cuda.max_memory_allocated() / (1024 ** 2)
+            fwd_arr = np.array(fwd_times)
+            bwd_arr = np.array(bwd_times) if bwd_times else None
+
+            stats = {
+                "peak_vram_mb": peak_vram,
+                "fwd_median_ms": float(np.median(fwd_arr)),
+                "fwd_mean_ms": float(np.mean(fwd_arr)),
+                "fwd_p90_ms": float(np.percentile(fwd_arr, 90)),
+                "fwd_std_ms": float(np.std(fwd_arr)),
+            }
+            if bwd_arr is not None:
+                stats.update({
+                    "bwd_median_ms": float(np.median(bwd_arr)),
+                    "bwd_mean_ms": float(np.mean(bwd_arr)),
+                    "bwd_p90_ms": float(np.percentile(bwd_arr, 90)),
+                    "bwd_std_ms": float(np.std(bwd_arr)),
+                })
+            return stats
+
+        # 1. Condition A: Candidate B Standalone (forward only under no_grad)
+        candidate_b.eval()
+        with torch.no_grad():
+            stats_b = measure_condition(lambda x: candidate_b(x))
+
+        # 2. Condition B: HRRB Standalone
+        hrrb_standalone = HighResolutionResidualBypass().to(device)
+        hrrb_opt = torch.optim.AdamW(hrrb_standalone.parameters(), lr=1e-4)
+        def hrrb_fwd(x):
+            return hrrb_standalone(x)
+        def hrrb_bwd(out):
+            hrrb_opt.zero_grad()
+            l = out.sum()
+            l.backward()
+        stats_hrrb = measure_condition(hrrb_fwd, hrrb_bwd)
+
+        # 3. Condition C: Composite Model (Candidate B in no_grad forward + HRRB forward + backward)
+        model.train()
+        comp_opt = torch.optim.AdamW(model.hrrb.parameters(), lr=1e-4)
+        def comp_fwd(x):
+            return model(x)
+        def comp_bwd(out):
+            comp_opt.zero_grad()
+            l = out.sum()
+            l.backward()
+        stats_comp = measure_condition(comp_fwd, comp_bwd)
+
+        # Compute Differentials
+        delta_vram = stats_comp["peak_vram_mb"] - stats_b["peak_vram_mb"]
+        delta_fwd_median = stats_comp["fwd_median_ms"] - stats_b["fwd_median_ms"]
+        delta_fwd_mean = stats_comp["fwd_mean_ms"] - stats_b["fwd_mean_ms"]
+
+        print("\n--- MEASURED BENCHMARK SUMMARY (N=30 iterations after 10 warmup) ---")
+        print("1. Candidate B Baseline (eval, torch.no_grad):")
+        print(f"   Peak VRAM:        {stats_b['peak_vram_mb']:.2f} MB")
+        print(f"   Forward Median:   {stats_b['fwd_median_ms']:.2f} ms ({stats_b['fwd_median_ms']/14:.2f} ms/img)")
+        print(f"   Forward Mean:     {stats_b['fwd_mean_ms']:.2f} +/- {stats_b['fwd_std_ms']:.2f} ms")
+        print(f"   Forward P90:      {stats_b['fwd_p90_ms']:.2f} ms")
+
+        print("\n2. HRRB Standalone (train, forward + backward):")
+        print(f"   Peak VRAM:        {stats_hrrb['peak_vram_mb']:.2f} MB")
+        print(f"   Forward Median:   {stats_hrrb['fwd_median_ms']:.2f} ms ({stats_hrrb['fwd_median_ms']/14:.2f} ms/img)")
+        print(f"   Backward Median:  {stats_hrrb['bwd_median_ms']:.2f} ms ({stats_hrrb['bwd_median_ms']/14:.2f} ms/img)")
+
+        print("\n3. Composite Candidate B + HRRB (Candidate B no_grad, HRRB trainable):")
+        print(f"   Peak VRAM:        {stats_comp['peak_vram_mb']:.2f} MB")
+        print(f"   Forward Median:   {stats_comp['fwd_median_ms']:.2f} ms ({stats_comp['fwd_median_ms']/14:.2f} ms/img)")
+        print(f"   Forward Mean:     {stats_comp['fwd_mean_ms']:.2f} +/- {stats_comp['fwd_std_ms']:.2f} ms")
+        print(f"   Forward P90:      {stats_comp['fwd_p90_ms']:.2f} ms")
+        print(f"   Backward Median:  {stats_comp['bwd_median_ms']:.2f} ms ({stats_comp['bwd_median_ms']/14:.2f} ms/img)")
+        print(f"   Backward Mean:    {stats_comp['bwd_mean_ms']:.2f} +/- {stats_comp['bwd_std_ms']:.2f} ms")
+
+        print("\n4. Differential Overhead of HRRB:")
+        print(f"   Delta VRAM Peak:        {delta_vram:+.2f} MB (Peak Composite - Peak Candidate B)")
+        print(f"   Delta Forward (Median): {delta_fwd_median:+.2f} ms ({delta_fwd_median/14:+.2f} ms/img)")
+        print(f"   Delta Forward (Mean):   {delta_fwd_mean:+.2f} ms ({delta_fwd_mean/14:+.2f} ms/img)")
+        print(f"   HRRB Backward (Median): {stats_comp['bwd_median_ms']:.2f} ms ({stats_comp['bwd_median_ms']/14:.2f} ms/img)")
+
+        del batch_14_x
         torch.cuda.empty_cache()
     else:
-        print("CUDA not available; memory benchmark skipped on CPU.")
+        print("CUDA not available; memory & timing benchmark skipped on CPU.")
 
     print("\n" + "=" * 80)
-    print(">> ALL 7 PREFLIGHT INVARIANTS PASSED 100% BIT-EXACTLY!")
+    print(">> ALL PREFLIGHT INVARIANTS & 3-TIER INTEGRITY PASSED 100% BIT-EXACTLY!")
     print("=" * 80)
 
 

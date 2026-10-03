@@ -10,7 +10,7 @@ Scientific Hypothesis:
     because it lacks an independent high-resolution feature pathway to the final prediction?
     
 Architecture Contract:
-    Input: RGB [B, 3, 448, 448]
+    Input: Normalized RGB [B, 3, 448, 448] (same normalized input as Candidate B)
         ↓
     Conv 3x3, stride=1, padding=1, 3->8
         ↓
