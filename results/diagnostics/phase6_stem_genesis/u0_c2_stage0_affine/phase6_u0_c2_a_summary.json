@@ -1,0 +1,118 @@
+{
+  "experiment": "Phase 6: Upstream Genesis U0-C2-A (Stem Halo + Stage-0 LayerNorm2d Affine Adaptation)",
+  "checkpoint_candidate_b": "147f784021414efd0db514aa6dae94585fece820e88f584e436fc65de851fb66",
+  "named_parameters_sha256": "4aeda58ce6d2fb32f5b772cdbf92dec7fb913f9510b392910efe6674b0adf5d6",
+  "training": {
+    "epochs": 8,
+    "batch_size": 14,
+    "lr": 0.0001,
+    "weight_decay": 0.01,
+    "precision": "AMP (FP16)",
+    "active_trainable_parameters": 4944,
+    "trainable_components": [
+      "stem_c2_halo (4752 active DOF out of 7056 elements)",
+      "encoder.stages.0.blocks.0.norm.weight (48 params)",
+      "encoder.stages.0.blocks.0.norm.bias (48 params)",
+      "encoder.stages.0.blocks.1.norm.weight (48 params)",
+      "encoder.stages.0.blocks.1.norm.bias (48 params)"
+    ],
+    "frozen_components": [
+      "stem center 4x4 & bias & stem_ln",
+      "stage0 blocks.0/1 dwconv & mlp fc1/fc2 & grn",
+      "SAGE routers, hubs, refinement, expert pool",
+      "encoder stages 1-3, ViT, Decoder B1, Seg Head"
+    ],
+    "final_halo_l2_norm": 0.435725,
+    "final_halo_max_abs": 0.036804,
+    "final_ln0_weight_norm": 21.938812,
+    "final_ln0_bias_norm": 11.362372,
+    "final_ln1_weight_norm": 26.566101,
+    "final_ln1_bias_norm": 8.274735,
+    "final_train_loss_total": 0.516107
+  },
+  "subgroup_comparison": {
+    "Full_Validation_348": {
+      "N": 348,
+      "C0_bridge_images": 110,
+      "C1_bridge_images": 110,
+      "C2A_bridge_images": 113,
+      "delta_bridge_images_C2A_vs_C1": 3,
+      "delta_bridge_images_C2A_vs_C0": 3,
+      "C0_bridge_events": 118,
+      "C1_bridge_events": 116,
+      "C2A_bridge_events": 120,
+      "delta_bridge_events_C2A_vs_C1": 4,
+      "delta_bridge_events_C2A_vs_C0": 2,
+      "cured_images_vs_C1": 1,
+      "created_images_vs_C1": 4,
+      "cured_images_vs_C0": 4,
+      "created_images_vs_C0": 7,
+      "C0_break_events": 35,
+      "C1_break_events": 38,
+      "C2A_break_events": 45,
+      "delta_break_events_C2A_vs_C1": 7,
+      "delta_break_events_C2A_vs_C0": 10,
+      "C0_dice": 0.764088,
+      "C1_dice": 0.747788,
+      "C2A_dice": 0.745310,
+      "delta_dice_C2A_vs_C1": -0.002478,
+      "delta_dice_C2A_vs_C0": -0.018778,
+      "C0_cldice": 0.849852,
+      "C1_cldice": 0.834194,
+      "C2A_cldice": 0.829463,
+      "delta_cldice_C2A_vs_C1": -0.004731,
+      "delta_cldice_C2A_vs_C0": -0.020389
+    },
+    "Consensus_Resistant_82": {
+      "N": 82,
+      "C0_bridge_images": 82,
+      "C1_bridge_images": 82,
+      "C2A_bridge_images": 81,
+      "delta_bridge_images_C2A_vs_C1": -1,
+      "delta_bridge_images_C2A_vs_C0": -1,
+      "C0_bridge_events": 88,
+      "C1_bridge_events": 86,
+      "C2A_bridge_events": 86,
+      "delta_bridge_events_C2A_vs_C1": 0,
+      "delta_bridge_events_C2A_vs_C0": -2,
+      "cured_images_vs_C1": 1,
+      "created_images_vs_C1": 0,
+      "cured_images_vs_C0": 1,
+      "created_images_vs_C0": 0,
+      "C0_break_events": 8,
+      "C1_break_events": 7,
+      "C2A_break_events": 8,
+      "delta_break_events_C2A_vs_C1": 1,
+      "delta_break_events_C2A_vs_C0": 0,
+      "C0_dice": 0.757463,
+      "C1_dice": 0.749697,
+      "C2A_dice": 0.746935,
+      "delta_dice_C2A_vs_C1": -0.002761,
+      "delta_dice_C2A_vs_C0": -0.010528,
+      "C0_cldice": 0.858566,
+      "C1_cldice": 0.851572,
+      "C2A_cldice": 0.847446,
+      "delta_cldice_C2A_vs_C1": -0.004126,
+      "delta_cldice_C2A_vs_C0": -0.011120
+    }
+  },
+  "representation_metrics": {
+    "Resistant_82": {
+      "stem": {
+        "C0_sep_margin": 0.0125,
+        "C1_sep_margin": 0.0319,
+        "C2A_sep_margin": 0.0265,
+        "C0_cos_neck_crack": 0.8397,
+        "C1_cos_neck_crack": 0.8256,
+        "C2A_cos_neck_crack": 0.8346
+      },
+      "stage0": {
+        "C1_sep_margin": 0.0092,
+        "C2A_sep_margin": 0.0304,
+        "C1_cos_neck_crack": 0.9781,
+        "C2A_cos_neck_crack": 0.9534
+      }
+    }
+  },
+  "verdict": "Refuted. Adapting Stage 0 LayerNorm2d affine parameters (gamma, beta; 192 params) while continuing to train the Stem Halo (4,752 params) successfully increases Stage 0 representation separation margin (+230%) but completely fails to reduce false bridges (Resistant cohort 86->86 events, full val 116->120 events). Breakage increases (38->45) and segmentation quality degrades further (Dice -1.88% vs C0). Distribution mismatch at the affine normalization level is NOT the bottleneck."
+}
