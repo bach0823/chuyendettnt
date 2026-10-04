@@ -120,6 +120,29 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
       + Wider-gap False Bridge Cure Rate chỉ đạt $11.6\%$ ($5/43$), $88.4\%$ cầu giả tồn tại dai dẳng.
       + Tỷ lệ làm gãy nứt lành (Clean Crack Breakage) lên tới $11.0\%$ ($13/118$).
     - **Hành động**: Loại bỏ CGSR khỏi kiến trúc canonical. Giữ Candidate B ở trạng thái Interim ASDW-OFF. Đóng vĩnh viễn Phase 6D.
+16. **Phase 6-E: PointRend Boundary Subsampling Topology Probe (HOÀN TẤT & LOẠI BỎ 🔒):**
+    - **Phán quyết chính thức**:
+      $$\boxed{\textbf{Phase 6-E PointRend = REJECTED (Catastrophic Fragmentation Trade-off)}}$$
+    - **Kết quả thực nghiệm**: Dice toàn cục hầu như đi ngang ($0.7641 \to 0.7650$, $+0.0009$), nhưng clDice sụp đổ sâu ($0.8499 \to 0.8155$, $-0.0343$). Số sự kiện nứt đứt gãy (Break Events) bùng nổ gấp **9.1 lần** ($35 \to 319$ events), số đảo nhiễu giả (Spurious Islands) tăng gấp **7.8 lần** ($111 \to 867$), False Bridge không giảm ($118 \to 121$).
+    - **Kết luận cơ chế**: Việc lấy mẫu điểm ngẫu nhiên tại biên giới ranh giới (point sampling) phá hủy tính liên tục topo học toàn cục của vết nứt mảnh. Loại bỏ PointRend.
+17. **Phase 6: Causal Pathway Ablation & Downstream Reconvergence (HOÀN TẤT & XÁC LẬP CHÂN LÝ NHÂN QUẢ 🏆):**
+    - **Khám phá nhân quả cốt lõi (2x2 Factorial Zero-training Ablation)**:
+      + **Skip S1 (Stage 1, 96ch, 56×56)** là **causal driver của 62.8%** wider-gap bridge events (27/43 ca). Median $\Delta S = 0.6427$ vs $\Delta U = 0.2307$ (Skip mạnh gấp **2.8×** upsampled stream). Zero-training ablation tại Decoder 56 trực tiếp chữa lành **25.6% (11/43 ca)** mà không cần huấn luyện lại.
+      + **Decoder Block 1 là "Necessary Amplifier"**: Representation ambiguity ($R_{\text{norm}}$) tăng vọt từ $0.45 \to 0.69$ (+24.4 pp) tại đây. Tại $S2$ ($28 \times 28$, 192ch), biểu diễn ngữ cảnh đã hình thành nhưng chưa cam kết (under-threshold $R_{\text{norm}} = 0.5384$).
+18. **Phase 6-U0-C3: DC-Init Stem + Stage-0 LayerNorm Affine Adaptation (HOÀN TẤT & NGHIỆM THU 🏆):**
+    - **Mục tiêu**: Bóc tách thành phần tần số cao (AC) và một chiều (DC) tại Stem ($4 \times 4$ stride 4), khởi tạo DC chiếu đều $1/16$, đóng băng 100% mạng chỉ mở $2,784$ tham số Stem + Stage-0 LN.
+    - **Kết quả**: Chữa lành kỷ lục **39.53% (17/43 ca wider-gap)** và **23.73% (28/118 ca toàn cục)**.
+    - **Hạn chế**: Do Stem là cửa ngõ đầu vào duy nhất của toàn mạng, việc điều chỉnh Stem làm dịch chuyển phân phối đầu vào, khiến Dice toàn cục sụt giảm ($0.7641 \to 0.7346$), Break events tăng ($35 \to 76$).
+19. **Phase 6-U1-S2G: Downstream Spatial Gate Conv1x1 (HOÀN TẤT & VƯỢT UPPER BOUND ZERO-ABLATION 🏆):**
+    - **Kiến trúc**: $S2$ context ($192\text{ch}, 28 \times 28$) upsample $\times 2$ concat Skip $S1$ ($96\text{ch}, 56 \times 56$) $\to$ Gate MLP Conv1×1 (9,345 params) $\to$ spatial gate $\alpha \in (0, 1)$ điều tiết Skip $S1$. Khởi tạo identity ($\alpha \approx 1.0$).
+    - **Kết quả**: Chữa lành **27.91% (12/43 ca wider-gap)**, chính thức vượt qua upper-bound của zero-training ablation ($25.58\%$). Val Dice giữ vững ở mức cao $0.7570$.
+    - **Điểm nghẽn phát hiện**: Có **11/43 ca bị gate làm tệ hơn** ($\Delta z_{\text{bridge}} < 0$, $z$ tăng từ $2.688 \to 3.018$) do Conv1×1 thiếu Receptive Field (RF chỉ 1px) để nhận biết hành lang hình học ngắn giữa 2 đầu nứt.
+20. **Phase 6-U1-S2G-v2: Downstream Spatial Gate Conv3x3 + Warm-start (HOÀN TẤT XUẤT SẮC 🏆):**
+    - **Kiến trúc & Bất biến**: Nâng cấp Conv1×1 thành Conv3×3 ($k=3, p=1$, 83,073 params), mở rộng RF tại $56 \times 56$ từ 1px $\to$ 3px. Warm-start hoàn hảo từ trọng số v1 ($|\Delta \alpha| < 10^{-6}$ tại $t=0$). Đóng băng 100% mạng nền, train 8 epochs FP32 Strict.
+    - **Kết quả vượt bậc**:
+      + **Phục hồi 11 ca bị tệ**: **9/11 ca (81.8%)** được kéo tụt logit xuống so với v1; **4/11 ca (36.4%)** lật ngược hoàn toàn thành công từ Worsened sang Suppressed ($\Delta z_{\text{v2}} > 0$).
+      + **Wider-gap Cured**: Giữ vững trần kỷ lục **12/43 ca (27.91%)**, median $\Delta z_{\text{bridge}} = +0.7412$ (đè sập cầu giả mạnh hơn v1 +22.9%).
+      + **Hiệu năng toàn cục Setting A ($N=348$)**: Val Dice hồi phục mạnh lên **0.7616** (+0.46 pp vs v1); Boundary IoU vọt lên **0.2468** (vượt cả Candidate B Baseline 0.2418); **HD95 giảm ngoạn mục 11.34 px** (từ $53.65 \to \mathbf{42.31\text{ px}}$); Spurious Islands giảm **31.5%** ($111 \to 76$ đảo nhiễu giả).
 
 State:
 - Phase 1: D4 locked
@@ -138,6 +161,11 @@ State:
 - Phase 6-D.2: PREFLIGHT PASSED & SPECIFICATION FROZEN 🔒 (Pure Separation Isolation Probe, lambda_sep = 0.010)
 - Phase 6-D.3: HOÀN TẤT & ĐÃ KHÓA (P3-C ASDW BỊ LOẠI BỎ; Candidate B chuyển sang Interim ASDW-OFF Mode)
 - Phase 6-D.CGSR: HOÀN TẤT & ĐÃ ĐÓNG (H2 NOT SUPPORTED qua Run 1 & Run 2; CGSR bị loại bỏ hoàn toàn)
+- Phase 6-E: HOÀN TẤT & LOẠI BỎ (PointRend bị REJECT do Break Events bùng nổ 9.1x)
+- Phase 6 Causal Discovery: HOÀN TẤT (Skip S1 là causal driver của 62.8% bridge events; Decoder Block 1 là Necessary Amplifier)
+- Phase 6-U0-C3: HOÀN TẤT (DC-Init Stem chữa lành 39.53% wider-gap nhưng chịu trade-off upstream)
+- Phase 6-U1-S2G (v1): HOÀN TẤT (Conv1x1 Gate chữa 27.91% wider-gap, phát hiện điểm nghẽn RF 11 ca)
+- Phase 6-U1-S2G-v2: HOÀN TẤT XUẤT SẮC 🏆 (Conv3x3 Gate + Warm-start: phục hồi 81.8% ca worsened, lật ngược 36.4% ca sang suppressed, giữ trần 27.91% cure rate, HD95 ép sâu xuống 42.31 px, Spurious Islands giảm -31.5%)
 
 Cấu hình hiện hành:
 - ViT depth = 4

@@ -1329,6 +1329,66 @@ Trích xuất từ kết quả chẩn đoán chính thức trên toàn bộ 348 
      - **6-A.2 (Representation Probe):** PLU-Head tái tạo chi tiết không gian độ phân giải cao.
    - Hướng đi tiếp theo hợp lý và tự nhiên nhất là kết hợp cả hai thành phần (**PLU-Head + BoundaryIoU**) trong **Phase 6-A.3** để tìm kiếm sự cộng hưởng vượt mốc $0.7700$ Val Dice.
 
+---
+
+## 28. Phán Quyết & Đóng Băng Các Nhánh Thực Nghiệm Cũ Trong Phase 6 (2026-10-02 -> 2026-10-03)
+
+1. **Phase 6-B.1 (AB-BPL Probe):**
+   - Đạt đỉnh Val Dice **0.7685** (+0.0044). Xác nhận phạt viền bất đối xứng cải thiện điểm số toàn cục và bảo toàn Recall (0.8321), nhưng chưa triệt tiêu được điểm nghẽn nối cầu sai (False Bridge).
+2. **Phase 6-C.1 (Soft-clDice Probe):**
+   - clDice cải thiện ($0.8499 \to 0.8525$) nhưng Global Dice tụt ($0.7641 \to 0.7613$), False Bridge bất biến ($31.6\% \to 32.5\%$). Bác bỏ Soft-clDice làm giải pháp cho False Bridge.
+3. **Phase 6-D.0 & D.1 (False Bridge Decomposition & Synergy Probe):**
+   - Thiết lập khung phân rã: $\text{False Bridge} = \text{Dilation-mediated} + \text{Residual Separation}$.
+   - D.1 (PLU + AB-BPL) đạt Precision kỷ lục $0.7525$ nhưng $105/110$ cầu nứt vẫn tồn tại dai dẳng vì bất lực trước khe hẹp $< 8\text{ px}$.
+4. **Phase 6-D.3 (Causal Probe P3-C ASDW):**
+   - Counterfactual probe cùng checkpoint trên 81.6M pixels: $\Delta\text{Dice} = +1.3 \times 10^{-8}$, $0/118$ cầu giả suy chuyển. Nguyên nhân do suy giảm kép ($\gamma \times 0.10 \approx 0.0015$). Chính thức loại bỏ P3-C ASDW, chuyển sang Interim ASDW-OFF.
+5. **Phase 6-D.CGSR:**
+   - Bác bỏ H2 qua 2 run độc lập. Gate bão hòa ở $0.955$, không có độ tương phản phân biệt.
+6. **Phase 6-E (PointRend):**
+   - Point sampling ngẫu nhiên phá hủy tính liên thông: Break Events bùng nổ gấp $9.1\times$ ($35 \to 319$), Spurious Islands tăng gấp $7.8\times$ ($111 \to 867$). Loại bỏ PointRend.
+
+---
+
+## 29. Bằng Chứng Nhân Quả Cốt Lõi: Causal Pathway Ablation & Reconvergence (2026-10-03)
+
+- **2x2 Factorial Zero-training Intervention tại Decoder**:
+  - Tại `decoder_56` (Decoder Block 1, $56 \times 56$), median effect khi zeroing skip connection là $\Delta S = \mathbf{0.6427}$ (gấp **$2.8\times$** upsample stream $\Delta U = \mathbf{0.2307}$).
+  - **Skip S1 (96ch, 56×56)** là **causal driver của 62.8%** wider-gap bridge events (27/43 ca).
+  - Mask đồng thời cả hai tại Decoder 56 trực tiếp chữa lành **25.6% (11/43 ca)** mà không cần huấn luyện lại.
+- **Reconvergence Localization**:
+  - Decoder Block 1 là **Necessary Amplifier**: Nơi representation ambiguity ($R_{\text{norm}}$) tăng vọt từ $0.45 \to 0.69$ (+24.4 pp).
+  - Tại $S2$ ($28 \times 28$, 192ch, output Decoder Block 0), context đã hình thành nhưng chưa cam kết ($R_{\text{norm}} = 0.5384$).
+
+---
+
+## 30. Thử Nghiệm Upstream Stem Genesis (U0-C3 DC-Init Stem) (2026-10-04)
+
+- **Thiết kế**: Tách Stem ($4 \times 4$ s4) thành DC projection cố định ($1/16$) + AC delta học được, kèm Stage-0 LN affine adaptation ($2,784$ params).
+- **Kết quả**: Chữa lành **39.53% (17/43 ca wider-gap)** và **23.73% (28/118 ca toàn cục)**.
+- **Hạn chế**: Vì can thiệp trực tiếp vào cửa ngõ duy nhất của mạng (Stem), gây distribution shift làm tụt Val Dice ($0.7641 \to 0.7346$) và tăng nứt đứt gãy (Break events $35 \to 76$).
+
+---
+
+## 31. Đột Phá Downstream Spatial Modulation: U1-S2G v1 & v2 (2026-10-04 -> 2026-10-05)
+
+### 1. U1-S2G (Conv1x1 Gate, 9,345 params):
+- Dùng context $S2$ ($28 \times 28, 192\text{ch}$) tạo spatial gate $\alpha \in (0, 1)$ điều tiết Skip $S1$ ($56 \times 56, 96\text{ch}$) trước khi concat vào Decoder Block 1.
+- Chữa lành **27.91% (12/43 ca wider-gap)**, vượt qua upper-bound của zero-ablation ($25.58\%$). Val Dice ổn định ở $0.7570$.
+- **Hạn chế**: 11/43 ca bị gate làm tệ hơn ($\Delta z < 0$) do Conv1×1 thiếu Receptive Field (RF = 1px) để nhận biết hành lang hình học nối giữa hai đầu nứt.
+
+### 2. U1-S2G-v2 (Conv3x3 Gate + Warm-start, 83,073 params) 🏆:
+- Nâng cấp Conv1×1 thành Conv3×3 ($k=3, p=1$), mở rộng RF tại $56 \times 56$ từ 1px $\to$ 3px.
+- Warm-start hoàn hảo từ weights v1 ($|\Delta \alpha| < 10^{-6}$ tại $t=0$), bảo toàn triệt để kiến thức đã học.
+- **Kết quả thực nghiệm vượt bậc**:
+  - **Phục hồi nhóm 11 ca bị tệ**: **9/11 ca (81.8%)** được kéo tụt logit xuống so với v1; **4/11 ca (36.4%)** lật ngược hoàn toàn thành công từ Worsened sang Suppressed ($\Delta z > 0$).
+  - **Duy trì trần chữa lành**: **12/43 ca wider-gap (27.91%)**, median $\Delta z = +0.7412$ (đè sập cầu giả mạnh hơn v1 +22.9%).
+  - **Chất lượng phân đoạn toàn cục Setting A ($N=348$)**:
+    * Val Dice phục hồi mạnh lên **0.7616** (+0.46 pp vs v1).
+    * Boundary IoU đạt **0.2468** (vượt cả Candidate B Baseline 0.2418).
+    * **HD95 giảm ngoạn mục 11.34 px** (từ $53.65 \to \mathbf{42.31\text{ px}}$).
+    * Spurious Islands giảm **31.5%** ($111 \to 76$ đảo nhiễu giả).
+- **Kết luận**: U1-S2G-v2 chính thức trở thành giải pháp downstream điều tiết không gian skip connection tối ưu và toàn diện nhất hiện tại của SAGE-Lite.
+
 
 
 

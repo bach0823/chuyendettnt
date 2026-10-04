@@ -724,14 +724,44 @@ Phase 6 được tái cấu trúc thành 2 nhánh can thiệp có kiểm soát c
     * **Bứt phá trên nhóm vết nứt mảnh ($Q4$ thin cracks $>0.20$)**: Val Dice tăng $+2.37\%$ ($0.6404 \to 0.6641$), sai số loang viền dôi dư giảm $-15.82\%$ ($80.37\% \to 64.55\%$).
     * Rơi vào **Pattern 2 (Dual Chain Recovery / Strong Thin Recovery)** theo ma trận quyết định.
 
-* **Phase 6-A.2: Representation Probe — Progressive Learned Upsampling Head (PLU-Head) [ĐANG THỰC THI ⏳]**:
+* **Phase 6-A.2: Representation Probe — Progressive Learned Upsampling Head (PLU-Head) [HOÀN TẤT 100% ✅]**:
   - **Mục tiêu:** Kiểm tra giả thuyết representation bottleneck do phép nội suy song tuyến tính cố định $4\times$ ($112 \to 448$) làm mờ biên đạo hàm của vết nứt mảnh.
-  - **Kiến trúc:** Thay thế tầng nội suy cố định bằng `ProgressiveLearnedUpsamplingHead` ($112 \to 224 \to 448$) qua 2 bước ConvTranspose2d ($24 \to 16 \to 1$) + BatchNorm + ReLU.
-  - **Kiểm soát biến số khắt khe:**
-    * Chỉ tăng $+6,408$ params (+0.0633%, từ $10,118,955 \to 10,125,363$).
-    * Kế thừa nguyên vẹn trọng số `conv112` và `norm112` từ Stage 1 Candidate B (`best_model_b2_stage1.pth`), chỉ 5 parameter tensors mới được khởi tạo fresh.
-    * Giữ nguyên hàm mục tiêu $\mathcal{L}_{\text{B-IoU}}$ ($\lambda=0.50, d=2$) để đo lường hiệu ứng cộng hưởng.
-  - **Trạng thái:** Mã nguồn hoàn tất, preflight PASS, đang chạy huấn luyện Stage 2 (18 epochs) trên Colab T4.
+  - **Kết quả:** Val Dice đạt **0.7664** (+0.0023 vs Base 0.7641), Precision tăng mạnh lên **0.7491** (+1.54%). Thin-low-area ($n=5$) tăng vọt từ $0.5370 \to \mathbf{0.6059}$ (+0.0689), phình diện tích giảm từ $+141.66\%$ xuống $+77.06\%$ ($\Delta = -64.60\%$).
+
+* **Phase 6-B.1: Boundary Margin Probe — Asymmetric Boundary-Band Penalty Loss (AB-BPL) [HOÀN TẤT 100% 🏆]**:
+  - **Kết quả:** Đỉnh Val Dice mới **0.7685** (+0.0044), Mean IoU **0.6465**, BM Precision $0.7452 \to 0.7511$. Giữ vững Recall cao $0.8321$.
+
+* **Phase 6-C.1: Topology Probe — Soft-clDice Loss [HOÀN TẤT & ĐÃ ĐÓNG ✅]**:
+  - **Phán quyết:** Negative global result ($0.7641 \to 0.7613$). False Bridge hoàn toàn bất biến ($31.6\% \to 32.5\%$).
+
+* **Phase 6-D.0 & D.1: Area Excess ↔ False Bridge Diagnostic & Synergy Probe [HOÀN TẤT ✅]**:
+  - Xác lập bản chất False Bridge gồm 2 thành phần độc lập: Dilation-mediated component ($OR = 5.67, p < 0.0001$) + Residual Separation component. Phép ghép D.1 (PLU + AB-BPL) đạt Precision kỷ lục $0.7525$ nhưng bất lực trước khe hẹp $< 8\text{ px}$.
+
+* **Phase 6-D.3: Phủ Quyết Nhân Quả P3-C ASDW & Khóa Interim ASDW-OFF [HOÀN TẤT 🔒]**:
+  - Causal probe cùng checkpoint ($N=348$ Val, 81.6M pixels) chứng minh ASDW bị suy giảm kép ($\gamma \times 0.10 \approx 0.0015$), đóng góp $\Delta\text{Dice} = +1.3 \times 10^{-8}$ (0 tác động). Chính thức loại bỏ P3-C.
+
+* **Phase 6-D.CGSR: Context-Guided Stage-1 Skip Refinement [HOÀN TẤT & LOẠI BỎ 🔒]**:
+  - Bác bỏ giả thuyết H2 qua 2 run độc lập. Gate bão hòa ở $0.955$, không phân biệt được cầu giả vs nứt thật. Loại bỏ CGSR.
+
+* **Phase 6-E: PointRend Boundary Subsampling Topology Probe [HOÀN TẤT & LOẠI BỎ 🔒]**:
+  - PointRend gây sụp đổ vỡ vụn liên thông vết nứt: Break Events bùng nổ $35 \to 319$ (gấp 9.1 lần), Spurious Islands tăng $111 \to 867$ (gấp 7.8 lần). Bác bỏ PointRend.
+
+* **Phase 6: Causal Pathway Ablation & Downstream Reconvergence [HOÀN TẤT & XÁC LẬP CHÂN LÝ NHÂN QUẢ 🏆]**:
+  - Bằng chứng 2x2 Factorial Zero-training Ablation: **Skip S1 (56×56, 96ch)** là causal driver của **62.8%** wider-gap bridge events (27/43 ca), mạnh gấp **2.8×** upsampled stream.
+  - **Decoder Block 1 là Necessary Amplifier**: Nơi ambiguity tăng từ $0.45 \to 0.69$ (+24.4 pp).
+
+* **Phase 6-U0-C3: DC-Init Stem Upstream Adaptation [HOÀN TẤT & GHI NHẬN UPPER-BOUND 🏆]**:
+  - Bóc tách tần số DC/AC tại Stem ($4 \times 4$ s4): Chữa lành kỷ lục **39.53% (17/43 ca wider-gap)**, nhưng gây trade-off toàn cục do dịch chuyển phân phối đầu vào (Dice $0.7641 \to 0.7346$).
+
+* **Phase 6-U1-S2G (v1): Downstream Spatial Gate Conv1x1 [HOÀN TẤT 🏆]**:
+  - Dùng $S2$ context ($28 \times 28, 192\text{ch}$) tạo spatial gate $\alpha \in (0, 1)$ điều tiết Skip $S1$ ($56 \times 56, 96\text{ch}$). Chữa lành **27.91% (12/43 ca wider-gap)**, vượt trần zero-ablation (25.58%).
+  - Phát hiện **11 ca bị gate làm tệ hơn** do Conv1×1 thiếu Receptive Field (1px).
+
+* **Phase 6-U1-S2G-v2: Downstream Spatial Gate Conv3x3 + Warm-start [HOÀN TẤT XUẤT SẮC 🏆]**:
+  - Nâng cấp Conv3×3 ($k=3, p=1$, 83,073 params), warm-start từ weights v1.
+  - **81.8% (9/11 ca)** bị tệ ở v1 được kéo tụt logit xuống; **36.4% (4/11 ca)** lật ngược thành công sang trạng thái suppressed.
+  - Duy trì trần chữa lành **27.91% (12/43 ca)** với median $\Delta z = +0.7412$ (+22.9% vs v1).
+  - Đưa Setting A Validation ($N=348$): Dice phục hồi lên **0.7616**, Boundary IoU vọt lên **0.2468** (vượt Baseline 0.2418), **HD95 giảm ngoạn mục 11.34 px** ($53.65 \to \mathbf{42.31\text{ px}}$), Spurious Islands giảm **31.5%** ($111 \to 76$).
 
 ---
 
@@ -744,7 +774,8 @@ Phase 6 được tái cấu trúc thành 2 nhánh can thiệp có kiểm soát c
 > - `router_hidden_dim`: **64** (Đã khóa từ Phase 3, điểm cân bằng Pareto giữa 32 và 128).
 > - `load_balance_factor`: **0.010** (Đã khóa từ Phase 4, tối ưu entropy và hạn chế co cụm).
 > - `stage2_lr_ratio`: **1.00** (Đã khóa từ Phase 5.3, Candidate B với $r=1.00$ đạt Val Dice 0.7641).
-> - `objective_loss`: **BCE + 1.5×SoftDice + 1.0×LB + 0.5×SoftBoundaryIoU** (Đã kiểm chứng bứt phá tại Phase 6-A.1 đạt Val Dice 0.7684).
-> - `upsampling_head`: Đang thẩm định tại **Phase 6-A.2** (Bilinear Baseline vs. Progressive Learned Upsampling).
+> - `p3_refinement`: **OFF (nn.Identity())** — P3-C ASDW đã chính thức bị loại bỏ vĩnh viễn.
+> - `objective_loss`: **BCE + 1.5×SoftDice + 1.0×LB + 0.5×SoftBoundaryIoU** (Val Dice 0.7684).
+> - `spatial_modulation`: **S2GateModule (Conv3x3, k=3, p=1, 83,073 params)** đã được chứng minh hiệu quả vượt trội trong việc đè sập cầu nứt giả và giảm 11.34 px sai số biên HD95.
 
 

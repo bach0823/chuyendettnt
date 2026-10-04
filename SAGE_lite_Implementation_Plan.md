@@ -296,7 +296,17 @@ Mục tiêu: Đối chiếu hiệu năng của SAGE-lite với các kiến trúc
   - **B2 Phase 4 (Load Balance Factor Lock)**: Khóa chính thức $load\_balance\_factor = 0.010$ (Val Dice 0.7641 với Candidate B).
   - **B2 Phase 5 (Optimization Stability & Candidate B Lock)**: Khóa Candidate B ($D=4, K=2, H=64$, Stage 2 base $r=1.00$) làm Canonical Base với Val Dice **0.7641**, Mean IoU **0.6417**.
   - **B2 Phase 6-A.1 (Objective Probe — Soft Boundary IoU Loss)**: ĐÃ HOÀN THÀNH 100%. Thiết lập kỷ lục mới **Val Dice 0.7684** (+0.0043), bứt phá trên nhóm vết nứt mảnh $Q4$ ($+2.37\%$, tỷ lệ loang viền giảm $-15.82\%$).
-  - **B2 Phase 6-A.2 (Representation Probe — Progressive Learned Upsampling Head)**: ĐÃ TRIỂN KHAI XONG MÃ NGUỒN. Khởi tạo `ProgressiveLearnedUpsamplingHead` ($112 \to 224 \to 448$, $+6,408$ params, lineage remapping từ Stage 1), hoàn tất preflight và suite chẩn đoán. Đang trong chu kỳ huấn luyện Colab T4 (18 epochs Stage 2) và chờ nạp kết quả Setting A.
+  - **B2 Phase 6-A.2 (Representation Probe — Progressive Learned Upsampling Head)**: ĐÃ HOÀN THÀNH 100%. Val Dice **0.7664**, Thin-low-area tăng từ $0.5370 \to \mathbf{0.6059}$ (+0.0689), phình diện tích giảm $-64.6\%$.
+  - **B2 Phase 6-B.1 (Boundary Margin Probe — AB-BPL)**: ĐÃ HOÀN THÀNH 100%. Thiết lập kỷ lục Val Dice mới **0.7685** (+0.0044).
+  - **B2 Phase 6-C.1 (Topology Probe — Soft-clDice)**: ĐÃ HOÀN THÀNH & ĐÓNG (Negative result, clDice không giải quyết false bridge).
+  - **B2 Phase 6-D.0 & D.1 (Synergy Probe & False Bridge Decomposition)**: Xác lập mô hình 2 thành phần: Dilation-mediated ($OR = 5.67$) + Residual Separation component.
+  - **B2 Phase 6-D.3 (Causal Probe P3-C ASDW)**: ĐÃ HOÀN THÀNH & LOẠI BỎ P3-C (Causal probe cùng checkpoint trên 81.6M pixels chứng minh ASDW bị suy giảm kép, $\Delta\text{Dice} = +1.3 \times 10^{-8}$, không có tác động thực tế).
+  - **B2 Phase 6-D.CGSR**: ĐÃ HOÀN THÀNH & LOẠI BỎ (H2 NOT SUPPORTED qua 2 run độc lập).
+  - **B2 Phase 6-E (PointRend)**: ĐÃ HOÀN THÀNH & LOẠI BỎ (Break events bùng nổ gấp 9.1 lần).
+  - **B2 Phase 6 Causal Pathway Discovery**: Xác định **Skip S1 (56×56, 96ch)** là causal driver của **62.8%** wider-gap bridge events. Decoder Block 1 là Necessary Amplifier.
+  - **B2 Phase 6-U0-C3 (DC-Init Stem)**: Chữa lành kỷ lục **39.53% (17/43 ca wider-gap)**, nhưng chịu trade-off upstream distribution shift.
+  - **B2 Phase 6-U1-S2G (v1, Conv1x1 Gate)**: Chữa lành **27.91% (12/43 ca)**, vượt trần zero-ablation (25.58%), phát hiện điểm nghẽn Receptive Field ở 11 ca worsened.
+  - **B2 Phase 6-U1-S2G-v2 (Conv3x3 Gate + Warm-start)**: ĐÃ HOÀN THÀNH XUẤT SẮC 🏆. Phục hồi **81.8% (9/11 ca)** worsened, lật ngược **36.4% (4/11 ca)** sang suppressed, giữ trần **27.91%** cure rate, HD95 ép sâu xuống **42.31 px** (-11.34 px), Spurious Islands giảm **-31.5%**. Toàn bộ mã nguồn, weights và dữ liệu đã được nghiệm thu và lưu trữ an toàn.
 
 
 
