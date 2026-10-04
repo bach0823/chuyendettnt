@@ -1,0 +1,108 @@
+{
+  "Candidate_B_Baseline": {
+    "N": 348,
+    "dice": 0.7640881806771141,
+    "recall": 0.8476884187188468,
+    "precision": 0.7336947741984694,
+    "cldice": 0.8498515829576173,
+    "boundary_iou": 0.24175755623551817,
+    "hd95": 53.648256920776745,
+    "bf1": 0.38201035372136555,
+    "thin_dice": 0.4230063161265414,
+    "total_bridge_events": 118,
+    "bridge_images": 110,
+    "total_break_events": 35,
+    "break_images": 34,
+    "spurious_islands": 111,
+    "mean_runtime_ms": 147.89956328512608
+  },
+  "Candidate_B_U0_C3_DCInit_Ref": {
+    "N": 348,
+    "dice": 0.7346,
+    "cldice": 0.8173,
+    "boundary_iou": 0.2116,
+    "total_bridge_events": 105,
+    "total_break_events": 76,
+    "cured_43": 17,
+    "cure_rate_43": 39.53
+  },
+  "Candidate_B_U1_S2G_v1": {
+    "N": 348,
+    "dice": 0.757,
+    "cldice": 0.8415,
+    "boundary_iou": 0.2319,
+    "hd95": 54.04,
+    "total_bridge_events": 115,
+    "total_break_events": 43,
+    "cured_43": 12,
+    "cure_rate_43": 27.91,
+    "cured_118": 15,
+    "cure_rate_118": 12.71,
+    "worsened_count": 11,
+    "mean_delta_z_43": 0.8508,
+    "median_delta_z_43": 0.6031
+  },
+  "Candidate_B_U1_S2G_v2": {
+    "N": 348,
+    "dice": 0.7616032083761515,
+    "iou": 0.6413945697652554,
+    "recall": 0.8247659576825244,
+    "precision": 0.749134806342674,
+    "cldice": 0.8444959877781173,
+    "boundary_iou": 0.24682144746666507,
+    "hd95": 42.30857674745269,
+    "bf1": 0.3889617999762823,
+    "thin_dice": 0.4239211634982903,
+    "total_bridge_events": 113,
+    "bridge_images": 108,
+    "total_break_events": 46,
+    "break_images": 46,
+    "spurious_islands": 76,
+    "mean_runtime_ms": 94.34834362446577
+  },
+  "Delta_S2G_v2_minus_Base": {
+    "delta_dice": -0.0024849723009626734,
+    "delta_cldice": -0.005355595179500017,
+    "delta_boundary_iou": 0.005063891231146894,
+    "delta_hd95": -11.339680173324055,
+    "delta_bridge_events": -5,
+    "delta_break_events": 11
+  },
+  "Delta_S2G_v2_minus_v1": {
+    "delta_dice": 0.004603208376151469,
+    "delta_cldice": 0.0029959877781172706,
+    "delta_boundary_iou": 0.014921447466665072,
+    "delta_hd95": -11.731423252547309,
+    "delta_bridge_events": -2,
+    "delta_break_events": 3
+  },
+  "Cohort_43_Wider_Gap": {
+    "N": 43,
+    "cured_count_v2": 12,
+    "cure_rate_pct_v2": 27.906976744186046,
+    "cured_count_v1": 12,
+    "cure_rate_pct_v1": 27.91,
+    "u0_c3_cured_count": 17,
+    "u0_c3_cure_rate_pct": 39.53,
+    "median_delta_z_bridge_v2": 0.7412499785423279,
+    "mean_delta_z_bridge_v2": 0.9255262116446744
+  },
+  "Cohort_11_Worsened_Recovery": {
+    "N": 11,
+    "improved_vs_v1_count": 9,
+    "improved_vs_v1_pct": 81.81818181818183,
+    "flipped_vs_ctrl_count": 4,
+    "flipped_vs_ctrl_pct": 36.36363636363637,
+    "cured_count": 0,
+    "cured_pct": 0.0
+  },
+  "Cohort_All_118_Events": {
+    "N": 118,
+    "cured_count_v2": 14,
+    "cure_rate_pct_v2": 11.864406779661017,
+    "cured_count_v1": 15,
+    "cure_rate_pct_v1": 12.71,
+    "median_delta_z_bridge_v2": 0.7412499785423279,
+    "mean_delta_z_bridge_v2": 0.9255262116446744
+  }
+}
