@@ -55,10 +55,17 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-sage_lite_dir = os.path.join(project_root, "SAGE_LITE")
-for p in [project_root, sage_lite_dir]:
-    if p not in sys.path:
+# Self-contained path resolution: works both inside /content/SAGE_LITE and in root SpecialSubjectTTNT
+current_dir = os.path.dirname(os.path.abspath(__file__))
+cand_roots = [
+    os.path.abspath(os.path.join(current_dir, "..", "..")),
+    os.path.abspath(os.path.join(current_dir, "..")),
+    os.getcwd(),
+    "/content/SAGE_LITE",
+    "/content",
+]
+for p in cand_roots:
+    if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 
 from tools.run_phase6_c_topology_diagnostic import (
@@ -68,16 +75,215 @@ from tools.run_phase6_c_topology_diagnostic import (
 from sage.utils.advanced_metrics import calculate_hd95_bf1
 from scripts.evaluate_crack_official import predict_full_image_tiling_setting_a
 from sage.networks.dc_init_stem import DCInitStem, init_dc_stem_from_pretrained
-from scripts.diagnostics.train_eval_phase6_stem_genesis import (
-    Crack500TrainDataset,
-    compute_seg_loss,
-)
 
 
-from scripts.diagnostics.phase6_stem_factorization_provenance import (
-    isolate_bridged_pairs_and_rois,
-    isolate_clean_pairs_and_rois,
-)
+# -----------------------------------------------------------------------------
+# Standalone Dataset and Loss (Fully inlined for zero-dependency execution)
+# -----------------------------------------------------------------------------
+
+def dice_loss(pred_logits: torch.Tensor, target: torch.Tensor, smooth: float = 1e-5) -> torch.Tensor:
+    probs = torch.sigmoid(pred_logits)
+    probs_flat = probs.view(-1)
+    target_flat = target.view(-1)
+    intersection = (probs_flat * target_flat).sum()
+    dice = (2.0 * intersection + smooth) / (probs_flat.sum() + target_flat.sum() + smooth)
+    return 1.0 - dice
+
+
+def compute_seg_loss(logits: torch.Tensor, targets: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, float]]:
+    bce = F.binary_cross_entropy_with_logits(logits, targets)
+    dice = dice_loss(logits, targets)
+    l_total = bce + dice
+    metrics = {
+        "loss_bce": float(bce.item()),
+        "loss_dice": float(dice.item()),
+        "loss_total": float(l_total.item()),
+    }
+    return l_total, metrics
+
+
+class Crack500TrainDataset(Dataset):
+    def __init__(self, img_dir: str, mask_dir: str, img_size: int = 448, seed: int = 42):
+        self.img_paths = sorted(glob.glob(os.path.join(img_dir, "*.jpg")))
+        self.mask_dir = mask_dir
+        self.img_size = img_size
+        self.rng = np.random.RandomState(seed)
+        self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape(1, 1, 3)
+        self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape(1, 1, 3)
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, idx):
+        img_p = self.img_paths[idx]
+        stem = os.path.splitext(os.path.basename(img_p))[0]
+        mask_p = os.path.join(self.mask_dir, f"{stem}.png")
+        if not os.path.exists(mask_p):
+            mask_p = os.path.join(self.mask_dir, f"{stem}.jpg")
+
+        img = cv2.imread(img_p)
+        mask = cv2.imread(mask_p, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            raise FileNotFoundError(f"Failed to read image: {img_p}")
+        if mask is None:
+            raise FileNotFoundError(f"Failed to read mask: {mask_p}")
+
+        H, W = mask.shape
+        if H < self.img_size or W < self.img_size:
+            pad_h = max(0, self.img_size - H)
+            pad_w = max(0, self.img_size - W)
+            img = cv2.copyMakeBorder(img, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
+            mask = cv2.copyMakeBorder(mask, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
+            H, W = mask.shape
+
+        y1 = self.rng.randint(0, H - self.img_size + 1)
+        x1 = self.rng.randint(0, W - self.img_size + 1)
+
+        crop_img = img[y1 : y1 + self.img_size, x1 : x1 + self.img_size]
+        crop_mask = mask[y1 : y1 + self.img_size, x1 : x1 + self.img_size]
+
+        if self.rng.rand() > 0.5:
+            crop_img = np.fliplr(crop_img).copy()
+            crop_mask = np.fliplr(crop_mask).copy()
+        if self.rng.rand() > 0.5:
+            crop_img = np.flipud(crop_img).copy()
+            crop_mask = np.flipud(crop_mask).copy()
+
+        crop_img = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        crop_img = (crop_img - self.mean) / self.std
+        crop_img = crop_img.transpose(2, 0, 1)
+        crop_mask = (crop_mask > 127).astype(np.float32)[np.newaxis, :, :]
+
+        return {
+            "image": torch.from_numpy(crop_img).float(),
+            "mask": torch.from_numpy(crop_mask).float(),
+            "stem": stem,
+        }
+
+
+# -----------------------------------------------------------------------------
+# Standalone ROI Isolation Functions
+# -----------------------------------------------------------------------------
+
+def isolate_bridged_pairs_and_rois(
+    pred_bin: np.ndarray,
+    target_bin: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
+    H, W = target_bin.shape
+    num_gt_cc, gt_labels = cv2.connectedComponents(target_bin.astype(np.uint8), connectivity=8)
+    num_pred_cc, pred_labels = cv2.connectedComponents(pred_bin.astype(np.uint8), connectivity=8)
+    pred_cc = int(max(num_pred_cc - 1, 0))
+    gt_cc = int(max(num_gt_cc - 1, 0))
+
+    neck_mask = np.zeros((H, W), dtype=np.uint8)
+    crack_mask = np.zeros((H, W), dtype=np.uint8)
+    corridor_union = np.zeros((H, W), dtype=np.uint8)
+    pair_records = []
+
+    if gt_cc < 2 or pred_cc < 1:
+        return neck_mask, crack_mask, neck_mask, pair_records
+
+    for p_id in range(1, pred_cc + 1):
+        cc_pred = (pred_labels == p_id)
+        overlapping_gt = np.unique(gt_labels[cc_pred])
+        overlapping_gt = overlapping_gt[overlapping_gt > 0]
+
+        if len(overlapping_gt) >= 2:
+            cc_fp = cc_pred & (target_bin == 0)
+            for g_id in overlapping_gt:
+                crack_mask = crack_mask | (gt_labels == g_id).astype(np.uint8)
+
+            for i in range(len(overlapping_gt)):
+                for j in range(i + 1, len(overlapping_gt)):
+                    gi = overlapping_gt[i]
+                    gj = overlapping_gt[j]
+                    mask_i = (gt_labels == gi)
+                    mask_j = (gt_labels == gj)
+
+                    dt_i = distance_transform_edt(~mask_i)
+                    gap_dist = float(np.min(dt_i[mask_j]))
+                    radius = max(int(np.ceil(gap_dist / 2.0)) + 2, 3)
+                    ksize = 2 * radius + 1
+                    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
+
+                    dil_i = cv2.dilate(mask_i.astype(np.uint8), kernel)
+                    dil_j = cv2.dilate(mask_j.astype(np.uint8), kernel)
+
+                    corridor = (dil_i > 0) & (dil_j > 0)
+                    corridor_union = corridor_union | corridor.astype(np.uint8)
+                    neck = cc_fp & corridor
+                    neck_mask = neck_mask | neck.astype(np.uint8)
+
+                    pair_records.append({
+                        "gt_i": int(gi),
+                        "gt_j": int(gj),
+                        "gap_distance_px": gap_dist,
+                    })
+
+    if len(pair_records) > 0 and np.sum(neck_mask) == 0:
+        for p_id in range(1, pred_cc + 1):
+            cc_pred = (pred_labels == p_id)
+            overlapping_gt = np.unique(gt_labels[cc_pred])
+            overlapping_gt = overlapping_gt[overlapping_gt > 0]
+            if len(overlapping_gt) >= 2:
+                neck_mask = neck_mask | (cc_pred & (target_bin == 0)).astype(np.uint8)
+
+    kernel_bg = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+    dilated_corridor = cv2.dilate(corridor_union, kernel_bg)
+    nearby_bg_mask = (dilated_corridor > 0) & (target_bin == 0) & (pred_bin == 0)
+
+    if np.sum(nearby_bg_mask) < 50:
+        kernel_bg_large = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (51, 51))
+        dilated_corridor_large = cv2.dilate(corridor_union, kernel_bg_large)
+        nearby_bg_mask = (dilated_corridor_large > 0) & (target_bin == 0) & (pred_bin == 0)
+
+    return neck_mask, crack_mask, nearby_bg_mask.astype(np.uint8), pair_records
+
+
+def isolate_clean_pairs_and_rois(
+    target_bin: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
+    H, W = target_bin.shape
+    num_gt_cc, gt_labels = cv2.connectedComponents(target_bin.astype(np.uint8), connectivity=8)
+
+    min_gap = 1e9
+    best_pair = None
+    for i in range(1, num_gt_cc):
+        m_i = (gt_labels == i)
+        dt_i = distance_transform_edt(~m_i)
+        for j in range(i + 1, num_gt_cc):
+            m_j = (gt_labels == j)
+            d = float(np.min(dt_i[m_j]))
+            if d < min_gap:
+                min_gap = d
+                best_pair = (i, j)
+
+    if best_pair is None:
+        return np.zeros((H, W), dtype=np.uint8), target_bin.astype(np.uint8), np.ones((H, W), dtype=np.uint8), []
+
+    i, j = best_pair
+    m_i = (gt_labels == i)
+    m_j = (gt_labels == j)
+    radius = max(int(np.ceil(min_gap / 2.0)) + 2, 3)
+    ksize = 2 * radius + 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
+    dil_i = cv2.dilate(m_i.astype(np.uint8), kernel)
+    dil_j = cv2.dilate(m_j.astype(np.uint8), kernel)
+    corridor = (dil_i > 0) & (dil_j > 0)
+
+    gap_neck = corridor & (target_bin == 0)
+    crack_mask = (m_i | m_j).astype(np.uint8)
+
+    k_bg = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+    dil_corridor = cv2.dilate(corridor.astype(np.uint8), k_bg)
+    nearby_bg = (dil_corridor > 0) & (target_bin == 0) & (~gap_neck)
+
+    if np.sum(nearby_bg) < 50:
+        k_bg_l = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (51, 51))
+        dil_corridor_l = cv2.dilate(corridor.astype(np.uint8), k_bg_l)
+        nearby_bg = (dil_corridor_l > 0) & (target_bin == 0) & (~gap_neck)
+
+    return gap_neck.astype(np.uint8), crack_mask, nearby_bg.astype(np.uint8), [{"gap_distance_px": min_gap}]
 
 
 def compute_file_hash(path: str) -> str:
@@ -122,14 +328,14 @@ def extract_stem_and_stage0_energy_and_features(
     model: nn.Module,
     tile_t: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    act_stem = model.backbone.convnext.stem(tile_t)  # (1, 48, 112, 112)
-    energy_stem = torch.norm(act_stem, p=2, dim=1).squeeze(0)  # (112, 112)
+    act_stem = model.backbone.convnext.stem(tile_t)
+    energy_stem = torch.norm(act_stem, p=2, dim=1).squeeze(0)
 
     stage0 = model.backbone.convnext.stages[0]
     act_stage0 = stage0(act_stem)
     if isinstance(act_stage0, tuple):
         act_stage0 = act_stage0[0]
-    energy_stage0 = torch.norm(act_stage0, p=2, dim=1).squeeze(0)  # (112, 112)
+    energy_stage0 = torch.norm(act_stage0, p=2, dim=1).squeeze(0)
 
     return act_stem, energy_stem, act_stage0, energy_stage0
 
@@ -390,7 +596,7 @@ def train_u0_c3(
 
 def main():
     parser = argparse.ArgumentParser(description="Phase 6 U0-C3: DC-Init Stem Experiment")
-    parser.add_argument("--config", type=str, default="SAGE_LITE/configs/p3_ablation/b2_candidate_b_no_asdw_adaptive_fusion.yaml")
+    parser.add_argument("--config", type=str, default="configs/p3_ablation/b2_candidate_b_no_asdw_adaptive_fusion.yaml")
     parser.add_argument("--checkpoint", type=str, default="results/checkpoints/P3_C_D4_K2_H64_Phase5_SAGELR2e-4_best_model_b2_global.pth")
     parser.add_argument("--data_root", type=str, default="datasets/Crack500_ready")
     parser.add_argument("--out_dir", type=str, default="results/diagnostics/phase6_u0_c3_dcinit")
@@ -398,6 +604,12 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--skip_train", action="store_true", help="Skip training if weights already exist")
     args = parser.parse_args()
+
+    # Automatically resolve config path if running inside SAGE_LITE or outside
+    if not os.path.exists(args.config):
+        alt_config = os.path.join("SAGE_LITE", args.config)
+        if os.path.exists(alt_config):
+            args.config = alt_config
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -508,6 +720,11 @@ def main():
 
     # Cohort stems for dual representation audit
     master_path = "results/diagnostics/phase6_d2_topology/topology_7models_master_paired.csv"
+    if not os.path.exists(master_path):
+        alt_master = os.path.join("..", master_path)
+        if os.path.exists(alt_master):
+            master_path = alt_master
+
     if os.path.exists(master_path):
         df_master = pd.read_csv(master_path)
         models_list = ["Base", "A1", "A2", "B1", "C1", "D1", "D2"]
@@ -519,6 +736,11 @@ def main():
         clean_stems = set()
 
     ac_atten_csv = "results/diagnostics/phase6_stem_ac_attenuation/ac_attenuation_per_sample_alpha.csv"
+    if not os.path.exists(ac_atten_csv):
+        alt_ac = os.path.join("..", ac_atten_csv)
+        if os.path.exists(alt_ac):
+            ac_atten_csv = alt_ac
+
     if os.path.exists(ac_atten_csv):
         df_prev = pd.read_csv(ac_atten_csv)
         c7a0 = df_prev[(df_prev["cohort"] == "Consensus_7of7") & (df_prev["alpha"] == 0.0)]
@@ -678,7 +900,17 @@ def main():
     print("=" * 80)
 
     events_csv = "results/diagnostics/phase6_bottleneck_path/bottleneck_path_118events.csv"
+    if not os.path.exists(events_csv):
+        alt_ev = os.path.join("..", events_csv)
+        if os.path.exists(alt_ev):
+            events_csv = alt_ev
+
     cgsr_43_csv = "results/Phase6D_CGSR/evaluation_phase6d/cgsr_evaluation_43wider_events.csv"
+    if not os.path.exists(cgsr_43_csv):
+        alt_cgsr = os.path.join("..", cgsr_43_csv)
+        if os.path.exists(alt_cgsr):
+            cgsr_43_csv = alt_cgsr
+
     cgsr_ref = pd.read_csv(cgsr_43_csv).set_index("event_id") if os.path.exists(cgsr_43_csv) else None
 
     wider_43_records = []
