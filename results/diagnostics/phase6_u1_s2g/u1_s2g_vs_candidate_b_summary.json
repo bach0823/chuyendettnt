@@ -1,0 +1,77 @@
+{
+  "Candidate_B_Baseline": {
+    "N": 348,
+    "dice": 0.7640881806771141,
+    "recall": 0.8476884187188468,
+    "precision": 0.7336947741984694,
+    "cldice": 0.8498515829576173,
+    "boundary_iou": 0.24175755623551817,
+    "hd95": 53.648256920776745,
+    "bf1": 0.38201035372136555,
+    "thin_dice": 0.4230063161265414,
+    "total_bridge_events": 118,
+    "bridge_images": 110,
+    "total_break_events": 35,
+    "break_images": 34,
+    "spurious_islands": 111,
+    "mean_runtime_ms": 147.89956328512608
+  },
+  "Candidate_B_U0_C3_DCInit_Ref": {
+    "N": 348,
+    "dice": 0.7346,
+    "cldice": 0.8173,
+    "boundary_iou": 0.2116,
+    "total_bridge_events": 105,
+    "total_break_events": 76,
+    "cured_43": 17,
+    "cure_rate_43": 39.53
+  },
+  "Candidate_B_U1_S2G": {
+    "N": 348,
+    "dice": 0.7609541581217761,
+    "iou": 0.6405774336628942,
+    "recall": 0.8290985440218293,
+    "precision": 0.74432452459486,
+    "cldice": 0.8444115379015344,
+    "boundary_iou": 0.24504748389714248,
+    "hd95": 43.85615883749643,
+    "bf1": 0.3858408779875075,
+    "thin_dice": 0.42479269615179305,
+    "total_bridge_events": 111,
+    "bridge_images": 105,
+    "total_break_events": 44,
+    "break_images": 42,
+    "spurious_islands": 82,
+    "mean_runtime_ms": 103.4928964472365
+  },
+  "Delta_S2G_minus_Base": {
+    "delta_dice": -0.003134022555338012,
+    "delta_cldice": -0.005440045056082865,
+    "delta_boundary_iou": 0.003289927661624309,
+    "delta_hd95": -9.792098083280315,
+    "delta_bridge_events": -7,
+    "delta_break_events": 9
+  },
+  "Cohort_43_Wider_Gap": {
+    "N": 0,
+    "cured_count": 0,
+    "cure_rate_pct": 0.0,
+    "u0_c3_cured_count": 17,
+    "u0_c3_cure_rate_pct": 39.53,
+    "cgsr_cured_count": 5,
+    "cgsr_cure_rate_pct": 11.63,
+    "median_delta_z_bridge": 0.0,
+    "mean_delta_z_bridge": 0.0
+  },
+  "Cohort_All_118_Events": {
+    "N": 0,
+    "cured_count": 0,
+    "cure_rate_pct": 0.0,
+    "u0_c3_cured_count": 28,
+    "u0_c3_cure_rate_pct": 23.73,
+    "cgsr_cured_count": 6,
+    "cgsr_cure_rate_pct": 5.08,
+    "median_delta_z_bridge": 0.0,
+    "mean_delta_z_bridge": 0.0
+  }
+}
