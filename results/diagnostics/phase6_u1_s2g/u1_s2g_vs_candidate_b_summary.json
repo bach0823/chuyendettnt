@@ -53,25 +53,25 @@
     "delta_break_events": 9
   },
   "Cohort_43_Wider_Gap": {
-    "N": 0,
-    "cured_count": 0,
-    "cure_rate_pct": 0.0,
+    "N": 43,
+    "cured_count": 12,
+    "cure_rate_pct": 27.906976744186046,
     "u0_c3_cured_count": 17,
     "u0_c3_cure_rate_pct": 39.53,
     "cgsr_cured_count": 5,
     "cgsr_cure_rate_pct": 11.63,
-    "median_delta_z_bridge": 0.0,
-    "mean_delta_z_bridge": 0.0
+    "median_delta_z_bridge": 0.6030698418617249,
+    "mean_delta_z_bridge": 0.8507782553517541
   },
   "Cohort_All_118_Events": {
-    "N": 0,
-    "cured_count": 0,
-    "cure_rate_pct": 0.0,
+    "N": 118,
+    "cured_count": 15,
+    "cure_rate_pct": 12.711864406779661,
     "u0_c3_cured_count": 28,
     "u0_c3_cure_rate_pct": 23.73,
     "cgsr_cured_count": 6,
     "cgsr_cure_rate_pct": 5.08,
-    "median_delta_z_bridge": 0.0,
-    "mean_delta_z_bridge": 0.0
+    "median_delta_z_bridge": 0.6030698418617249,
+    "mean_delta_z_bridge": 0.8507782553517541
   }
 }
