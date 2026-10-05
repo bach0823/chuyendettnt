@@ -763,6 +763,14 @@ Phase 6 được tái cấu trúc thành 2 nhánh can thiệp có kiểm soát c
   - Duy trì trần chữa lành **27.91% (12/43 ca)** với median $\Delta z = +0.7412$ (+22.9% vs v1).
   - Đưa Setting A Validation ($N=348$): Dice phục hồi lên **0.7616**, Boundary IoU vọt lên **0.2468** (vượt Baseline 0.2418), **HD95 giảm ngoạn mục 11.34 px** ($53.65 \to \mathbf{42.31\text{ px}}$), Spurious Islands giảm **31.5%** ($111 \to 76$).
 
+* **Phase 6 Final Pipeline Combination & Candidate C Synthesis [DRIVER & CONFIGS READY 🚀]**:
+  - Tích hợp 3 giai đoạn:
+    + **GĐ 1A (B1 Sweep)**: Tìm $\lambda^*_{B1}$ giữa $v0$ (0.04/r2), $v1$ (0.02/r2), $v2$ (0.08/r2), $v3$ (0.04/r1) theo tiêu chí $\max(\text{Dice} \times \text{Recall})$ với $\text{Recall} \ge 0.840$.
+    + **GĐ 1B (A1 Sweep)**: Tìm $\lambda^*_{A1}$ giữa $v0$ (0.50/d2), $v1$ (0.25/d2), $v2$ (0.75/d2), $v3$ (0.50/d3) theo tiêu chí $\max(\text{Dice} + 2 \times (\text{ThinDice} - 0.4230))$.
+    + **GĐ 2 (Combination Run 2A)**: Huấn luyện $A1(\lambda^*_{A1}) + B1(\lambda^*_{B1})$ từ Candidate B Stage 1 checkpoint. PASS khi $\text{Dice} \ge \max(A1, B1)$ và $\text{Recall} \ge 0.838$.
+    + **GĐ 3 (Stack S2-Gate-v2)**: Thêm Conv3×3 S2-Gate lên `best_combined_base.pth`, warm-start từ `u1_s2g_weights.pth`, huấn luyện 8 epochs FP32 strict $\to$ xuất `final_candidate_c.pth`.
+  - Bộ công cụ hoàn tất: Driver `scripts/run_phase6_combination_pipeline.py`, 6 configs tại `configs/p3_ablation/phase6_combination/`, và test `scripts/tests/test_phase6_combination_pipeline.py` (ALL PASS).
+
 ---
 
 ### ĐÓNG BĂNG CẤU HÌNH NỀN TẢNG (LOCKED BASE SAGE-LITE CONFIGURATION)

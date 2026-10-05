@@ -143,6 +143,16 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
       + **Phục hồi 11 ca bị tệ**: **9/11 ca (81.8%)** được kéo tụt logit xuống so với v1; **4/11 ca (36.4%)** lật ngược hoàn toàn thành công từ Worsened sang Suppressed ($\Delta z_{\text{v2}} > 0$).
       + **Wider-gap Cured**: Giữ vững trần kỷ lục **12/43 ca (27.91%)**, median $\Delta z_{\text{bridge}} = +0.7412$ (đè sập cầu giả mạnh hơn v1 +22.9%).
       + **Hiệu năng toàn cục Setting A ($N=348$)**: Val Dice hồi phục mạnh lên **0.7616** (+0.46 pp vs v1); Boundary IoU vọt lên **0.2468** (vượt cả Candidate B Baseline 0.2418); **HD95 giảm ngoạn mục 11.34 px** (từ $53.65 \to \mathbf{42.31\text{ px}}$); Spurious Islands giảm **31.5%** ($111 \to 76$ đảo nhiễu giả).
+21. **Phase 6 Pipeline Combination & Candidate C Synthesis (DRIVER & CONFIGS READY 🚀):**
+    - **Mục tiêu**: Hợp nhất các thành phần đã được kiểm chứng (positive/supported) của Phase 6 thành **Candidate C (Final Model)** qua quy trình 3 giai đoạn:
+      + **Giai đoạn 1A (B1 Sweep)**: Quét 3 runs mới ($v1: 0.020/r2$, $v2: 0.080/r2$, $v3: 0.040/r1$) đối chiếu với $v0$ ($0.040/r2$, Dice $0.7685$). Tiêu chí chọn $\lambda^*_{B1}$: Maximize $\text{Dice} \times \text{Recall}$ với ràng buộc $\text{Recall} \ge 0.840$.
+      + **Giai đoạn 1B (A1 Sweep)**: Quét 3 runs mới ($v1: 0.25/d2$, $v2: 0.75/d2$, $v3: 0.50/d3$) đối chiếu với $v0$ ($0.50/d2$, Dice $0.7684$). Tiêu chí chọn $\lambda^*_{A1}$: Maximize $\text{Dice} + 2 \times (\text{ThinCrackDice} - 0.4230)$.
+      + **Giai đoạn 2 (Combination Run 2A)**: Huấn luyện kết hợp $A1(\lambda^*_{A1}) + B1(\lambda^*_{B1})$ từ Candidate B Stage 1 checkpoint. Tiêu chí PASS: $\text{Dice} \ge \max(A1, B1)$ và $\text{Recall} \ge 0.838$. (Run 2B tùy chọn với A2 chỉ mở nếu $\text{Recall} \ge 0.842$).
+      + **Giai đoạn 3 (Stack S2-Gate-v2)**: Gắn S2-Gate-v2 (Conv3×3) lên top của `best_combined_base.pth`, warm-start từ `u1_s2g_weights.pth`, huấn luyện 8 epochs FP32 strict $\to$ kiểm định Setting A $N=348$, 118 events, 43 wider gap, 11 worsened recovery $\to$ xuất xưởng `final_candidate_c.pth`.
+    - **Công cụ & Kiểm thử hoàn tất**:
+      + 6 YAML configs chuẩn hóa tại `configs/p3_ablation/phase6_combination/`.
+      + Driver pipeline tự động hóa `scripts/run_phase6_combination_pipeline.py`.
+      + Kiểm thử bất biến `scripts/tests/test_phase6_combination_pipeline.py` (ALL PASS).
 
 State:
 - Phase 1: D4 locked
