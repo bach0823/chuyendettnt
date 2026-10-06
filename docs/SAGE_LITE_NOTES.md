@@ -1387,8 +1387,31 @@ Trích xuất từ kết quả chẩn đoán chính thức trên toàn bộ 348 
     * Boundary IoU đạt **0.2468** (vượt cả Candidate B Baseline 0.2418).
     * **HD95 giảm ngoạn mục 11.34 px** (từ $53.65 \to \mathbf{42.31\text{ px}}$).
     * Spurious Islands giảm **31.5%** ($111 \to 76$ đảo nhiễu giả).
-- **Kết luận**: U1-S2G-v2 chính thức trở thành giải pháp downstream điều tiết không gian skip connection tối ưu và toàn diện nhất hiện tại của SAGE-Lite.
+---
 
+## 32. Tổng Hợp Thực Nghiệm Phase 6: A1 + S2-Gate & Khảo Sát Định Tuyến (2026-10-06 -> 2026-10-07)
+
+### 1. Thực Nghiệm Kết Hợp A1 + S2-Gate (Run 1 vs Run 2 Kỷ Lục Mới) 🏆:
+- **Run 1 (`a1_s2g_end_to_end`)**: Chạy từ đầu Stage 1 (17 eps, Dice 0.7541) $\to$ Stage 2 đạt đỉnh **Val Dice = 0.7676** (Epoch 16), Recall **0.8384**, Precision **0.7408**.
+- **Run 2 (`a1_s2g_stage2`)**: Nối tiếp từ Stage 1 checkpoint bằng `--stage2-only` với phục hồi RNG state đầy đủ $\to$ Đạt đỉnh **Val Dice = 0.7702** (Epoch 14), Precision tăng vọt lên **0.7510**, Recall **0.8301**, Thin Crack Dice **0.4260**, Loss đáy **1.3471**.
+- Sự kết hợp giữa Soft Boundary IoU Loss ($\lambda=0.5, d=2$) và S2-Gate Conv3x3 mang lại hiệu năng cao nhất toàn dự án.
+
+### 2. Thẩm Định Độc Lập ASDW (ASDW ON vs OFF):
+- Đánh giá cùng checkpoint trên 348 ảnh Setting A cho thấy: $\Delta\text{Dice} = -0.000001$ ($0.767640 \to 0.767639$).
+- Trọng số $\gamma$ học được quá nhỏ ($\gamma_{\text{S0}} = 0.0090, \gamma_{\text{S1}} = 0.0077$). Cùng với SAGE `residual_scale = 0.10`, độ lớn logit truyền từ ASDW bị suy giảm kép về $< 10^{-4}$.
+- **Quyết định**: Xác nhận P3-C ASDW hoàn toàn bất hoạt và loại bỏ chính thức khỏi kiến trúc.
+
+### 3. Khảo Sát Cơ Chế Định Tuyến & Dung Lượng (Routing Sweeps):
+- **Nghịch lý Static Routing**: Static Top-2 (Dice **0.7687**, IoU **0.6467**, Precision **0.7486**) vượt Dynamic Adaptive (0.7676). Mạng đã học được cấu trúc phân công lao động tối ưu cố định; routing động ở inference chỉ tạo thêm nhiễu gating.
+- **Static Top-$K$ Capacity Sweep**: Đỉnh cao nhất tại $K=2$ ($25\%$ capacity). Khi tăng $K \in \{3, 4, 6\}$, hiệu năng tụt dần về **0.7666** ở $K=6$ do hiện tượng pha loãng biểu diễn (representation dilution).
+- **Phân rã Đa dạng Chuyên gia (Expert Diversity)**:
+  * Intra-CNN Cosine Similarity = **0.0952** (trực giao cực cao giữa các tỷ lệ không gian).
+  * Intra-ViT Cosine Similarity = **0.6869** (ngữ cảnh hội tụ mạnh $\implies$ khẳng định $D=4$ đã bão hòa trần biểu diễn, không cần thêm ViT blocks).
+  * Cross-Family Cosine Similarity = **0.1782** (CNN và ViT bổ trợ cho nhau).
+
+### 4. Bài Học Bất Biến Về Dữ Liệu Thực Nghiệm (Anti-False-Deduplication):
+- Các run chạy nối tiếp từ Stage 1 cùng chia sẻ chung một checkpoint khởi đầu (`best_model_b2_stage1.pth`). Hash của checkpoint này giống nhau là điều tự nhiên.
+- Tuyệt đối cấm hành vi tự ý xóa run chỉ dựa trên hash checkpoint mà không đọc `train.log`.
 
 
 

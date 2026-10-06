@@ -307,6 +307,14 @@ Mục tiêu: Đối chiếu hiệu năng của SAGE-lite với các kiến trúc
   - **B2 Phase 6-U0-C3 (DC-Init Stem)**: Chữa lành kỷ lục **39.53% (17/43 ca wider-gap)**, nhưng chịu trade-off upstream distribution shift.
   - **B2 Phase 6-U1-S2G (v1, Conv1x1 Gate)**: Chữa lành **27.91% (12/43 ca)**, vượt trần zero-ablation (25.58%), phát hiện điểm nghẽn Receptive Field ở 11 ca worsened.
   - **B2 Phase 6-U1-S2G-v2 (Conv3x3 Gate + Warm-start)**: ĐÃ HOÀN THÀNH XUẤT SẮC 🏆. Phục hồi **81.8% (9/11 ca)** worsened, lật ngược **36.4% (4/11 ca)** sang suppressed, giữ trần **27.91%** cure rate, HD95 ép sâu xuống **42.31 px** (-11.34 px), Spurious Islands giảm **-31.5%**. Toàn bộ mã nguồn, weights và dữ liệu đã được nghiệm thu và lưu trữ an toàn.
+  - **B2 Phase 6 A1 + S2-Gate Combination (KỶ LỤC DỰ ÁN MỚI 0.7702 🏆)**:
+    * **Run 1 (`a1_s2g_end_to_end`)**: Stage 1 (17 eps, Dice 0.7541) $\to$ Stage 2 đạt đỉnh **Val Dice = 0.7676** (Epoch 16), Recall **0.8384**, Precision **0.7408**.
+    * **Run 2 (`a1_s2g_stage2`)**: Nối tiếp từ Stage 1 checkpoint với phục hồi toàn bộ RNG $\to$ Đạt đỉnh **Val Dice = 0.7702** (Epoch 14), Precision tăng vọt lên **0.7510**, Recall **0.8301**, Thin Crack Dice **0.4260**, Loss đáy **1.3471**.
+    * **Kiểm định ASDW**: $\Delta\text{Dice} = -0.000001$ ($0.767640 \to 0.767639$), chứng minh ASDW đóng góp $0\%$ và loại bỏ hoàn toàn.
+    * **Nghịch lý Static Routing**: Static Top-2 (Dice **0.7687**, IoU **0.6467**, Precision **0.7486**) vượt Dynamic Adaptive (0.7676).
+    * **Static Top-$K$ Capacity Sweep**: Bão hòa tối ưu tại $K=2$ ($25\%$), tăng $K \ge 3$ gây pha loãng biểu diễn.
+    * **Expert Diversity**: Cosine Similarity trung bình $0.2694$ (High Diversity); Intra-ViT $0.6869$ tái khẳng định ViT Depth bão hòa ở $D=4$.
+    * **Bảo vệ dữ liệu**: Khóa quy tắc bất biến cấm tự ý xóa thư mục run; các run cùng xuất phát từ Stage 1 checkpoint có hash đầu vào giống nhau nhưng là các thí nghiệm hoàn toàn độc lập. Luôn đọc `train.log` trước khi đưa ra phán quyết.
 
 
 

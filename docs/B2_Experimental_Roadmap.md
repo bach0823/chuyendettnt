@@ -771,19 +771,28 @@ Phase 6 được tái cấu trúc thành 2 nhánh can thiệp có kiểm soát c
     + **GĐ 3 (Stack S2-Gate-v2)**: Thêm Conv3×3 S2-Gate lên `best_combined_base.pth`, warm-start từ `u1_s2g_weights.pth`, huấn luyện 8 epochs FP32 strict $\to$ xuất `final_candidate_c.pth`.
   - Bộ công cụ hoàn tất: Driver `scripts/run_phase6_combination_pipeline.py`, 6 configs tại `configs/p3_ablation/phase6_combination/`, và test `scripts/tests/test_phase6_combination_pipeline.py` (ALL PASS).
 
+* **Phase 6 A1 + S2-Gate Combination & Routing Capacity Synthesis [HOÀN TẤT & ĐẠT KỶ LỤC 0.7702 🏆]**:
+  - **Run 1 (`a1_s2g_end_to_end`)**: Stage 1 (17 eps, Dice 0.7541) $\to$ Stage 2 đạt đỉnh **Val Dice = 0.7676** (Epoch 16), Recall **0.8384**, Precision **0.7408**.
+  - **Run 2 (`a1_s2g_stage2`)**: Kế thừa Stage 1 checkpoint qua `--stage2-only` với phục hồi RNG $\to$ Đạt đỉnh **Val Dice = 0.7702** (Epoch 14), Precision **0.7510**, Recall **0.8301**, Thin Crack Dice **0.4260**, Loss đáy **1.3471**.
+  - **ASDW Causal Elimination**: Same-checkpoint probe chứng minh $\Delta\text{Dice} = -0.000001$ ($0.767640 \to 0.767639$), $\gamma$ học được quá nhỏ ($0.0090$ và $0.0077$), xác nhận ASDW đóng góp $0\%$ và loại bỏ hoàn toàn.
+  - **Nghịch lý Static Routing**: Static Top-2 (Dice **0.7687**, IoU **0.6467**, Precision **0.7486**) vượt Dynamic Adaptive (0.7676).
+  - **Static Top-$K$ Capacity Sweep**: Bão hòa tại $K=2$ ($25\%$), tăng $K \ge 3$ gây thoái hóa biểu diễn ($0.7687 \to 0.7682 \to 0.7682 \to 0.7666$).
+  - **Expert Diversity**: Cosine Similarity trung bình $0.2694$; Intra-CNN đạt $0.0952$ (trực giao cực cao giữa các tỷ lệ); Intra-ViT đạt $0.6869$ (ngữ cảnh hội tụ mạnh $\implies$ khẳng định $D=4$ đã bão hòa trần biểu diễn, không cần thêm ViT blocks).
+
 ---
 
 ### ĐÓNG BĂNG CẤU HÌNH NỀN TẢNG (LOCKED BASE SAGE-LITE CONFIGURATION)
 > [!IMPORTANT]
 > **TIẾN TRÌNH KHÓA CẤU HÌNH NỀN TẢNG (BASE SAGE LOCK STATUS):**
 > Cấu hình nền tảng hiện tại của dự án:
-> - `vit_depth`: **4** (Đã khóa từ Phase 1, sweet spot giữa CNN và ViT).
-> - `top_k`: **2** (Đã khóa từ Phase 2, hiệu năng tương đương $k=4$ nhưng giảm 50% expert compute).
+> - `vit_depth`: **4** (Đã khóa từ Phase 1, sweet spot giữa CNN và ViT; được tái khẳng định qua Intra-ViT Diversity = 0.6869).
+> - `top_k`: **2** (Đã khóa từ Phase 2, được củng cố bởi Static Top-$K$ Sweep: $K=2$ đạt Pareto tối ưu, $K \ge 3$ bị pha loãng).
 > - `router_hidden_dim`: **64** (Đã khóa từ Phase 3, điểm cân bằng Pareto giữa 32 và 128).
 > - `load_balance_factor`: **0.010** (Đã khóa từ Phase 4, tối ưu entropy và hạn chế co cụm).
 > - `stage2_lr_ratio`: **1.00** (Đã khóa từ Phase 5.3, Candidate B với $r=1.00$ đạt Val Dice 0.7641).
 > - `p3_refinement`: **OFF (nn.Identity())** — P3-C ASDW đã chính thức bị loại bỏ vĩnh viễn.
 > - `objective_loss`: **BCE + 1.5×SoftDice + 1.0×LB + 0.5×SoftBoundaryIoU** (Val Dice 0.7684).
-> - `spatial_modulation`: **S2GateModule (Conv3x3, k=3, p=1, 83,073 params)** đã được chứng minh hiệu quả vượt trội trong việc đè sập cầu nứt giả và giảm 11.34 px sai số biên HD95.
+> - `spatial_modulation`: **S2GateModule (Conv3x3, k=3, p=1, 83,073 params)** đè sập cầu nứt giả, giảm 11.34 px sai số biên HD95, cùng Run 2 đưa Val Dice lên kỷ lục **0.7702**.
+> - **Nguyên tắc bảo vệ dữ liệu (Anti-False-Deduplication)**: Cấm tuyệt đối xóa các run thư mục trong `results/`. Các run Stage 2 kế thừa từ cùng Stage 1 checkpoint có hash đầu vào giống nhau nhưng là các thí nghiệm độc lập. Luôn đọc `train.log` trước khi đưa ra bất kỳ kết luận nào.
 
 
