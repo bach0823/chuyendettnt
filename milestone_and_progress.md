@@ -153,6 +153,14 @@ Nghiệm thu tiến trình bậc thang thực nghiệm SAGE-Lite B2 trên Crack5
       + 6 YAML configs chuẩn hóa tại `configs/p3_ablation/phase6_combination/`.
       + Driver pipeline tự động hóa `scripts/run_phase6_combination_pipeline.py`.
       + Kiểm thử bất biến `scripts/tests/test_phase6_combination_pipeline.py` (ALL PASS).
+22. **Phase 6 A1 + S2-Gate Integration (HOÀN TẤT & ĐẠT KỶ LỤC DỰ ÁN 0.7702 🏆):**
+    - **Thực nghiệm Run 1 (`a1_s2g_end_to_end`)**: Stage 1 (17 eps, Dice 0.7541) $\to$ Stage 2 (18 eps, Peak Dice **0.7676** tại Ep 16), Recall 0.8384, Precision 0.7408.
+    - **Thực nghiệm Run 2 (`a1_s2g_stage2`)**: Chạy Stage 2-Only từ Best S1 checkpoint với exact RNG restoration $\to$ Đạt đỉnh **Val Dice = 0.7702** (Ep 14), Precision tăng vọt lên **0.7510**, Recall **0.8301**, Thin Crack Dice **0.4260**, Val Loss đáy **1.3471**.
+    - **Thẩm định triệt để ASDW**: Khảo sát Same-checkpoint ASDW ON vs OFF trên 348 ảnh Setting A chứng minh $\Delta\text{Dice} = -0.000001$ ($0.767640 \to 0.767639$), $\gamma$ học được siêu nhỏ ($0.0090$ và $0.0077$), khẳng định ASDW đóng góp $0\%$ và loại bỏ hoàn toàn.
+23. **Phase 6 Routing Mechanics, Static Top-K Sweep & Expert Diversity (HOÀN TẤT ĐỊNH LƯỢNG 🏆):**
+    - **Nghịch lý Routing**: Static Top-2 (Dice **0.7687**, IoU **0.6467**, Precision **0.7486**) vượt Dynamic Adaptive (Dice 0.7676), chứng minh mạng đã học được cấu trúc phân công lao động tối ưu cố định; routing động ở inference chỉ tạo thêm nhiễu gating.
+    - **Static Top-$K$ Sweep ($K \in \{2, 3, 4, 6\}$)**: Bão hòa dung lượng tại $K=2$ ($25\%$ capacity). Khi tăng $K \ge 3$, hiệu năng giảm dần ($0.7687 \to 0.7682 \to 0.7682 \to 0.7666$) do pha loãng biểu diễn (representation dilution).
+    - **Expert Diversity**: Mean Cosine Similarity đạt **0.2694** (High Diversity); Intra-CNN đạt **0.0952** (trực giao cực cao giữa các tỷ lệ); Intra-ViT đạt **0.6869** (ngữ cảnh hội tụ mạnh $\implies$ khẳng định $D=4$ đã bão hòa trần biểu diễn, không cần thêm ViT blocks).
 
 State:
 - Phase 1: D4 locked
@@ -176,6 +184,7 @@ State:
 - Phase 6-U0-C3: HOÀN TẤT (DC-Init Stem chữa lành 39.53% wider-gap nhưng chịu trade-off upstream)
 - Phase 6-U1-S2G (v1): HOÀN TẤT (Conv1x1 Gate chữa 27.91% wider-gap, phát hiện điểm nghẽn RF 11 ca)
 - Phase 6-U1-S2G-v2: HOÀN TẤT XUẤT SẮC 🏆 (Conv3x3 Gate + Warm-start: phục hồi 81.8% ca worsened, lật ngược 36.4% ca sang suppressed, giữ trần 27.91% cure rate, HD95 ép sâu xuống 42.31 px, Spurious Islands giảm -31.5%)
+- Phase 6 A1 + S2-Gate: HOÀN TẤT (Run 1: 0.7676, Run 2: 🏆 0.7702 kỷ lục mới; Static Top-2: 0.7687; ASDW loại bỏ)
 
 Cấu hình hiện hành:
 - ViT depth = 4
