@@ -206,6 +206,12 @@ Cấu hình hiện hành:
 > - **DeepCrack Train & Eval:** Mask `{0,255} → {0,1}` → Dynamic Pad-to-Square (`target = max(H, W, 448)`, BORDER_CONSTANT=0) → Resize 448×448 (`cv2.INTER_NEAREST` mask) → cùng bộ Augmentation trên (chỉ train) → ImageNet Normalize → Tensor. Eval chạy direct 1-pass full-image.
 > - **Augmentation đã loại bỏ hoàn toàn:** `CLAHE`, `ElasticTransform`, `GridDistortion`, `ShiftScaleRotate`, `HueSaturationValue`.
 
+### ⚠️ QUY TẮC BẤT BIẾN: BẢO VỆ DỮ LIỆU THỰC NGHIỆM & CHỐNG "ẢO GIÁC TRÙNG LẶP" (ANTI-FALSE-DEDUPLICATION)
+> **BÀI HỌC XƯƠNG MÁU VỀ TỔ CHỨC THỰC NGHIỆM:**
+> 1. **Bản chất của Multi-Stage / Resume**: Các run thực nghiệm khác nhau (như Run 1 Full vs Run 2 Stage 2-only) cùng xuất phát từ **chung một checkpoint Stage 1** (`best_model_b2_stage1.pth`). Việc các checkpoint khởi đầu có hash SHA-256 trùng khớp là điều hoàn toàn hiển nhiên của quy trình machine learning. **TUYỆT ĐỐI KHÔNG ĐƯỢC SUY DIỄN** rằng thư mục đó là bản sao vô nghĩa rồi tự ý xóa bỏ.
+> 2. **Kiểm tra Log trước, phán quyết sau**: BẮT BUỘC phải đọc trực tiếp `train.log`, so sánh learning rate, số epoch thực tế, thời điểm hoàn tất và metrics nghiệm thu trước khi đưa ra bất kỳ kết luận nào về mối quan hệ giữa các run.
+> 3. **Cấm tuyệt đối hành vi tự ý xóa file/folder kết quả**: Agent tuyệt đối **KHÔNG ĐƯỢC PHÉP** chạy lệnh xóa (`rm -rf`, `shutil.rmtree`, `Remove-Item`) lên bất kỳ thư mục nào trong `results/` nếu chưa xin phép và được User đồng ý tường minh. Khi muốn tinh gọn, chỉ được di chuyển (archive) hoặc gom nhóm logic.
+
 Completed:
 - Đã chốt kiến trúc SAGE-Lite (Implementation Plan).
 - Xác định xong Bảng biến thực nghiệm (Nhóm 1 khoá, Nhóm 2 đo).

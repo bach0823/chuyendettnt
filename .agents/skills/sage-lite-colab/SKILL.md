@@ -37,6 +37,12 @@ Skill này định nghĩa các nguyên tắc bất biến (invariants) và best 
     1. **Cell 1 (Setup, Data & Ancestor Checkpoint):** Thuần các lệnh shell trực tiếp (`!nvidia-smi`, `!rm -rf ...`, `!git clone ...`, `%cd ...`, `!python prepare_data/...`, `!mkdir -p ...`, `!wget ...`).
     2. **Cell 2 (Huấn luyện Stage):** Chỉ gồm `%cd /content/SAGE_LITE` và duy nhất 1 lệnh CLI gọi `!python scripts/train_crack.py --config ... [flags]`.
     3. **Cell 3 (Chẩn đoán, Nén & Tải về):** Chỉ gồm các lệnh CLI chẩn đoán (`!python tools/analyze_routing.py ...`, `!python tools/run_p3_c_error_analysis.py ...`), nén zip (`shutil.make_archive(...)`) và kích hoạt tải về (`files.download(...)`).
+- **Experimental Artifact Preservation & Anti-False-Deduplication Invariant (NGHIÊM CẤM TỰ Ý XÓA RUN):**
+  - **Bản chất của Stage 2 / Resume**: Các run khác nhau có thể xuất phát từ **cùng một checkpoint Stage 1** (`best_model_b2_stage1.pth`). Do đó, việc kiểm tra SHA-256 của checkpoint khởi đầu hoặc checkpoint Stage 1 giống nhau là điều hiển nhiên, **KHÔNG ĐƯỢC SUY DIỄN** rằng hai thư mục đó là bản sao trùng lặp vô giá trị.
+  - **Quy tắc bất biến khi audit thư mục kết quả (`results/`)**:
+    1. **Kiểm tra Log & Execution Path trước tiên**: BẮT BUỘC phải đọc `train.log`, `stage2_completion.json` hoặc trajectory huấn luyện của từng thư mục để xác định: thời điểm chạy, số epochs, seed, learning rate, và peak metric cuối cùng có độc lập hay không.
+    2. **Tuyệt đối KHÔNG tự ý xóa bất kỳ thư mục thí nghiệm nào**: Ngay cả khi nghi ngờ là duplicate hay redundant, Agent **KHÔNG ĐƯỢC PHÉP** gọi `rmdir`, `shutil.rmtree` hoặc `Remove-Item` lên thư mục kết quả trong `results/` mà không có sự đồng ý rõ ràng của User.
+    3. **Chỉ gom nhóm (Group/Archive), không tiêu hủy**: Nếu cần dọn dẹp, chỉ được di chuyển vào thư mục lưu trữ có cấu trúc rõ ràng sau khi đã đối chiếu 100% nội dung log và thông số nghiệm thu.
 
 ## 2. Environment Setup & Preflight (Tập trung & Tái lập)
 - **All-in-One Preflight Verification Cell Invariant:** Luôn chuẩn bị sẵn **MỘT CELL DUY NHẤT** tích hợp toàn bộ các bước tiền kiểm (Preflight) để User chỉ cần copy-paste bấm chạy 1 lần duy nhất trước khi chạy tác vụ chính:
