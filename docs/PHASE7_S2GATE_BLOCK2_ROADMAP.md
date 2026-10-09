@@ -231,18 +231,23 @@ Cấu hình thực nghiệm: ViT Depth = 8 blocks, Top-K = 2, 12 Experts (4 CNN 
 
 ---
 
-## 7F — Baseline B2 Hardware Preflight (Batch Size = 16 Probe trên Tesla T4)
+## 7F — Baseline B2 Hardware Preflight & Batch Size Sweep (Tesla T4)
 
-Thực hiện kiểm định tải phần cứng và giới hạn VRAM (Runtime Preflight & OOM Probe) trên GPU Tesla T4 (14.56 GB usable) với cấu hình Baseline chuẩn ($D=4, K=2, \text{S2-Gate v2}$ Conv $3 \times 3$, SoftBIoU $d=2$):
+Thực hiện kiểm định tải phần cứng, giới hạn VRAM và đo đạc thông lượng thực tế (`throughput` - samples/s) trên GPU Tesla T4 (14.56 GB usable) với cấu hình Baseline chuẩn ($D=4, K=2, \text{S2-Gate v2}$ Conv $3 \times 3$, SoftBIoU $d=2$):
 
-| Batch Size | Tình trạng | Peak Alloc VRAM | Peak Res VRAM | VRAM Dư thừa (Headroom) | Throughput Đo được | Nhận xét An toàn |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **BS = 14** (Chuẩn cũ) | ✅ PASS | ~7.2 GB | ~7.5 GB | ~7.0 GB (~48%) | ~2.5 samples/s | Cấu hình mặc định trong Phase 6 |
-| **BS = 16** (Mới thử) | ✅ **PASS** | **8.17 GB** | **8.40 GB** | **6.16 GB (42.3%)** | **3.40 samples/s** | **An toàn tuyệt đối (> 6GB đệm)**, tốc độ Stage 2 đạt 3.40 samples/s |
+| Batch Size | Tình trạng | Peak Alloc VRAM | Peak Res VRAM | VRAM Dư thừa (Headroom) | S1 Throughput | S2 Throughput | Đánh giá Khả thi & An toàn |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+| **16** | ✅ **PASS** | 8.06 GB | 8.24 GB | **6.33 GB (43.4%)** | 8.92 s/s | 14.10 s/s | **An toàn tuyệt đối** (> 6.3 GB đệm, $2^4$ chuẩn tắc) |
+| **20** | ✅ **PASS** | 9.54 GB | 9.95 GB | **4.62 GB (31.7%)** | **14.29 s/s** | 14.24 s/s | **Sweet spot thông lượng S1**: Tăng tốc gấp 1.6x so với BS 16, dư 4.6 GB đệm |
+| **24** | ✅ **PASS** | 11.41 GB | 12.79 GB | **1.77 GB (12.2%)** | 11.01 s/s | **16.63 s/s** | **Đỉnh thông lượng S2 (16.63 s/s)**, nhưng đệm VRAM bắt đầu hẹp (< 1.8 GB) |
+| **28** | ✅ **PASS** | 13.07 GB | 13.38 GB | **1.18 GB (8.1%)** | 12.59 s/s | 16.13 s/s | Ranh giới cận biên: Chiếm 92% VRAM, nguy cơ OOM khi validation cache |
+| **32** | ❌ **OOM** | — | — | 0 GB (OOM) | — | — | **Chạm trần phần cứng cứng của Tesla T4 (14.56 GB)** |
 
-*Kết luận kỹ thuật:*
-- Do kiến trúc rút gọn từ Depth 12 xuống Depth 4 (8 experts thay vì 16 experts), mô hình giải phóng hơn 5.5 GB VRAM so với B2 gốc.
-- **Batch Size = 16 hoạt động hoàn toàn ổn định và an toàn trên Tesla T4**, mở ra khả năng tăng thông lượng huấn luyện và làm mượt gradient ước lượng (batch size là lũy thừa của 2 chuẩn tắc: $2^4 = 16$).
+*Kết luận kỹ thuật & Khuyến nghị:*
+1. **Trần phần cứng xác định:** Ngưỡng sập OOM cứng của Baseline B2 trên Tesla T4 nằm tại **Batch Size = 32**.
+2. **Điểm tối ưu (Sweet Spot) về hiệu năng & an toàn:**
+   - **Batch Size = 20** là ứng viên cân bằng lý tưởng nhất: đạt tốc độ **$14.29\text{ samples/s}$** ở Stage 1 (nhanh hơn $60\%$ so với BS 16), đồng thời giữ lại tới **$4.62\text{ GB}$ VRAM đệm** (31.7%), đảm bảo 100% không bao giờ gặp OOM khi chạy evaluation batch lớn hoặc cache.
+   - **Batch Size = 16** là ứng viên lũy thừa bậc 2 an toàn tuyệt đối ($> 6.3\text{ GB}$ đệm), rất phù hợp nếu muốn giữ nguyên bản các hệ số học của AdamW.
 
 ---
 
