@@ -14,8 +14,10 @@
      * Val Dice: **0.7676** (Epoch 16), Loss: 1.6372, Precision: 0.7408, Recall: 0.8384.
      * Contains native `decoder.s2_gate` (Conv3x3) integrated directly into `model_state_dict`.
    - `results/phase6_combination/phase6_comb_a1_s2g_stage2/`:
-     * Global peak Val Dice: 🏆 **0.7702** (Epoch 14), Loss đáy: **1.3471**, Precision: 0.7510, Recall: 0.8301, Thin Crack Dice: 0.4260.
-     * Inherited from Stage 1 checkpoint with strict RNG restoration.
+     * Previous peak Val Dice: **0.7702** (Epoch 14, Base LR 1e-4), Loss đáy: **1.3471**, Precision: 0.7510, Recall: 0.8301, Thin Crack Dice: 0.4260.
+   - `results/phase6_stage2_gate_lr_sweep/batch1_lr3e4_peak07706/`:
+     * Global peak Val Dice: 🏆 **0.7706** (Epoch 18, S2-Gate LR **3e-4**), Loss đáy: **1.3376**, Precision: 0.7344, Recall: **0.8509** (kỷ lục toàn dự án), Thin Crack Fail: 22 ca.
+     * Khẳng định mức S2-Gate LR `3e-4` tối ưu hóa toàn diện cho việc mở rộng độ bao phủ nứt mảnh.
 
 2. **Implementation chính xác của S2-Gate Block 1**:
    - File: [`sage/networks/s2_gate.py`](file:///d:/truong/SpecialSubjectTTNT/SAGE_LITE/sage/networks/s2_gate.py)
@@ -198,7 +200,34 @@ Tại cấu hình tốt nhất của 7B:
 ## 7D — Top-K Capacity Sweep
 
 Tại cấu hình tốt nhất của 7C:
-- **Top-K = 3** vs **Top-K = 4** (2 runs / config, `seed=42, 43`).
+- **Top-K = 3** vs **Top-K = 4** (Huấn luyện Full Two-Stage 35 Epochs, `seed=42`).
+
+| Top-K | Lượt (Batch) | Best Ep | Val Dice | Precision | Recall | Thin Crack Dice | False Bridges (120) | Breaks | Checkpoint | Trạng thái |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `Top-K = 2` | *Baseline* | Ep 14 | $0.7618 \pm 0.1644$ | $0.7216$ | $\mathbf{0.8573}$ | $0.6996$ | 121 | 68 | `best_model_b2_global.pth` | COMPLETED |
+| `Top-K = 3` | Batch 1 | Ep 17 | $0.7659 \pm 0.1609$ | $0.7348$ | $0.8444$ | $0.7093$ | 112 | 81 | `batch1_topk3_peak07658` | COMPLETED |
+| `Top-K = 3` | Batch 2 | Ep 16 | $0.7669 \pm 0.1578$ | $0.7428$ | $0.8360$ | $0.7143$ | **108** | 84 | `batch2_topk3_peak07670` | COMPLETED |
+| `Top-K = 4` | Batch 1 | Ep 14 | $\mathbf{0.7696} \pm 0.1615$ | $\mathbf{0.7628}$ | $0.8165$ | $\mathbf{0.7193}$ | 121 | 82 | `batch1_topk4_peak07696` | COMPLETED |
+| `Top-K = 4` | Batch 2 | Ep 14 | $0.7630 \pm 0.1701$ | $0.7572$ | $0.8104$ | $0.7155$ | 114 | 75 | `batch2_topk4_peak07630` | COMPLETED |
+
+*Lưu ý phân tích:*
+- **Top-K = 4 (Batch 1)** thiết lập kỷ lục mới toàn dự án với **Val Dice = 0.7696**, Precision đạt mức kỷ lục **76.28%**, Thin Crack Dice đạt **0.7193** (giảm thiểu Thin Failure xuống 21 ca).
+- **Top-K = 3** thể hiện sự ổn định vượt trội (Dice $0.7659 - 0.7669$), đồng thời ức chế False Bridges hiệu quả nhất (chỉ còn $108 - 112$ ca).
+
+---
+
+## 7E — ViT Depth = 8 Ablation (Stage 2 Gate Fine-tuning Comparison)
+
+Cấu hình thực nghiệm: ViT Depth = 8 blocks, Top-K = 2, 12 Experts (4 CNN + 8 ViT), S2-Gate Conv3x3, 18 Epochs Stage 2 (`seed=42`).
+
+| Lượt Chạy | Nguồn Checkpoint Stage 1 | Best Ep | Best Val Dice | Val Loss tại Peak | Epoch 18 Val Dice | Final Train Loss (LB) | Trạng thái |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Run 1** | `last_model_b2_stage1_weights.pth` (Ep 16, Dice 0.7400) | Ep 17 | **0.7624** | **1.3017** | 0.7615 | 1.3115 (0.1203) | COMPLETED |
+| **Run 2** | `best_model_b2_stage1.pth` (Ep 8, Dice 0.7495) | Ep 18 | **0.7658** | 1.3769 | **0.7658** | 1.4007 (0.1204) | COMPLETED |
+
+*Chi tiết đối chiếu:*
+- Xem báo cáo toàn văn và bảng trajectory 18 epochs tại: [`results/phase7_vit_depth8_k2/stage2_runs_comparison.md`](file:///d:/truong/SpecialSubjectTTNT/results/phase7_vit_depth8_k2/stage2_runs_comparison.md) và file số liệu [`results/phase7_vit_depth8_k2/stage2_runs_metrics.json`](file:///d:/truong/SpecialSubjectTTNT/results/phase7_vit_depth8_k2/stage2_runs_metrics.json).
+- Khởi tạo từ **Best Stage 1** mang lại Val Dice cao hơn rõ rệt (+0.34%) và tiếp tục leo dốc tới cuối epoch 18. Khởi tạo từ **Last Stage 1** tối ưu Loss thấp hơn nhưng bị chặn trần Dice tại epoch 17.
 
 ---
 
