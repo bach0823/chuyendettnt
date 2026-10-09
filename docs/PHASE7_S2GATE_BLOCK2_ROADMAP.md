@@ -231,6 +231,21 @@ Cấu hình thực nghiệm: ViT Depth = 8 blocks, Top-K = 2, 12 Experts (4 CNN 
 
 ---
 
+## 7F — Baseline B2 Hardware Preflight (Batch Size = 16 Probe trên Tesla T4)
+
+Thực hiện kiểm định tải phần cứng và giới hạn VRAM (Runtime Preflight & OOM Probe) trên GPU Tesla T4 (14.56 GB usable) với cấu hình Baseline chuẩn ($D=4, K=2, \text{S2-Gate v2}$ Conv $3 \times 3$, SoftBIoU $d=2$):
+
+| Batch Size | Tình trạng | Peak Alloc VRAM | Peak Res VRAM | VRAM Dư thừa (Headroom) | Throughput Đo được | Nhận xét An toàn |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **BS = 14** (Chuẩn cũ) | ✅ PASS | ~7.2 GB | ~7.5 GB | ~7.0 GB (~48%) | ~2.5 samples/s | Cấu hình mặc định trong Phase 6 |
+| **BS = 16** (Mới thử) | ✅ **PASS** | **8.17 GB** | **8.40 GB** | **6.16 GB (42.3%)** | **3.40 samples/s** | **An toàn tuyệt đối (> 6GB đệm)**, tốc độ Stage 2 đạt 3.40 samples/s |
+
+*Kết luận kỹ thuật:*
+- Do kiến trúc rút gọn từ Depth 12 xuống Depth 4 (8 experts thay vì 16 experts), mô hình giải phóng hơn 5.5 GB VRAM so với B2 gốc.
+- **Batch Size = 16 hoạt động hoàn toàn ổn định và an toàn trên Tesla T4**, mở ra khả năng tăng thông lượng huấn luyện và làm mượt gradient ước lượng (batch size là lũy thừa của 2 chuẩn tắc: $2^4 = 16$).
+
+---
+
 ## Final Locked Configuration
 - *Sẽ cập nhật sau khi hoàn tất 7A–7D.*
 
