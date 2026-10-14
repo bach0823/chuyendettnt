@@ -1,0 +1,72 @@
+{
+  "Candidate_B_Baseline": {
+    "N": 348,
+    "dice": 0.7640881806771141,
+    "recall": 0.8476884187188468,
+    "precision": 0.7336947741984694,
+    "cldice": 0.8498515829576173,
+    "boundary_iou": 0.24175755623551817,
+    "hd95": 53.648256920776745,
+    "bf1": 0.38201035372136555,
+    "thin_dice": 0.4230063161265414,
+    "total_bridge_events": 118,
+    "bridge_images": 110,
+    "total_break_events": 35,
+    "break_images": 34,
+    "spurious_islands": 111,
+    "mean_runtime_ms": 147.89956328512608,
+    "peak_vram_mb": 239.2587890625
+  },
+  "Candidate_B_Tangent_Field": {
+    "N": 348,
+    "dice": 0.7606650822293473,
+    "iou": 0.6368327232797601,
+    "recall": 0.8702002906925196,
+    "precision": 0.711064909968466,
+    "cldice": 0.8499239689876324,
+    "boundary_iou": 0.22665271690565664,
+    "hd95": 60.08710017667183,
+    "bf1": 0.35822317577705853,
+    "thin_dice": 0.4149039282253805,
+    "total_bridge_events": 121,
+    "bridge_images": 115,
+    "total_break_events": 38,
+    "break_images": 28,
+    "spurious_islands": 125,
+    "mean_runtime_ms": 396.98976209793966
+  },
+  "Delta_Tangent_minus_Base": {
+    "delta_dice": -0.0034230984477668924,
+    "delta_recall": 0.02251187197367277,
+    "delta_precision": -0.02262986423000335,
+    "delta_cldice": 7.238603001513688e-05,
+    "delta_boundary_iou": -0.015104839329861536,
+    "delta_hd95": 6.438843255895087,
+    "delta_bf1": -0.023787177944307014,
+    "delta_thin_dice": -0.008102387901160857,
+    "delta_bridge_events": 3,
+    "delta_bridge_images": 5,
+    "delta_break_events": 3,
+    "delta_break_images": -6,
+    "delta_spurious_islands": 14,
+    "delta_runtime_ms": 249.09019881281358
+  },
+  "Cohort_43_Wider_Gap": {
+    "N": 43,
+    "cured_count": 6,
+    "cure_rate_pct": 13.953488372093023,
+    "cgsr_baseline_cured_count": 5,
+    "cgsr_baseline_cure_rate_pct": 11.63,
+    "median_delta_z_bridge": 0.3138920068740845,
+    "mean_delta_z_bridge": 0.34845284389895065
+  },
+  "Cohort_All_118_Events": {
+    "N": 118,
+    "cured_count": 7,
+    "cure_rate_pct": 5.932203389830509,
+    "cgsr_baseline_cured_count": 6,
+    "cgsr_baseline_cure_rate_pct": 5.08,
+    "median_delta_z_bridge": 0.3138920068740845,
+    "mean_delta_z_bridge": 0.34845284389895065
+  }
+}

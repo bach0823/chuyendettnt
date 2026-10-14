@@ -251,6 +251,26 @@ Thực hiện kiểm định tải phần cứng, giới hạn VRAM và đo đ�
 
 ---
 
+## 7G — Phase 7 S2-Gate Block 2 Hardware Sweep (Strict Freeze Protocol, Tesla T4)
+
+Thực nghiệm đo đạc tải VRAM và thông lượng huấn luyện trên GPU Tesla T4 (14.56 GB usable) cho cổng **S2-Gate Block 2 (Conv $3 \times 3$, Dilation 2, Receptive Field $5 \times 5$, LR = $1\text{e-}3$)** dưới cơ chế **Strict Freeze Protocol** (toàn bộ base model chạy `eval()` và đóng băng gradient, duy nhất 41,601 tham số của cổng Block 2 trainable):
+
+| Batch Size | Tình trạng | Peak Alloc VRAM | Peak Res VRAM | VRAM Dư thừa (Headroom) | Throughput (s/s) | Thời gian 1 Batch | Đánh giá Khả thi & An toàn |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+| **16** | ✅ **PASS** | **1.07 GB** | 2.09 GB | **12.48 GB (85.7%)** | 14.33 s/s | 1.12s | Cực kỳ nhẹ, dư tới 85.7% VRAM, số bước update cao (118 steps/ep) |
+| **20** | ✅ **PASS** | **1.71 GB** | 3.88 GB | **10.68 GB (73.3%)** | 13.71 s/s | 1.46s | Dư 73.3% VRAM, 95 steps/ep |
+| **24** | ✅ **PASS** | **2.15 GB** | 2.79 GB | **11.77 GB (80.8%)** | 14.59 s/s | 1.65s | Dư 80.8% VRAM, 79 steps/ep |
+| **28** | ✅ **PASS** | **2.48 GB** | 3.25 GB | **11.32 GB (77.7%)** | 14.04 s/s | 1.99s | Dư 77.7% VRAM, 68 steps/ep |
+| **32** | ✅ **PASS** | **2.71 GB** | 3.69 GB | **10.88 GB (74.7%)** | **15.08 s/s** | 2.12s | **Đỉnh thông lượng (15.08 s/s)**, hoàn toàn KHÔNG OOM, dư 10.9 GB |
+
+*Phân tích bản chất kỹ thuật (Mechanism Contrast):*
+- **Tại sao Baseline B2 OOM ở BS 32 nhưng S2-Gate Block 2 chỉ tốn 2.71 GB ở BS 32?**
+  * Trong Baseline B2 huấn luyện full model, PyTorch bắt buộc phải lưu toàn bộ activation maps của ConvNeXt backbone, 4 tầng ViT Multi-Head Self-Attention và toàn bộ Decoder để tính đạo hàm ngược ($\nabla W$).
+  * Trong Phase 7 S2-Gate Block 2, toàn bộ base model chạy ở `model.eval()` và `requires_grad = False`. PyTorch **giải phóng ngay lập tức mọi activation maps của backbone và transformer**, chỉ giữ lại activation của đúng 2 tầng tích chập của `s2_gate_b2` (41,601 params).
+  * Do đó, mức chiếm dụng bộ nhớ chỉ dao động từ **$1.07\text{ GB} \to 2.71\text{ GB}$**, mở ra không gian VRAM khổng lồ ($> 10.8\text{ GB}$ đệm trống) cho mọi mức Batch Size.
+
+---
+
 ## Final Locked Configuration
 - *Sẽ cập nhật sau khi hoàn tất 7A–7D.*
 

@@ -1,0 +1,53 @@
+{
+  "Candidate_B_Baseline": {
+    "N": 348,
+    "dice": 0.7640881806771141,
+    "recall": 0.8476884187188468,
+    "precision": 0.7336947741984694,
+    "cldice": 0.8498515829576173,
+    "boundary_iou": 0.24175755623551817,
+    "hd95": 53.648256920776745,
+    "bf1": 0.38201035372136555,
+    "thin_dice": 0.4230063161265414,
+    "total_bridge_events": 118,
+    "bridge_images": 110,
+    "total_break_events": 35,
+    "break_images": 34,
+    "spurious_islands": 111,
+    "mean_runtime_ms": 147.89956328512608,
+    "peak_vram_mb": 239.2587890625
+  },
+  "Phase_6E_PointRend": {
+    "N": 348,
+    "dice": 0.7650232118925059,
+    "recall": 0.8358394787817309,
+    "precision": 0.7411772262905361,
+    "cldice": 0.8155182476062579,
+    "boundary_iou": 0.2464096263500816,
+    "hd95": 60.95277719462744,
+    "bf1": 0.38683121690920025,
+    "thin_dice": 0.4172685389694189,
+    "total_bridge_events": 121,
+    "bridge_images": 114,
+    "total_break_events": 319,
+    "break_images": 141,
+    "spurious_islands": 867,
+    "mean_runtime_ms": 335.5224255857797
+  },
+  "Delta_6E_minus_Base": {
+    "delta_dice": 0.0009350312153917351,
+    "delta_recall": -0.011848939937115888,
+    "delta_precision": 0.00748245209206666,
+    "delta_cldice": -0.034333335351359406,
+    "delta_boundary_iou": 0.0046520701145634225,
+    "delta_hd95": 7.304520273850692,
+    "delta_bf1": 0.004820863187834701,
+    "delta_thin_dice": -0.005737777157122481,
+    "delta_bridge_events": 3,
+    "delta_bridge_images": 4,
+    "delta_break_events": 284,
+    "delta_break_images": 107,
+    "delta_spurious_islands": 756,
+    "delta_runtime_ms": 187.6228623006536
+  }
+}

@@ -1,0 +1,4 @@
+Performance_Tier,Sample_Count,Mean_Dice,Median_GT_Area,Mean_GT_Area,Mean_Num_GT_Components,Mean_Component_Size,Mean_Thinness_Score,Mean_Boundary_To_Area,Mean_Fragmentation_Ratio
+High_Dice (>75%),87,0.9013,18759.0,21065.7,1.54,16944.0,0.0832,0.1664,1.0
+Low_Dice (<25%),87,0.5591,4495.0,6318.1,2.89,3729.5,0.2083,0.4166,1.55
+Medium_Dice (25-75%),174,0.8074,9884.5,12787.4,2.26,7937.3,0.1432,0.2864,0.99

@@ -1,0 +1,30 @@
+[
+  {
+    "run_id": "b1_v3",
+    "type": "B1",
+    "lambda": 0.04,
+    "r": 1,
+    "dice": 0.7624810324360113,
+    "precision": 0.7341389962818031,
+    "recall": 0.840693842698649,
+    "best_epoch": 17,
+    "output_dir": "results/phase6_combination/phase6_comb_b1_v3",
+    "best_model": "results/phase6_combination/phase6_comb_b1_v3/best_model_b2_stage2.pth",
+    "score": 0.6410131091434635,
+    "constraint_pass": true
+  },
+  {
+    "run_id": "a1_v1",
+    "type": "A1",
+    "lambda": 0.25,
+    "d": 2,
+    "dice": 0.762602885339086,
+    "precision": 0.7190366283267478,
+    "recall": 0.8596953373448356,
+    "best_epoch": 17,
+    "output_dir": "results/phase6_combination/phase6_comb_a1_v1",
+    "best_model": "results/phase6_combination/phase6_comb_a1_v1/best_model_b2_stage2.pth",
+    "thin_dice": 0.41622063521922725,
+    "score": 0.7490441557775406
+  }
+]

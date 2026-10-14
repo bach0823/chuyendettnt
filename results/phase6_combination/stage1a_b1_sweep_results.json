@@ -1,0 +1,65 @@
+{
+  "runs": [
+    {
+      "run_id": "b1_v0",
+      "lambda": 0.04,
+      "r": 2,
+      "dice": 0.7685,
+      "precision": 0.7376,
+      "recall": 0.8458,
+      "score": 0.6500,
+      "constraint_pass": true,
+      "epoch": 28
+    },
+    {
+      "run_id": "b1_v1",
+      "lambda": 0.02,
+      "r": 2,
+      "dice": 0.7613771945222799,
+      "precision": 0.725416612889823,
+      "recall": 0.8520957735274103,
+      "score": 0.6487662895125916,
+      "constraint_pass": true,
+      "best_epoch": 18,
+      "output_dir": "results/phase6_combination/phase6_comb_b1_v1",
+      "best_model": "results/phase6_combination/phase6_comb_b1_v1/best_model_b2_stage2.pth"
+    },
+    {
+      "run_id": "b1_v2",
+      "lambda": 0.08,
+      "r": 2,
+      "dice": 0.7512341901687026,
+      "precision": 0.7180597505900713,
+      "recall": 0.8364225869460679,
+      "score": 0.6283492447432405,
+      "constraint_pass": false,
+      "best_epoch": 1,
+      "output_dir": "results/phase6_combination/phase6_comb_b1_v2",
+      "best_model": "results/phase6_combination/phase6_comb_b1_v2/best_model_b2_stage2.pth"
+    },
+    {
+      "run_id": "b1_v3",
+      "lambda": 0.04,
+      "r": 1,
+      "dice": 0.7624810324360113,
+      "precision": 0.7341389962818031,
+      "recall": 0.840693842698649,
+      "score": 0.6410131091434635,
+      "constraint_pass": true,
+      "best_epoch": 17,
+      "output_dir": "results/phase6_combination/phase6_comb_b1_v3",
+      "best_model": "results/phase6_combination/phase6_comb_b1_v3/best_model_b2_stage2.pth"
+    }
+  ],
+  "selected_best_b1": {
+    "run_id": "b1_v0",
+    "lambda": 0.04,
+    "r": 2,
+    "dice": 0.7685,
+    "precision": 0.7376,
+    "recall": 0.8458,
+    "score": 0.6500,
+    "constraint_pass": true,
+    "epoch": 28
+  }
+}

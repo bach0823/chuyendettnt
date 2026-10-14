@@ -1,0 +1,16 @@
+[
+  {
+    "run_id": "a1_v3",
+    "type": "A1",
+    "lambda": 0.5,
+    "d": 3,
+    "dice": 0.7666938244652587,
+    "precision": 0.7492367473829898,
+    "recall": 0.8219673490289494,
+    "best_epoch": 10,
+    "output_dir": "results/phase6_combination/phase6_comb_a1_v3",
+    "best_model": "results/phase6_combination/phase6_comb_a1_v3/best_model_b2_stage2.pth",
+    "thin_dice": 0.4222233857044211,
+    "score": 0.7651405958741009
+  }
+]

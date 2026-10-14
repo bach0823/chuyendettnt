@@ -1,0 +1,66 @@
+{
+  "runs": [
+    {
+      "run_id": "a1_v0",
+      "lambda": 0.50,
+      "d": 2,
+      "dice": 0.7684,
+      "precision": 0.7416,
+      "recall": 0.8413,
+      "thin_dice": 0.4230,
+      "score": 0.7684,
+      "best_epoch": 31
+    },
+    {
+      "run_id": "a1_v1",
+      "lambda": 0.25,
+      "d": 2,
+      "dice": 0.762602885339086,
+      "precision": 0.7190366283267478,
+      "recall": 0.8596953373448356,
+      "thin_dice": 0.41622063521922725,
+      "score": 0.7490441557775406,
+      "best_epoch": 17,
+      "output_dir": "results/phase6_combination/phase6_comb_a1_v1",
+      "best_model": "results/phase6_combination/phase6_comb_a1_v1/best_model_b2_stage2.pth"
+    },
+    {
+      "run_id": "a1_v2",
+      "lambda": 0.75,
+      "d": 2,
+      "dice": 0.7689175586449,
+      "precision": 0.7424279712268042,
+      "recall": 0.8393558841067652,
+      "thin_dice": 0.4226112567549177,
+      "score": 0.7681400721547353,
+      "best_epoch": 17,
+      "output_dir": "results/phase6_combination/phase6_comb_a1_v2",
+      "best_model": "results/phase6_combination/phase6_comb_a1_v2/best_model_b2_stage2.pth"
+    },
+    {
+      "run_id": "a1_v3",
+      "lambda": 0.50,
+      "d": 3,
+      "dice": 0.7666938244652587,
+      "precision": 0.7492367473829898,
+      "recall": 0.8219673490289494,
+      "thin_dice": 0.4222233857044211,
+      "score": 0.7651405958741009,
+      "best_epoch": 10,
+      "output_dir": "results/phase6_combination/phase6_comb_a1_v3",
+      "best_model": "results/phase6_combination/phase6_comb_a1_v3/best_model_b2_stage2.pth"
+    }
+  ],
+  "selected_best_a1": {
+    "run_id": "a1_v0",
+    "lambda": 0.50,
+    "d": 2,
+    "dice": 0.7684,
+    "precision": 0.7416,
+    "recall": 0.8413,
+    "thin_dice": 0.4230,
+    "score": 0.7684,
+    "best_epoch": 31,
+    "note": "Selected over a1_v2 due to superior ThinDice (0.4230 vs 0.4226) and higher Recall safety margin (0.8413 vs 0.8394) avoiding boundary overshoot"
+  }
+}
