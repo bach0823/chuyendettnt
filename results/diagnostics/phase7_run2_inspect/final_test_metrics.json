@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "model": "B2",
+    "p3_mode": null,
+    "vit_depth": 4,
+    "primary_official_protocol": "setting_a",
+    "secondary_reference_protocol": "setting_b",
+    "config": "/content/SAGE_LITE/configs/p3_ablation/phase7/phase7_b2_s2g_b1_b2_end_to_end.yaml",
+    "checkpoint": "/content/SAGE_LITE/results/phase7_combination/phase7_s2g_b1_b2_end_to_end/best_model_b2_stage2.pth",
+    "checkpoint_metadata": {
+      "epoch": 18,
+      "stage": 2,
+      "val_dice": null,
+      "best_dice": 0.7659355079024588
+    },
+    "timestamp": "2026-10-10T10:02:26.356373",
+    "total_test_samples": 1124,
+    "evaluation_guard": "INITIAL_RUN",
+    "rerun_reason": null,
+    "preregistration_invariants": {
+      "threshold": 0.5,
+      "tta": false,
+      "setting_a_stride": 448,
+      "setting_b_stride": 224
+    }
+  },
+  "setting_a_official": {
+    "mean_dice": 0.7003556909148619,
+    "median_dice": 0.7373325669182456,
+    "std_dice": 0.15284237562716463,
+    "mean_iou": 0.5579375245268064,
+    "median_iou": 0.5839484750713029,
+    "mean_precision": 0.6564164319054606,
+    "mean_recall": 0.8011006849834253,
+    "crack_present_iou": 0.5579375245268064,
+    "global_pixel_iou": 0.5889690213283713,
+    "mean_boundary_iou": 0.10200447779397542,
+    "mean_hd95": 91.60530888657223,
+    "evaluated_samples": 1124
+  },
+  "setting_b_reference": {
+    "mean_dice": 0.7046843991702898,
+    "median_dice": 0.7424159977516279,
+    "std_dice": 0.15333005814753642,
+    "mean_iou": 0.5632458517027175,
+    "median_iou": 0.5903510221113359,
+    "mean_precision": 0.662268952379468,
+    "mean_recall": 0.8019495649993462,
+    "crack_present_iou": 0.5632458517027175,
+    "global_pixel_iou": 0.5935603756188375,
+    "mean_boundary_iou": 0.10295690766361923,
+    "mean_hd95": 79.52029733877356,
+    "evaluated_samples": 1124
+  }
+}

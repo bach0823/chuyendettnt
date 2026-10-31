@@ -1,0 +1,19 @@
+{
+  "run_id": "a1_s2g_stage2",
+  "run_type": "A1+S2Gate_Stage2Only",
+  "lambda": 0.5,
+  "d": 2,
+  "epochs_used": 18,
+  "total_epochs": 35,
+  "best_epoch": 14,
+  "best_dice": 0.7702,
+  "precision": 0.7510,
+  "recall": 0.8301,
+  "thin_dice": 0.4260,
+  "objective_score": 0.7761,
+  "val_loss": 1.3471,
+  "global_best_dice": 0.7702,
+  "initial_stage1_baseline_dice": 0.7541,
+  "status": "COMPLETED",
+  "duration_seconds": 2989.6
+}

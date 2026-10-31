@@ -1,0 +1,34 @@
+{
+  "Phase 6 (Single S2G)": {
+    "val_dice": 0.7676393652724727,
+    "val_iou": 0.6451702576170248,
+    "cldice": 0.8439655592705063,
+    "boundary_iou": 0.1352891331300006,
+    "hd95": 70.12301678314127,
+    "total_break_events": 38,
+    "break_images": 37,
+    "break_image_pct": 10.632183908045976,
+    "total_bridge_events": 120,
+    "bridge_images": 112,
+    "bridge_image_pct": 32.18390804597701,
+    "total_spurious_islands": 185,
+    "precision": 0.740773584639524,
+    "recall": 0.8384120399817308
+  },
+  "Phase 7 (Dual S2G)": {
+    "val_dice": 0.762282179595233,
+    "val_iou": 0.6399930280939057,
+    "cldice": 0.8399728450100403,
+    "boundary_iou": 0.1334656031520478,
+    "hd95": 67.5608982468612,
+    "total_break_events": 44,
+    "break_images": 42,
+    "break_image_pct": 12.068965517241379,
+    "total_bridge_events": 116,
+    "bridge_images": 110,
+    "bridge_image_pct": 31.60919540229885,
+    "total_spurious_islands": 157,
+    "precision": 0.7343257424147938,
+    "recall": 0.8371427259618699
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "tag": "lr_1e-03_k3",
+  "lr": 0.001,
+  "kernel_size": 3,
+  "epochs": 8,
+  "seed": 42,
+  "N": 348,
+  "dice": 0.7651389277587735,
+  "iou": 0.6419865279760906,
+  "precision": 0.7382472950688296,
+  "recall": 0.8372621037541559,
+  "cldice": 0.8409555978000396,
+  "boundary_iou": 0.215622254656146,
+  "hd95": 69.85812676633738,
+  "bf1": 0.40598666372827474,
+  "thin_dice": 0.282165141005493,
+  "total_bridge_events": 120,
+  "bridge_images": 112,
+  "total_break_events": 37,
+  "break_images": 37,
+  "spurious_islands": 179,
+  "mean_runtime_ms": 160.8333813733068
+}

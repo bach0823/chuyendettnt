@@ -17,6 +17,7 @@ venv/
 *.bin
 *.onnx
 *.safetensors
+!checkpoints/**
 
 # Sub-repositories and external code
 sage_lite/

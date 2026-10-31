@@ -1,0 +1,29 @@
+{
+  "model_checkpoint": "results/phase6_combination/phase6_comb_a1_s2g_end_to_end/best_model_b2_stage2.pth",
+  "config": "configs/p3_ablation/phase6_full_s1/a1_s2g_end_to_end.yaml",
+  "num_experts": 8,
+  "expert_names": [
+    "E0_cnn",
+    "E1_cnn",
+    "E2_cnn",
+    "E3_cnn",
+    "E4_transformer",
+    "E5_transformer",
+    "E6_transformer",
+    "E7_transformer"
+  ],
+  "metrics": {
+    "mean_cosine_similarity": 0.2694157660007477,
+    "median_cosine_similarity": 0.1535216122865677,
+    "max_cosine_similarity": 0.816415011882782,
+    "min_cosine_similarity": -0.06185189262032509,
+    "mean_pearson_correlation": 0.20179241534588005,
+    "median_pearson_correlation": 0.1030339839734856,
+    "max_pearson_correlation": 0.7661276720713863,
+    "min_pearson_correlation": -0.08718209896260459,
+    "intra_cnn_cosine_similarity": 0.09519210457801819,
+    "intra_vit_cosine_similarity": 0.6868913769721985,
+    "cross_family_cosine_similarity": 0.17819622159004211
+  },
+  "verdict": "HIGH GENUINE DIVERSITY (Orthogonal/complementary expert representations)"
+}
