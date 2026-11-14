@@ -1,0 +1,31 @@
+{
+  "checkpoint": "d:\\truong\\SpecialSubjectTTNT\\results\\phase7_combination\\phase7_s2g_new_pipeline_run2\\best_model_b2_stage2.pth",
+  "sha256": "68BF82F6B6F4F16E4032F1B58A2C3D5F3A3C2E9911F1020F5C5356713DCC98DB",
+  "num_params": 10205755,
+  "config_seed": 42,
+  "config_img_size": 448,
+  "claimed_val_dice": 0.7793,
+  "run1_val_dice": 0.7792940193398791,
+  "run1_precision": 0.7525257583159367,
+  "run1_recall": 0.8445816939833719,
+  "run1_boundary_iou": 0.1318489824506334,
+  "run1_hd95": 38.69287629530596,
+  "run2_val_dice": 0.7792940193398791,
+  "delta_claimed_vs_run1": -5.9806601209189125e-06,
+  "delta_run1_vs_run2": 0.0,
+  "pass_tolerance": true,
+  "is_deterministic": true,
+  "checkpoint_meta": {
+    "epoch": "16",
+    "stage": "2",
+    "best_dice": "0.7793468928939803",
+    "best_loss": "1.2276723016610092",
+    "precision": "0.7528179956258886",
+    "recall": "0.8444200439517031",
+    "iou": "0.6578474180011815",
+    "crack_iou": "0.6578474180011815",
+    "model_type": "B2",
+    "num_transformer_layers": "4",
+    "sage_config": "{'top_k': 2, 'gating_type': 'sigmoid', 'shared_expert_indices': [0, 1, 2, 3], 'router_hidden_dim': 64, 'load_balance_factor': 0.01, 'logit_modulation': True, 'expert_dropout': 0.1, 'fusion_type': 'residual', 'residual_scale': 0.1}"
+  }
+}
