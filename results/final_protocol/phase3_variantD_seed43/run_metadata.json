@@ -1,0 +1,14 @@
+{
+  "variant": "D",
+  "seed": 43,
+  "target_replacement_params": 6713256,
+  "phase2_mean_val_dice": 0.7786376169868934,
+  "phase2_mde": 0.010803939249116433,
+  "dense_adapter_params": 6713160,
+  "total_params_after_injection": 16918915,
+  "best_s1_dice": 0.7591033869647553,
+  "best_s2_dice": 0.7820932577138839,
+  "best_global_dice": 0.7820932577138839,
+  "delta_vs_phase2_mean": 0.003455640726990561,
+  "mde_exceeded": false
+}

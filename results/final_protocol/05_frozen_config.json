@@ -1,0 +1,54 @@
+{
+  "checkpoint_strategy": "ensemble_3seed",
+  "checkpoints": [
+    {
+      "seed": 42,
+      "path": "results/final_protocol/phase2_seed42/best_model_b2_global.pth",
+      "sha256": "4B409B60A7DF788AE48DECE727751E1B8D904CD95EE1102E53D78563F2556CB7",
+      "val_dice": 0.7804085131466723
+    },
+    {
+      "seed": 43,
+      "path": "results/final_protocol/phase2_seed43/best_model_b2_global.pth",
+      "sha256": "7379C7346616ACE3569AE2D9D640D838098638AD70F17443A34166AC89D4A271",
+      "val_dice": 0.7829318620367279
+    },
+    {
+      "seed": 44,
+      "path": "results/final_protocol/phase2_seed44/best_model_b2_global.pth",
+      "sha256": "F5F7DC55C9D0CBEB606D5EEA396E6B8983ADC64391F23FE96395A19C5EB75F09",
+      "val_dice": 0.7725724757772799
+    }
+  ],
+  "config_file": "configs/p3_ablation/phase7/phase7_b2_s2g_b1_b2_end_to_end.yaml",
+  "inference_settings": {
+    "tau": 0.5,
+    "tta": "flip_hv",
+    "tta_description": "Ensemble of original image, horizontal flip, and vertical flip predictions; applied PER MODEL then averaged across 3 models",
+    "eval_method": "predict_full_image_direct",
+    "target_size": 448,
+    "ensemble_method": "mean_probability"
+  },
+  "dataset": {
+    "name": "Crack500",
+    "data_root": "datasets/Crack500_ready",
+    "test_split": "test",
+    "num_test_images": 1124
+  },
+  "phase2_evidence": {
+    "mean_val_dice_single": 0.7786376169868934,
+    "std_val_dice": 0.005401969624558216,
+    "mde": 0.010803939249116433,
+    "ensemble_val_dice": 0.7850027893240716,
+    "delta_ensemble_vs_mean_single": 0.006365172928178200
+  },
+  "phase1_evidence": {
+    "val_dice_no_tta_tau05_canonical": 0.779294,
+    "val_dice_tta_flip_hv_tau05_canonical": 0.782452,
+    "tta_delta": 0.003158,
+    "tta_ci_95": [0.001021, 0.005301]
+  },
+  "rationale": "Ensemble 3 seed (Phase 2: seed 42/43/44) dùng best_model_b2_global.pth. Ensemble val Dice 0.785003 > single-best seed43 0.782932 > canonical 0.779294. TTA flip_hv CI dương [+0.001021, +0.005301]. tau=0.5 không có nghĩa thống kê khi tăng. Quyết định dựa hoàn toàn trên val.",
+  "status": "LOCKED",
+  "locked_at": "2026-11-15T01:00:00+07:00"
+}

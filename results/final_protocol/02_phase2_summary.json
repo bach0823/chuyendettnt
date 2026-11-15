@@ -1,0 +1,27 @@
+{
+  "seeds": [
+    {
+      "seed": 42,
+      "val_dice": 0.7804085131466723,
+      "val_iou": 0.6590046254603626,
+      "source": "val_result.json"
+    },
+    {
+      "seed": 43,
+      "val_dice": 0.7829318620367279,
+      "val_iou": 0.6625752846383628,
+      "source": "val_result.json"
+    },
+    {
+      "seed": 44,
+      "val_dice": 0.7725724757772799,
+      "val_iou": 0.6487227206851044,
+      "source": "val_result.json"
+    }
+  ],
+  "mean_val_dice": 0.7786376169868934,
+  "std_val_dice": 0.005401969624558216,
+  "mde": 0.010803939249116433,
+  "num_seeds": 3,
+  "status": "COMPLETED"
+}

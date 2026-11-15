@@ -1,0 +1,9 @@
+Router,Layer_Type,Entropy_Bits,Normalized_Entropy,Max_Expert_Share,HHI_Concentration,Effective_Num_Experts,Normalized_Selected_Gating_Weight_Entropy
+convnext.stage_0,CNN,2.9979,0.9993,0.1365,0.1254,7.99,1.0000
+convnext.stage_1,CNN,2.9955,0.9985,0.1336,0.1258,7.98,1.0000
+convnext.stage_2,CNN,2.9895,0.9965,0.1408,0.1268,7.94,1.0000
+convnext.stage_3,CNN,2.9940,0.9980,0.1437,0.1260,7.97,1.0000
+transformer.block_0,ViT,2.9960,0.9987,0.1365,0.1257,7.98,1.0000
+transformer.block_1,ViT,2.9928,0.9976,0.1351,0.1262,7.96,1.0000
+transformer.block_2,ViT,2.9952,0.9984,0.1394,0.1258,7.97,1.0000
+transformer.block_3,ViT,2.9910,0.9970,0.1537,0.1266,7.95,1.0000

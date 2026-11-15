@@ -12,9 +12,9 @@ SHA256: `68BF82F6B6F4F16E4032F1B58A2C3D5F3A3C2E9911F1020F5C5356713DCC98DB`
 |---|---|---|---|
 | **0** | Kiểm toán & tái lập | ✅ XONG | Val Dice tái lập = 0.779294, Δ=−0.000053 (**PASS**). Tất định. Run1≡Run2 (cùng seed=42). |
 | **1** | Tau sweep + TTA + bootstrap | ✅ XONG | tau thay đổi KHÔNG có nghĩa. TTA flip_hv **CÓ nghĩa** (CI=[+0.001,+0.005]). |
-| **2** | Phương sai seed thật | ⏸ **CHỜ COLAB** | Notebook sẵn sàng. Cần train 3 seed. |
-| **5** | Test đúng 1 lần | 🔒 Khóa đến sau Phase 2 | — |
-| **3** | Đối chứng router/expert | 🔒 Chờ MDE từ Phase 2 | — |
+| **2** | Phương sai seed thật | ✅ XONG | 3 seed (42, 43, 44) hoàn thành. $\mu=0.778638$, $s=0.005402$, $\text{MDE}=0.010804$. Ensemble Val Dice: **0.785003**. |
+| **5** | Test d�ng 1 l?n | ? XONG | Test Dice = **0.7158** [CI: 0.7072�0.7243], Precision=0.6724, Recall=0.8123, HD95=50.93px |
+| **3** | �?i ch?ng router/expert | ? XONG | Variant D mu=0.777881 (|Delta|=0.000757), Variant R mu=0.778500 (|Delta|=0.000138). C? hai |Delta| << MDE (0.010804). Chua c� b?ng ch?ng router d�ng g�p ngo�i dung lu?ng. |
 | **6** | Dataset tường riêng | 🔒 Chờ nhãn | — |
 | **4** | Lịch huấn luyện | 🔒 Tùy chọn | — |
 
@@ -149,3 +149,4 @@ phase2_results/
 | [`results/final_protocol/01_inference_only/tta_bootstrap.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/01_inference_only/tta_bootstrap.json) | Bootstrap CI flip_hv |
 | [`results/final_protocol/01_inference_only/stability.csv`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/01_inference_only/stability.csv) | 20-rep stability |
 | [`results/final_protocol/phase2_seed_template.ipynb`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/phase2_seed_template.ipynb) | Notebook Phase 2 (3 tab song song) |
+

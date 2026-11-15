@@ -1,0 +1,17 @@
+{
+  "seed": 44,
+  "git_hash": "8424facc892c339b9ac774a524e63a42c3b121d0",
+  "checkpoint_sha256": "F5F7DC55C9D0CBEB606D5EEA396E6B8983ADC64391F23FE96395A19C5EB75F09",
+  "checkpoint_path": "d:\\truong\\SpecialSubjectTTNT\\results\\final_protocol\\phase2_seed44\\best_model_b2_global.pth",
+  "val_result": {
+    "precision": 0.7369891334650365,
+    "recall": 0.8484168230117292,
+    "dice": 0.7725724757772799,
+    "iou": 0.6487227206851044,
+    "crack_iou": 0.6487227206851044,
+    "boundary_iou": 0.1358304012951844,
+    "hd95": 38.73776194863401,
+    "loss": 1.127818357156611,
+    "global_pixel_iou": 0.6982320730638223
+  }
+}
