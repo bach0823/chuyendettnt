@@ -1,0 +1,5 @@
+Chỉ số,Val (mean),Test (mean),Δ (test-val),MWU p-value
+crack_pixel_ratio,0.0431,0.0460,+0.0029,0.3357
+mean_crack_width,12.8349,12.6634,-0.1715,0.4143
+thin_crack_fraction,0.1232,0.1227,-0.0005,0.2234
+n_components,2.0000,2.0000,+0.0000,0.0002

@@ -1,0 +1,42 @@
+{
+  "val_cluster_stats": {
+    "n_crops": 348,
+    "n_original": 50,
+    "avg_crops_per_orig": 6.96,
+    "min_crops": 4,
+    "max_crops": 12,
+    "median_crops": 7.0
+  },
+  "test_cluster_stats": {
+    "n_crops": 1124,
+    "n_original": 148,
+    "avg_crops_per_orig": 7.595,
+    "min_crops": 1,
+    "max_crops": 15,
+    "median_crops": 7.0
+  },
+  "test_dice_cluster_bootstrap": {
+    "mean": 0.7157702016636158,
+    "ci_95_lo_cluster": 0.7004879303848798,
+    "ci_95_hi_cluster": 0.7306830862997511,
+    "ci_95_lo_crop_old": 0.7071588625329606,
+    "ci_95_hi_crop_old": 0.7243000562253515,
+    "ci_width_cluster": 0.030195,
+    "ci_width_crop": 0.017141,
+    "ratio_cluster_over_crop": 1.762
+  },
+  "mde_analysis": {
+    "n_seeds": 3,
+    "s_seed": 0.005401969624558216,
+    "s_95ci_lo": 0.002812534187600998,
+    "s_95ci_hi": 0.03396189205044722,
+    "mde_nominal": 0.010803939249116433,
+    "mde_95ci_lo": 0.005625068375201996,
+    "mde_95ci_hi": 0.06792378410089445,
+    "note": "MDE 95% CI dùng chi-squared (df=2)"
+  },
+  "val_cluster_bootstrap_possible": false,
+  "val_cluster_bootstrap_reason": "val_result.json chỉ lưu aggregate dice, không có per_image_dice. Cluster bootstrap cho val không khả thi mà không chạy lại suy luận.",
+  "tta_cluster_bootstrap_possible": false,
+  "tta_cluster_bootstrap_reason": "phase1 TTA bootstrap dùng per_image_dice trong RAM, không lưu ra file. Không thể tái tính cluster bootstrap TTA mà không GPU."
+}

@@ -1,0 +1,99 @@
+{
+  "val_stats": {
+    "split": "val",
+    "n_crops": 348,
+    "crack_pixel_ratio": {
+      "mean": 0.057020185940518026,
+      "std": 0.04800246026937959,
+      "median": 0.04311197916666666,
+      "p25": 0.021963975694444443,
+      "p75": 0.07823893229166666
+    },
+    "mean_crack_width_px": {
+      "mean": 14.39798600509249,
+      "std": 7.376903924303912,
+      "median": 12.834892272949219,
+      "p25": 8.991353988647461,
+      "p75": 18.134119987487793
+    },
+    "thin_crack_pixel_fraction_width_le3px": {
+      "mean": 0.1437445411460119,
+      "std": 0.08879118924217004,
+      "median": 0.12316107633873644
+    },
+    "n_connected_components": {
+      "mean": 2.2385057471264367,
+      "std": 1.9082428751751244,
+      "median": 2.0,
+      "max": 14
+    },
+    "fraction_crops_lt1000_crack_px": 0.0,
+    "n_crops_lt1000_crack_px": 0
+  },
+  "test_stats": {
+    "split": "test",
+    "n_crops": 1124,
+    "crack_pixel_ratio": {
+      "mean": 0.055903735419138,
+      "std": 0.04096463943976011,
+      "median": 0.04599609375,
+      "p25": 0.02556206597222222,
+      "p75": 0.07863389756944444
+    },
+    "mean_crack_width_px": {
+      "mean": 13.936371305234916,
+      "std": 7.0648353594250555,
+      "median": 12.663413047790527,
+      "p25": 8.696585655212402,
+      "p75": 17.489246368408203
+    },
+    "thin_crack_pixel_fraction_width_le3px": {
+      "mean": 0.14992716524927854,
+      "std": 0.09045493190494319,
+      "median": 0.12268348291393133
+    },
+    "n_connected_components": {
+      "mean": 3.316725978647687,
+      "std": 4.867025876467853,
+      "median": 2.0,
+      "max": 64
+    },
+    "fraction_crops_lt1000_crack_px": 0.0,
+    "n_crops_lt1000_crack_px": 0
+  },
+  "distribution_comparison": {
+    "crack_pixel_ratio": {
+      "val_median": 0.04311197916666666,
+      "test_median": 0.04599609375,
+      "delta_median": 0.00288411458333334,
+      "mannwhitney_p": 0.33571600086923425
+    },
+    "mean_crack_width": {
+      "val_median": 12.834892272949219,
+      "test_median": 12.663413047790527,
+      "delta_median": -0.1714792251586914,
+      "mannwhitney_p": 0.41431302582701235
+    },
+    "thin_crack_fraction": {
+      "val_median": 0.12316107633873644,
+      "test_median": 0.12268348291393133,
+      "delta_median": -0.00047759342480510614,
+      "mannwhitney_p": 0.22340357525705368
+    },
+    "n_components": {
+      "val_median": 2.0,
+      "test_median": 2.0,
+      "delta_median": 0.0,
+      "mannwhitney_p": 0.00019801442781131748
+    }
+  },
+  "val_test_dice_gap": {
+    "val_single_seed_mean": 0.778638,
+    "val_ensemble": 0.785003,
+    "test_locked": 0.71577,
+    "gap_single_to_test_pt": 0.0629,
+    "gap_ensemble_to_test_pt": 0.0692,
+    "b0_reference_gap_pt": 0.0547
+  },
+  "note_on_prediction_analysis": "Dự đoán per-image trên val không được lưu ra file (phase1, phase2 chỉ lưu aggregate). Dự đoán per-image trên test có sẵn trong 05_test_final_report.json nhưng không có filenames đi kèm. Phân tích Dice theo nhóm (crack width, crack ratio) cho test không khả thi mà không map index->filename."
+}
