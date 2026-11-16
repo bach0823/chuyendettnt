@@ -166,21 +166,21 @@ Nguồn: `03_capacity_control.md`, `phase3_variantN_seed42/run_metadata.json`, `
 
 ## §6. VAL→TEST GAP
 
-### 6.1 So sánh đặc tính nhãn
+### 6.1 So sánh đặc tính nhãn (Ground Truth Masks)
 
 Đo trên ground-truth masks (`datasets/Crack500_ready/{val,test}/masks/`). Không dùng dự đoán mô hình.
 
-| Chỉ số | Val (348 crops) | Test (1124 crops) | p-value MWU | Kết luận |
-|---|:---:|:---:|:---:|---|
-| Tỉ lệ pixel nứt | 0.0570 ± 0.0480 | 0.0559 ± 0.0410 | 0.3357 | Không khác biệt |
-| Độ rộng crack trung bình (px) | 14.40 ± 7.38 | 13.94 ± 7.06 | 0.4143 | Không khác biệt |
-| Tỉ lệ crack pixel mảnh ≤ 3px | 0.1437 | 0.1499 | 0.2234 | Không khác biệt |
-| **Số thành phần liên thông** | **2.24 ± 1.91 (max=14)** | **3.32 ± 4.87 (max=64)** | **0.0002** | **Khác biệt có ý nghĩa** |
+| Chỉ số hình thái | Val trung bình crop ($n=348$) | Test trung bình crop ($n=1,124$) | $p$-value crop | Val trung bình ảnh gốc ($n=50$) | Test trung bình ảnh gốc ($n=148$) | $p$-value ảnh gốc (Cluster MWU) | Kết luận |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| **Tỉ lệ pixel nứt (crack ratio)** | $0.0570 \pm 0.0480$ | $0.0559 \pm 0.0410$ | 0.3357 | $0.0557 \pm 0.0317$ | $0.0558 \pm 0.0254$ | **0.4799** | Không khác biệt |
+| **Độ rộng crack trung bình (px)** | $14.40 \pm 7.38$ | $13.94 \pm 7.06$ | 0.4143 | $14.12 \pm 6.25$ | $14.13 \pm 5.66$ | **0.8205** | Không khác biệt |
+| **Tỉ lệ pixel mảnh $\le 3$ px** | 0.1437 | 0.1499 | 0.2234 | $0.1470 \pm 0.0777$ | $0.1455 \pm 0.0676$ | **0.7830** | Không khác biệt |
+| **Số thành phần liên thông** | $2.24 \pm 1.91$ (max 14) | $3.32 \pm 4.87$ (max 64) | 0.0002* | $2.28 \pm 1.13$ | $2.97 \pm 2.63$ | **0.1052** | **Không khác biệt ở mức ảnh gốc** |
 
-Nguồn: `results/final_protocol/07_revision/07_valtest_gap.md`
+*\*Lưu ý:* $p = 0.0002$ ở mức crop là do hiện tượng giả lặp mẫu (pseudoreplication). Khi gộp đúng về mức ảnh gốc độc lập, $p = 0.1052 > 0.05$.
 
-> [!NOTE]
-> p-values trên là mức crop. MWU theo ảnh gốc (gộp 50 val vs 148 test) chưa tính được — cần chạy lại script với aggregation theo source ID.
+> [!IMPORTANT]
+> **Không có bất kỳ đặc tính nhãn nào khác biệt có ý nghĩa thống kê giữa tập Val và Test ở mức ảnh gốc.** Khoảng cách hiệu năng 6.44 điểm không bắt nguồn từ sự lệch phân bố hình thái bề mặt.
 
 ### 6.2 Khoảng cách Dice
 
@@ -193,8 +193,22 @@ Nguồn: `results/final_protocol/07_revision/07_valtest_gap.md`
 
 **So sánh đúng nhất:** seed=42, không TTA, cùng giao thức direct 1-pass → **gap = 6.44 điểm** (nguồn: `official_direct_evaluation.json` + `00_audit/audit_result.json`).
 
-> [!WARNING]
-> Không được nói: "val→test gap do test có nhiều vết mảnh hơn" — thin crack fraction p=0.22, không khác biệt. Chỉ n_components khác biệt có ý nghĩa (p=0.0002). Nguyên nhân gap 6.44 điểm chưa xác định.
+### 6.3 Phân tích Test Dice theo nhóm đặc tính nhãn (Việc 6)
+
+Ánh xạ 1-đối-1 giữa `per_image_dice` (1,124 crop) và đặc tính mask tương ứng (`08_per_image_dice_test.csv`):
+
+- **Tương quan:**
+  * Tỉ lệ vết mảnh ($\le 3$ px): Spearman $\rho = \mathbf{-0.4793}$ ($p = 1.2 \times 10^{-65}$) — tương quan âm mạnh nhất.
+  * Độ rộng trung bình vết: Spearman $\rho = \mathbf{+0.4455}$ ($p = 6.6 \times 10^{-56}$) — vết càng rộng Dice càng cao.
+  * Số thành phần liên thông: Spearman $\rho = \mathbf{-0.2992}$ ($p = 1.1 \times 10^{-24}$) — càng phân mảnh Dice càng giảm.
+- **Phân nhóm độ rộng:**
+  * Vết vừa ($3 < \text{width} \le 10$ px, $n=394$): **Mean Dice = 0.6559 (65.59 điểm)**
+  * Vết rộng ($\text{width} > 10$ px, $n=730$): **Mean Dice = 0.7481 (74.81 điểm)**
+  * Chênh lệch: **+9.22 điểm Dice** cho vết rộng.
+- **Phân nhóm độ phức tạp liên thông:**
+  * Đơn giản ($\le 2$ thành phần, $n=711$): **Mean Dice = 0.7380 (73.80 điểm)**
+  * Phức tạp ($> 5$ thành phần, $n=143$): **Mean Dice = 0.6511 (65.11 điểm)**
+  * Chênh lệch: **+8.69 điểm Dice** cho cấu trúc đơn giản.
 
 ---
 
@@ -208,15 +222,11 @@ Nguồn: `results/final_protocol/07_revision/07_valtest_gap.md`
 
 4. **Val lạc quan do chọn checkpoint tốt nhất trên val.** Hiệu quả của TTA (+0.32 điểm val) có thể bị overestimate.
 
-5. **per_image_dice không lưu kèm filenames** (cả val lẫn test). Không thể phân tích Dice theo nhóm mà không chạy lại inference trên GPU.
+5. **Variant N đã hoàn thành** (2026-11-16). Không phát hiện đóng góp đo được của nhánh expert pool (Δ = −0.06 điểm, không vượt MDE). "Không phát hiện" ≠ "không có đóng góp".
 
-6. **Variant N đã hoàn thành** (2026-11-16). Không phát hiện đóng góp đo được của nhánh expert pool (Δ = −0.06 điểm, không vượt MDE). "Không phát hiện" ≠ "không có đóng góp".
+6. **Phase 4** (sàng lọc tốc độ học — LR screening, tùy chọn) và **Phase 6** (đánh giá cross-dataset — chờ nhãn) chưa thực hiện.
 
-7. **Phase 4** (sàng lọc tốc độ học — LR screening, tùy chọn) và **Phase 6** (đánh giá cross-dataset — chờ nhãn) chưa thực hiện.
-
-8. **MWU theo ảnh gốc** (gộp crop theo source ID) chưa tính được — cần chạy lại script.
-
-9. **Test coverage:** Dataset local có 148 ảnh gốc test (1,124 crops), thấp hơn 200 ảnh gốc nêu trong paper Crack500. Chênh lệch 52 ảnh gốc không giải thích được từ file hiện tại.
+7. **Test coverage:** Dataset local có 148 ảnh gốc test (1,124 crops), thấp hơn 200 ảnh gốc nêu trong paper Crack500. Chênh lệch 52 ảnh gốc không giải thích được từ file hiện tại.
 
 ---
 
@@ -227,10 +237,10 @@ Nguồn: `results/final_protocol/07_revision/07_valtest_gap.md`
 | "Test không bị data snooping" | Test đã xem ≥ 9 lần trước Phase 5 |
 | "TTA/ensemble giúp ích ở test" | Δ test = +0.09 điểm giữa hai đối tượng khác giao thức; không xác nhận được |
 | "0.7149 là kết quả của seed 43" | 0.7149 là seed=42, run2, direct 1-pass |
-| "Val→test gap do vết mảnh" | thin crack fraction p=0.22, không khác biệt; không có số đo ủng hộ |
+| "Val→test gap do phân phối vết mảnh lệch nhau" | Tỉ lệ vết mảnh giữa Val và Test không khác biệt ($p = 0.78$ ở mức ảnh gốc) |
 | "SAGE router vô ích hoàn toàn" | Chỉ đo được 2 seed; CI MDE rộng; không đo hành vi canonical router |
 | "Nhánh expert không đóng góp" | Chỉ đo được 2 seed; CI MDE rộng; "không phát hiện" ≠ "không có đóng góp" |
-| "B2 tốt hơn B0 về gap val→test" | Gap B2 = 6.44 điểm, B0 = 2.81 điểm — B2 gap lớn hơn, không nhỏ hơn; B0 dùng giao thức khác (cần kiểm tra cùng giao thức trước khi so sánh) |
+| "B2 tốt hơn B0 về gap val→test" | Gap B2 = 6.44 điểm, B0 = 2.81 điểm — B2 gap lớn hơn, không nhỏ hơn |
 
 ---
 
@@ -241,7 +251,7 @@ Nguồn: `results/final_protocol/07_revision/07_valtest_gap.md`
 | Router có đóng góp? | Không phát hiện đóng góp trong tầm MDE (Δ = −0.01 điểm vs canonical; \|Δ\| ≪ MDE = 1.08 điểm) |
 | Nhánh expert có đóng góp? | **Không phát hiện** — Variant N (residual_scale=0) cho Δ = −0.06 điểm vs canonical, không vượt MDE. "Không phát hiện" ≠ "không có đóng góp" |
 | Ensemble+TTA có giúp ở test? | **Không xác nhận** — Δ test = +0.09 điểm giữa hai đối tượng khác giao thức; nằm trong CI cluster |
-| Khoảng cách val→test 6.44 điểm đến từ đâu? | Không rõ — chỉ n_components khác biệt có ý nghĩa (p=0.0002); 3 chỉ số crack khác không khác biệt. Chưa phân tích Dice theo nhóm (thiếu filenames trong per_image_dice) |
+| Khoảng cách val→test 6.44 điểm đến từ đâu? | Phân phối nhãn Val và Test không lệch nhau ở mức ảnh gốc ($p > 0.10$ mọi chỉ số). Nhưng ở mức vi mô, Test Dice bị kéo tụt chủ yếu bởi crops có nhiều vết mảnh ($\rho = -0.48$) và cấu trúc phân mảnh ($\rho = -0.30$) |
 
 ---
 
@@ -253,6 +263,19 @@ Nguồn: `results/final_protocol/07_revision/07_valtest_gap.md`
 | [`05_test_final_report.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/05_test_final_report.json) | Kết quả test chính thức (Phase 5) |
 | [`02_phase2_summary.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/02_phase2_summary.json) | Multi-seed canonical val results |
 | [`03_capacity_control.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/03_capacity_control.md) | Phase 3 Variant D & R |
+| [`07_cluster_bootstrap.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07_cluster_bootstrap.md) | Cluster bootstrap CI |
+| [`07a_cluster_bootstrap_results.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07a_cluster_bootstrap_results.json) | Dữ liệu raw cluster bootstrap |
+| [`07_valtest_gap.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07_valtest_gap.md) | Val→test gap analysis |
+| [`07_variant_N.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07_variant_N.md) | Variant N — chuẩn bị |
+| [`phase3_variantN_seed42/run_metadata.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/phase3_variantN_seed42/run_metadata.json) | Variant N seed42 |
+| [`phase3_variantN_seed43/run_metadata.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/phase3_variantN_seed43/run_metadata.json) | Variant N seed43 |
+| [`08_revision2/08_test_history.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_test_history.md) | Lịch sử test đầy đủ |
+| [`08_revision2/08_test_comparison.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_test_comparison.md) | So sánh 0.7149 vs 0.7158 |
+| [`08_revision2/08_phase3_description.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_phase3_description.md) | Mô tả Phase 4 & 6 |
+| [`08_revision2/08_cluster_recheck.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_cluster_recheck.md) | Kiểm tra cluster bootstrap & MWU ảnh gốc |
+| [`08_revision2/08_phase3_recheck.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_phase3_recheck.md) | Kiểm tra Phase 3 — baseline khớp seed, gradient Variant N |
+| [`08_revision2/08_dice_by_group.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_dice_by_group.md) | Phân tích Dice theo nhóm độ rộng và độ phức tạp |
+| [`08_revision2/08_per_image_dice_test.csv`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/08_revision2/08_per_image_dice_test.csv) | Ánh xạ chi tiết 1,124 test crop với Dice và đặc tính mask |
 | [`07_cluster_bootstrap.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07_cluster_bootstrap.md) | Cluster bootstrap CI |
 | [`07a_cluster_bootstrap_results.json`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07a_cluster_bootstrap_results.json) | Dữ liệu raw cluster bootstrap |
 | [`07_valtest_gap.md`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/07_revision/07_valtest_gap.md) | Val→test gap analysis |

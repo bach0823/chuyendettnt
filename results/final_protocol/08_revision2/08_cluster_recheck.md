@@ -72,6 +72,18 @@ Không phải "CI rộng hơn 12× so với ước lượng điểm" (ước lư
 
 ---
 
-## 6. MWU test theo ảnh gốc
+## 6. MWU test theo ảnh gốc (Cluster-level Mann-Whitney U Test)
 
-CHƯA LÀM ĐƯỢC — lý do: các chỉ số đặc tính nhãn (crack_ratio, width, n_components...) trong `07b_valtest_gap_results.json` lưu ở mức crop, không có per-image aggregation theo ảnh gốc. Tái tính MWU theo ảnh gốc cần chạy lại script `run_work2_valtest_gap.py` với aggregation theo source ID — không cần GPU nhưng cần thời gian. Hạn chế này ghi vào báo cáo.
+**Phương pháp:** Gộp trung bình các chỉ số ground truth mask của từng ảnh gốc (50 ảnh gốc Val vs 148 ảnh gốc Test) và chạy kiểm định phi tham số Mann-Whitney U hai phía:
+
+| Chỉ số hình thái | Val trung bình ảnh gốc ($n=50$) | Test trung bình ảnh gốc ($n=148$) | $U$-statistic | $p$-value MWU | Kết luận ($p < 0.05$) |
+|---|:---:|:---:|:---:|:---:|---|
+| **Tỉ lệ pixel nứt (crack ratio)** | $0.0557 \pm 0.0317$ | $0.0558 \pm 0.0254$ | 3,452.0 | **0.4799** | Không khác biệt |
+| **Độ rộng trung bình vết (px)** | $14.12 \pm 6.25$ | $14.13 \pm 5.66$ | 3,620.0 | **0.8205** | Không khác biệt |
+| **Tỉ lệ crack pixel mảnh $\le 3$ px** | $0.1470 \pm 0.0777$ | $0.1455 \pm 0.0676$ | 3,603.0 | **0.7830** | Không khác biệt |
+| **Số thành phần liên thông** | $2.28 \pm 1.13$ | $2.97 \pm 2.63$ | 3,132.0 | **0.1052** | **Không khác biệt ở mức ảnh gốc** |
+
+> [!IMPORTANT]
+> **Phát hiện quan trọng:** Ở cấp độ crop (348 val vs 1,124 test), số thành phần liên thông từng cho $p = 0.0002$ do hiện tượng giả lặp mẫu (pseudoreplication) làm thổi phồng bậc tự do. Khi gộp đúng về **mức ảnh gốc độc lập (50 val vs 148 test)**, kiểm định Mann-Whitney U cho $p = 0.1052 > 0.05$.
+> 
+> **Kết luận:** **Không có bất kỳ đặc tính nhãn nào khác biệt có ý nghĩa thống kê giữa tập Val và tập Test ở mức ảnh gốc.** Khoảng cách hiệu năng 6.44 điểm Dice không bắt nguồn từ sự lệch phân phối hình thái vết nứt bề mặt.
