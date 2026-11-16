@@ -49,26 +49,46 @@ Kiến trúc giữ nguyên hoàn toàn, số tham số = canonical (**10,205,755
 
 ## 3. Trạng thái Thực hiện
 
-**ĐÃ CHUẨN BỊ:**
+**ĐÃ HOÀN THÀNH (2026-11-16):**
 - Đã thêm `--variant N` vào `train_phase3_ablation.py` (commit `110d652`)
-- Đã viết notebook Colab với 3-cell structure theo SKILL invariants
-- Cờ diễn giải đặt trước đã được ghi nhận ở trên
+- Đã chạy trên Colab T4: Seed 42 và Seed 43 — kết quả đầy đủ
+- Thư mục kết quả: [`phase3_variantN_seed42/`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/phase3_variantN_seed42/) và [`phase3_variantN_seed43/`](file:///d:/truong/SpecialSubjectTTNT/results/final_protocol/phase3_variantN_seed43/)
 
-**CẦN CHẠY TRÊN COLAB T4:**
-- Seed 42: ~35 epoch × ~3 phút/epoch ≈ 1.75 giờ
-- Seed 43: ~1.75 giờ
-- Tổng: ~3.5 giờ
-
-**Khi có kết quả:** Điền số liệu vào bảng dưới đây và cập nhật `FINAL_REPORT_REVISED.md`.
+**Kiểm tra tính toàn vẹn:**
+- N-42 `best_model_b2_global.pth` SHA-256: `161C9EF30C031602466E86E9412DF3E316BC63ECC16EF93DEB169BD3B9CC6FD7`
+- N-43 `best_model_b2_global.pth` SHA-256: `756CC7A00378554A73D898ACEFAC2574F960C64B0D42957077ED5CBE4FC5CE9A`
 
 ---
 
-## 4. Bảng Kết quả (Chờ Điền)
+## 4. Bảng Kết quả
 
-| Seed | Stage 1 Val Dice | Stage 2 Val Dice | Global Best | Δ vs Canonical | Vượt MDE? |
+| Seed | Stage 1 Val Dice | Stage 2 Val Dice | Global Best | Δ vs Canonical μ | Vượt MDE (0.010804)? |
 |---|:---:|:---:|:---:|:---:|:---:|
-| **N-42** | *[chờ]* | *[chờ]* | *[chờ]* | *[chờ]* | *[chờ]* |
-| **N-43** | *[chờ]* | *[chờ]* | *[chờ]* | *[chờ]* | *[chờ]* |
-| **N mean** | — | — | *[chờ]* | *[chờ]* | *[chờ]* |
+| **N-42** | 0.758173 | 0.778212 | **0.778212** | −0.000425 | Không |
+| **N-43** | 0.759447 | 0.777812 | **0.777812** | −0.000825 | Không |
+| **N mean** | — | — | **0.778012** | **−0.000625** | **Không** |
 | **Canonical mean** | — | — | 0.778638 | — | — |
 | **MDE (nominal)** | — | — | — | 0.010804 | — |
+
+> [!IMPORTANT]
+> `n_zeroed_sagelayers = 8` — tất cả 8 SageLayer đã được đặt `residual_scale = 0.0`. Xác nhận bởi `run_metadata.json` cả hai seed.
+
+---
+
+## 5. Diễn giải Kết quả
+
+**Áp dụng bảng diễn giải đặt trước (Mục 2):**
+
+$|\Delta_{\mu_N}| = 0.000625 \ll \text{MDE} = 0.010804$ → **Không phát hiện đóng góp của nhánh expert pool.**
+
+Kết hợp với Phase 3 (D ≈ R ≈ Canonical), chuỗi Variant D → R → N đều không phân biệt được với Canonical trong tầm MDE:
+
+| Variant | Δ vs Canonical μ | Thành phần bị loại bỏ |
+|---|:---:|---|
+| **R** | −0.000138 | Router (giữ expert pool, router ngẫu nhiên) |
+| **D** | −0.000757 | Router + Expert Pool (thay bằng DenseAdapter |
+| **N** | −0.000625 | Expert Pool contribution (router giữ nhưng contribution=0) |
+
+**Kết luận giới hạn theo bằng chứng:**
+
+> Với 2 seed mỗi biến thể và MDE = 0.0108 điểm (CI 95%: [0.0056, 0.0679]), **không phát hiện chênh lệch** giữa Canonical và bất kỳ biến thể nào (D, R, N). Không thể kết luận SAGE router hay nhánh expert *hoàn toàn* vô ích — chỉ có thể nói: với thiết lập này, hiệu năng không phụ thuộc có thể phát hiện vào cơ chế routing hay expert contribution, trong tầm MDE của thí nghiệm.

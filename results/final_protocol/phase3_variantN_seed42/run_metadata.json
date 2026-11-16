@@ -1,0 +1,15 @@
+{
+  "variant": "N",
+  "seed": 42,
+  "target_replacement_params": 6713256,
+  "phase2_mean_val_dice": 0.7786376169868934,
+  "phase2_mde": 0.010803939249116433,
+  "n_zeroed_sagelayers": 8,
+  "method": "residual_scale=0 on all SageLayers after model creation",
+  "total_params_after_injection": 10205755,
+  "best_s1_dice": 0.7581733082812071,
+  "best_s2_dice": 0.7782121465973698,
+  "best_global_dice": 0.7782121465973698,
+  "delta_vs_phase2_mean": -0.0004254703895235634,
+  "mde_exceeded": false
+}

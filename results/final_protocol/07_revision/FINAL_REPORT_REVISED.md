@@ -16,19 +16,18 @@
 | **Phase 3 "tương đương tuyệt đối"** | "Canonical, D, R tương đương tuyệt đối" | "Không phát hiện chênh lệch ≥ ~1 điểm Dice với 2 seed mỗi biến thể" | 03_capacity_control.md |
 | **Val→test gap do vết mảnh** | "Test khó hơn vì nhiều vết mảnh hơn" | "Ba chỉ số crack (ratio, width, thin-crack fraction) không khác biệt có ý nghĩa (p > 0.22); chỉ n_components khác biệt (p=0.0002)" | 07_valtest_gap.md |
 | **CI test Dice** | CI crop [0.7072, 0.7243] | **CI cluster [0.7005, 0.7307]** (rộng hơn 1.76×) | 07_cluster_bootstrap.md |
-| **Vai trò nhánh expert** | Chưa thử nghiệm trực tiếp | "Chưa xác minh — Variant N đang chờ chạy GPU" | 07_variant_N.md |
+| **Vai trò nhánh expert** | Chưa thử nghiệm trực tiếp | "Không phát hiện đóng góp đo được với 2 seed (Δ = −0.000625, không vượt MDE)" — Variant N đã chạy 2026-11-16 | 07_variant_N.md |
 
 **Câu trả lời thẳng cho 4 câu hỏi chính:**
 
 | Câu hỏi | Câu trả lời |
 |---|---|
 | Router có đóng góp? | Không phát hiện đóng góp trong tầm MDE (Δ = −0.000138 điểm vs canonical; |Δ| ≪ MDE = 0.0108) |
-| Nhánh expert có đóng góp? | **Chưa xác minh** — Variant N chưa chạy (cần GPU ~3.5h) |
+| Nhánh expert có đóng góp? | **Không phát hiện** — Variant N (residual_scale=0) cho Δ = −0.000625 điểm vs canonical, không vượt MDE. "Không phát hiện" ≠ "không có đóng góp" |
 | Ensemble+TTA có giúp ở test? | **Không xác nhận** — test +0.0009 điểm so với canonical đơn, nằm trong CI cluster |
 | Khoảng cách val→test 6.3–6.9 điểm đến từ đâu? | Không rõ — chỉ n_components có ý nghĩa thống kê; không phân tích được Dice theo nhóm (thiếu filenames) |
 
 **CHƯA LÀM/CHƯA XÁC MINH:**
-- Variant N (nhánh expert zeroed) — chờ GPU
 - CI cluster cho val Dice và TTA delta (thiếu per_image_dice trong file)
 - Phân tích Dice theo nhóm cho test (per_image_dice không kèm filenames)
 - Phase 4 (domain adaptation) và Phase 6 (inference optimization) chưa thực hiện
@@ -139,24 +138,32 @@ Ensemble val Dice = **0.7850** (Δ vs μ single = +0.0064). Chưa được xác 
 
 - **Variant D:** Thay expert_pool + router bằng DenseAdapter (tham số tương đương: 6,713,160 vs mục tiêu 6,713,256, sai lệch −96 params = −0.0014%).
 - **Variant R:** Giữ expert_pool, thay SageRouter bằng RandomFixedRouter (0 trainable params, chọn top-2 ngẫu nhiên theo seed cố định).
-- **Variant N:** Giữ toàn bộ kiến trúc canonical, set residual_scale=0.0 trên tất cả SageLayer — **CHƯA CHẠY, chờ GPU**.
+- **Variant N:** Giữ toàn bộ kiến trúc canonical (10,205,755 params), set `residual_scale = 0.0` trên tất cả 8 SageLayer — expert pool tồn tại nhưng đóng góp = 0 ở forward pass. **ĐÃ CHẠY** (commit `110d652`, Colab T4, 2026-11-16).
 
-### 5.2 Kết quả (Variant D và R, 2 seed mỗi biến thể)
+### 5.2 Kết quả (Variant D, R, N — mỗi biến thể 2 seed)
 
-| Cấu hình | Mean Val Dice | Δ vs Canonical μ | Vượt MDE? |
+| Cấu hình | Mean Val Dice | Δ vs Canonical μ | Vượt MDE (0.0108)? |
 |---|:---:|:---:|:---:|
 | Canonical (Phase 2 μ) | 0.778638 | — | — |
-| **Variant D mean** | 0.777881 | −0.000757 | Không |
 | **Variant R mean** | 0.778500 | −0.000138 | Không |
-| Variant N mean | *[chờ]* | *[chờ]* | *[chờ]* |
+| **Variant N mean** | **0.778012** | **−0.000625** | **Không** |
+| **Variant D mean** | 0.777881 | −0.000757 | Không |
+
+Chi tiết Variant N theo seed:
+
+| Seed | Stage 1 Val Dice | Stage 2 Val Dice | Global Best | Δ vs Canonical μ |
+|---|:---:|:---:|:---:|:---:|
+| N-42 | 0.758173 | 0.778212 | 0.778212 | −0.000425 |
+| N-43 | 0.759447 | 0.777812 | 0.777812 | −0.000825 |
+| **N mean** | — | — | **0.778012** | **−0.000625** |
 
 **Diễn giải đúng (thay "tương đương tuyệt đối"):**
 
-> Không phát hiện chênh lệch ≥ ~1 điểm Dice giữa canonical và Variant D/R, với 2 seed mỗi biến thể và MDE = 0.0108 điểm (CI MDE 95%: [0.0056, 0.0679]).
+> Không phát hiện chênh lệch ≥ ~1 điểm Dice giữa canonical và bất kỳ biến thể nào (D, R, N), với 2 seed mỗi biến thể và MDE = 0.0108 điểm (CI MDE 95%: [0.0056, 0.0679]).
 
-**Về router:** Với Variant R (router ngẫu nhiên), không phát hiện đóng góp đo được của việc học cơ chế định tuyến (Δ = −0.000138 điểm).
+**Về router (Variant R):** Không phát hiện đóng góp đo được của cơ chế định tuyến có học (Δ = −0.000138 điểm vs random router).
 
-**Về nhánh expert:** Chưa xác minh — Variant N đang chờ chạy GPU. Không thể kết luận nhánh expert có hay không có đóng góp.
+**Về nhánh expert (Variant N):** Không phát hiện đóng góp đo được của expert pool contribution (Δ = −0.000625 điểm vs residual_scale=0). Chuỗi R → N → D đều không phân biệt được với Canonical trong tầm MDE.
 
 > [!CAUTION]
 > Routing diagnostics (Variant R, seed 42): Phân phối chọn 8 expert gần đều tuyệt đối (11.66%–13.04%, kỳ vọng 12.50%), xác nhận RandomFixedRouter hoạt động đúng. Điều này đồng thời cho thấy canonical router cũng chọn expert gần đều — tuy nhiên hành vi của canonical router chưa được đo đối chiếu.
@@ -201,7 +208,7 @@ Ensemble val Dice = **0.7850** (Δ vs μ single = +0.0064). Chưa được xác 
 
 5. **per_image_dice không lưu kèm filenames** (cả val lẫn test). Không thể phân tích Dice theo nhóm (crack width, topology complexity) mà không chạy lại inference trên GPU.
 
-6. **Variant N chưa chạy.** Vai trò của nhánh expert pool chưa được kiểm tra trực tiếp.
+6. **Variant N đã hoàn thành** (2026-11-16). Không phát hiện đóng góp đo được của nhánh expert pool (Δ = −0.000625 điểm, không vượt MDE). "Không phát hiện" ≠ "không có đóng góp" — CI MDE rộng [0.0056, 0.0679] giới hạn kết luận.
 
 7. **Phase 4** (domain adaptation/augmentation) và **Phase 6** (inference optimization/quantization) chưa thực hiện. Báo cáo này không bao gồm hai phase đó.
 
@@ -215,7 +222,7 @@ Ensemble val Dice = **0.7850** (Δ vs μ single = +0.0064). Chưa được xác 
 | "TTA/ensemble giúp ích ở test" | Δ test = +0.0009 điểm, nằm trong CI cluster; không xác nhận được |
 | "Val→test gap do vết mảnh" | thin crack fraction p=0.22, không khác biệt; không có số đo ủng hộ |
 | "SAGE router vô ích hoàn toàn" | Chỉ đo được 2 seed; CI MDE rộng; không đo hành vi canonical router |
-| "Nhánh expert không đóng góp" | Variant N chưa chạy; không có bằng chứng trực tiếp |
+| "Nhánh expert không đóng góp" | Chỉ đo được 2 seed; CI MDE rộng; "không phát hiện" ≠ "không có đóng góp" |
 | "B2 tốt hơn B0 về gap val→test" | Gap B2 = 6.3 điểm, Gap B0 = 5.5 điểm — không khác xa, kết luận vô căn cứ |
 
 ---
